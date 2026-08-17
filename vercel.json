@@ -3,10 +3,6 @@
   "outputDirectory": "Producto/dani-project-front/build",
   "installCommand": "cd Producto/dani-project-front && npm install",
   "framework": "create-react-app",
-  "env": {
-    "VITE_API_URL": "https://dani27001backend.vercel.app",
-    "REACT_APP_API_URL": "https://dani27001backend.vercel.app"
-  },
   "rewrites": [
     {
       "source": "/(.*)",
