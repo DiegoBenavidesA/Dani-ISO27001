@@ -436,6 +436,7 @@ export const riskAPI = {
         ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
       }
     });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
     return response.json();
   }
 };

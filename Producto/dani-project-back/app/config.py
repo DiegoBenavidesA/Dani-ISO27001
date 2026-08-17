@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     # Security
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 240
 
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/dani27001"
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     @property
     def AI_MODEL(self):
         if self.GROQ_API_KEY:
-            return "meta-llama/llama-4-scout-17b-16e-instruct"
+            return "llama-3.3-70b-versatile"
         elif self.DEEPSEEK_API_KEY:
             return "deepseek-chat"
         else:
