@@ -135,7 +135,7 @@ class AIService:
                 model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=300
+                max_tokens=1000
             )
             
             import json
@@ -213,14 +213,14 @@ class AIService:
                 model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=400
+                max_tokens=1000
             )
-            
+
             import json
             content = response.choices[0].message.content
             content = content.replace('```json', '').replace('```', '').strip()
             return json.loads(content)
-            
+
         except Exception as e:
             logger.error(f"Error en evaluate_compliance: {e}")
             return {
@@ -267,14 +267,14 @@ class AIService:
                 model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=400
+                max_tokens=1000
             )
-            
+
             import json
             content = response.choices[0].message.content
             content = content.replace('```json', '').replace('```', '').strip()
             return json.loads(content)
-            
+
         except Exception as e:
             logger.error(f"Error en mass_evaluate_control: {e}")
             return {
