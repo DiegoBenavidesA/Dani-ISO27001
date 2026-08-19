@@ -172,7 +172,7 @@ class AIService:
 
         except Exception as e:
             logger.error(f"Error en generate_document: {e}")
-            return f"Error al generar el documento: {str(e)}"
+            raise
 
     async def evaluate_compliance(self, document_text: str, control_title: str, control_desc: str) -> dict:
         """Auditar un documento contra un control de la ISO 27001"""
