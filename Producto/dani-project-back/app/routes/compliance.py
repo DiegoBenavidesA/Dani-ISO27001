@@ -100,9 +100,9 @@ async def full_assessment(
                     
                     # Normalizamos los estados de la interfaz hacia el estándar de base de datos
                     status_clean = ctrl_data.status.lower()
-                    if "implemented" in status_clean or "implementado" in status_clean:
+                    if status_clean in ("implemented", "implementado"):
                         db_control.status = "Implementado"
-                    elif "planned" in status_clean or "planificado" in status_clean:
+                    elif status_clean in ("planned", "planificado"):
                         db_control.status = "Planificado"
                     else:
                         db_control.status = "No Implementado"
@@ -168,9 +168,9 @@ async def evaluate_control(
         
         # Traducir status de la IA al formato de BD que definió Elías
         ai_status = evaluation.get("status", "notImplemented").lower()
-        if "implemented" in ai_status:
+        if ai_status in ("implemented", "implementado"):
             db_control.status = "Implementado"
-        elif "planned" in ai_status:
+        elif ai_status in ("planned", "planificado"):
             db_control.status = "Planificado"
         else:
             db_control.status = "No Implementado"
@@ -259,9 +259,9 @@ async def bulk_audit(
             control.score = evaluation.get("score", 0)
             control.justification = evaluation.get("justification", "")
             ai_status = evaluation.get("status", "notImplemented").lower()
-            if "implemented" in ai_status:
+            if ai_status in ("implemented", "implementado"):
                 control.status = "Implementado"
-            elif "planned" in ai_status:
+            elif ai_status in ("planned", "planificado"):
                 control.status = "Planificado"
             else:
                 control.status = "No Implementado"
