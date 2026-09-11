@@ -22,6 +22,12 @@ from app.models.capa import CAPA
 from app.models.document import Document, DocumentAcknowledgement
 from app.models.evidence import Evidence
 
+# --- Modelos Ley N° 21.719 (integración de protección de datos personales) ---
+# Se importan para que SQLAlchemy los registre y cree sus tablas al arrancar.
+from app.models.data_treatment import DataTreatment      # Tarea 1.1 - Registro de tratamientos (RoPA)
+from app.models.vendor import Vendor                      # Tarea 1.5 - Proveedores / encargados
+from app.models.impact_assessment import ImpactAssessment # Tarea 1.6 - Evaluación de impacto (DPIA)
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
