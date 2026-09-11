@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     @property
     def AI_MODEL(self):
         if self.GROQ_API_KEY:
-            return "llama-3.3-70b-versatile"
+            return "openai/gpt-oss-120b"
         elif self.DEEPSEEK_API_KEY:
             return "deepseek-chat"
         else:
