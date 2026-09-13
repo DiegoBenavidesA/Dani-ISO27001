@@ -9,6 +9,16 @@ from datetime import datetime
 from app.routes import chat
 from app.routes import gap_analysis
 from app.routes import ai_routes
+from app.models.consent import Consent
+from app.models.data_treatment import DataTreatment
+from app.models.consent import Consent
+from app.models.consent import Consent
+from app.models.data_treatment import DataTreatment
+from app.models.data_subject_request import DataSubjectRequest 
+from app.models.consent import Consent
+from app.models.data_treatment import DataTreatment
+from app.models.data_subject_request import DataSubjectRequest
+from app.models.data_breach import DataBreach # <-- Agrega esta línea
 
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
