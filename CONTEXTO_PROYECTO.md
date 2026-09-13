@@ -14,6 +14,8 @@
 > ⚠️ **Regla de oro:** la IA **NO debe adivinar** el contenido de un archivo. Si lo necesita, que te lo pida y tú se lo pegas. Así evitamos errores.
 
 ---
+SALUDOS
+---
 
 ## 1. ¿Qué es el proyecto?
 
