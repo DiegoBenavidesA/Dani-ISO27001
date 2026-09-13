@@ -115,6 +115,10 @@ La Ley 21.719 (vigencia plena **1 de diciembre de 2026**) obliga a toda organiza
 
 ---
 
+
+
+
+
 ## 5. FASE 3 — Frontend (las pantallas)
 
 > Ruta: `Producto/dani-project-front/src/pages/`
