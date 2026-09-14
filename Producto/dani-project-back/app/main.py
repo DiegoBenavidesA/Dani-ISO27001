@@ -13,7 +13,7 @@ from app.routes import ai_routes
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
 
-from app.routes import auth, risk, evidence, documents, users
+from app.routes import auth, risk, evidence, documents, users, treatments
 from app.routes import compliance
 from app.routes import capa
 from app.routes import notifications
@@ -170,6 +170,7 @@ app.include_router(capa.router)
 app.include_router(notifications.router)
 app.include_router(report.router)
 app.include_router(ai_routes.router)
+app.include_router(treatments.router)
 
 
 @app.get("/")
