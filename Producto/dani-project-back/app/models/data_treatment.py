@@ -30,3 +30,5 @@ class DataTreatment(Base):
     
     # Relaciones
     consents = relationship("Consent", back_populates="treatment")
+    vendors = relationship("Vendor", back_populates="treatment")
+    impact_assessments = relationship("ImpactAssessment", back_populates="treatment")
