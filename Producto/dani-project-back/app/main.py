@@ -19,6 +19,9 @@ from app.models.consent import Consent
 from app.models.data_treatment import DataTreatment
 from app.models.data_subject_request import DataSubjectRequest
 from app.models.data_breach import DataBreach # <-- Agrega esta línea
+from app.routes import consents
+from app.routes import data_requests
+from app.routes import breaches
 
 from app.config import settings
 from app.dependencies.database import engine, Base, AsyncSessionLocal
@@ -128,6 +131,9 @@ app.include_router(capa.router)
 app.include_router(notifications.router)
 app.include_router(report.router)
 app.include_router(ai_routes.router)
+app.include_router(consents.router)
+app.include_router(data_requests.router)
+app.include_router(breaches.router)
 
 @app.get("/")
 async def root():
