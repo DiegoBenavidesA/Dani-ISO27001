@@ -282,3 +282,165 @@ class AIService:
                 "status": "notImplemented",
                 "justification": f"Fallo en la evaluación masiva con IA: {str(e)[:50]}"
             }
+
+    # ==========================================================================
+    # Funciones de IA para la Ley N° 21.719 (Tarea 2.8 del plan de integración).
+    # Reutilizan el mismo cliente y patrón que evaluate_compliance / mass_evaluate_control.
+    # Los valores que devuelven calzan con los enums de los modelos:
+    #   base_licitud -> LegalBasis   |   nivel_riesgo -> ImpactRiskLevel
+    # ==========================================================================
+
+    async def suggest_legal_basis(self, treatment_description: str) -> dict:
+        """
+        Sugiere la BASE DE LICITUD de un tratamiento de datos personales
+        (obligación O2 de la Ley 21.719) a partir de su descripción.
+        Devuelve: {"base_licitud": <valor>, "justificacion": <texto>}
+        """
+        if not self.client:
+            return {
+                "base_licitud": "consentimiento",
+                "justificacion": "[Demo Offline] Sin conexión a la IA; se sugiere consentimiento por defecto."
+            }
+
+        prompt = f"""
+        Actúa como un experto en protección de datos personales y en la Ley N° 21.719 de Chile.
+        A partir de la siguiente descripción de un tratamiento de datos, sugiere la BASE DE LICITUD más adecuada.
+
+        DESCRIPCIÓN DEL TRATAMIENTO:
+        {treatment_description}
+
+        Elige UNA base de licitud EXACTAMENTE de esta lista (usa el valor entre comillas):
+        - "consentimiento": la persona autorizó el uso de sus datos.
+        - "contrato": los datos son necesarios para ejecutar un contrato con la persona.
+        - "obligacion_legal": una ley obliga a tratar los datos.
+        - "interes_legitimo": interés legítimo del responsable, sin afectar los derechos de la persona.
+        - "datos_publicos": datos manifiestamente públicos.
+        - "otro": ninguna de las anteriores.
+
+        Responde SOLO con un objeto JSON válido. Ejemplo:
+        {{
+            "base_licitud": "consentimiento",
+            "justificacion": "Explicación breve de por qué corresponde esta base (máx 40 palabras)."
+        }}
+        """
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=300
+            )
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+        except Exception as e:
+            logger.error(f"Error en suggest_legal_basis: {e}")
+            return {
+                "base_licitud": "otro",
+                "justificacion": f"No se pudo determinar automáticamente: {str(e)[:50]}"
+            }
+
+    async def classify_personal_data(self, document_text: str) -> dict:
+        """
+        Identifica qué DATOS PERSONALES (y sensibles) aparecen en un documento
+        subido (apoya las obligaciones O1/O6 de la Ley 21.719).
+        Devuelve: {"datos_personales": [...], "datos_sensibles": [...], "resumen": <texto>}
+        """
+        if not self.client:
+            return {
+                "datos_personales": [],
+                "datos_sensibles": [],
+                "resumen": "[Demo Offline] Sin conexión a la IA; no se analizó el documento."
+            }
+
+        prompt = f"""
+        Actúa como un experto en protección de datos personales (Ley N° 21.719 de Chile).
+        Analiza el siguiente texto e identifica qué DATOS PERSONALES contiene.
+
+        Distingue entre:
+        - datos_personales: identifican o hacen identificable a una persona (ej: nombre, RUT, correo, teléfono, dirección).
+        - datos_sensibles: categoría especial (ej: salud, origen étnico, religión, afiliación política o sindical, vida sexual, datos biométricos).
+
+        TEXTO A ANALIZAR:
+        {document_text[:5000]}
+
+        Responde SOLO con un objeto JSON válido. Ejemplo:
+        {{
+            "datos_personales": ["nombre", "correo", "RUT"],
+            "datos_sensibles": ["datos de salud"],
+            "resumen": "Frase breve describiendo qué datos personales maneja el documento (máx 40 palabras)."
+        }}
+        """
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=500
+            )
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+        except Exception as e:
+            logger.error(f"Error en classify_personal_data: {e}")
+            return {
+                "datos_personales": [],
+                "datos_sensibles": [],
+                "resumen": f"No se pudo analizar el documento: {str(e)[:50]}"
+            }
+
+    async def assess_treatment_risk(self, treatment_description: str) -> dict:
+        """
+        Evaluación de impacto (DPIA) asistida por IA: estima el nivel de riesgo
+        de un tratamiento de datos personales (obligación O6 de la Ley 21.719).
+        Devuelve: {"nivel_riesgo": "alto|medio|bajo", "descripcion_riesgo": <texto>, "medidas_mitigacion": <texto>}
+        """
+        if not self.client:
+            return {
+                "nivel_riesgo": "medio",
+                "descripcion_riesgo": "[Demo Offline] Sin conexión a la IA; nivel de riesgo estimado por defecto.",
+                "medidas_mitigacion": "Revisar manualmente el tratamiento."
+            }
+
+        prompt = f"""
+        Actúa como un experto en protección de datos y evaluaciones de impacto (DPIA) según la Ley N° 21.719 de Chile.
+        Evalúa el riesgo para los derechos de las personas del siguiente tratamiento de datos.
+
+        DESCRIPCIÓN DEL TRATAMIENTO:
+        {treatment_description}
+
+        Considera factores como: volumen y sensibilidad de los datos, si hay decisiones automatizadas,
+        transferencias a terceros, y el impacto potencial sobre las personas.
+
+        Asigna un nivel de riesgo EXACTAMENTE uno de: "alto", "medio", "bajo".
+
+        Responde SOLO con un objeto JSON válido. Ejemplo:
+        {{
+            "nivel_riesgo": "alto",
+            "descripcion_riesgo": "Qué podría salir mal para las personas (máx 40 palabras).",
+            "medidas_mitigacion": "Medidas recomendadas para reducir el riesgo (máx 40 palabras)."
+        }}
+        """
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.3,
+                max_tokens=500
+            )
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            return json.loads(content)
+        except Exception as e:
+            logger.error(f"Error en assess_treatment_risk: {e}")
+            return {
+                "nivel_riesgo": "medio",
+                "descripcion_riesgo": f"No se pudo evaluar automáticamente: {str(e)[:50]}",
+                "medidas_mitigacion": "Revisar manualmente el tratamiento."
+            }

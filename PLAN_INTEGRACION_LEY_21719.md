@@ -4,6 +4,11 @@
 >
 > Complementa a [`CONTEXTO_PROYECTO.md`](./CONTEXTO_PROYECTO.md). Léelo junto con ese.
 
+## 🚦 Leyenda de estado
+
+- ✅ **Lista** (hecha y probada)  ·  🟡 **En progreso / parcial**  ·  ⬜ **Pendiente**
+- **Fase 1 (base de datos): completa ✅.** Fase 2 (APIs) en curso.
+
 ## 📌 Cómo usar este documento (importante)
 
 - **NO hagas todo de golpe.** Cada tarea (1.1, 1.2, …) se hace **de a una, con calma**. Terminar y probar una antes de pasar a la siguiente evita errores en cadena.
@@ -47,43 +52,43 @@ La Ley 21.719 (vigencia plena **1 de diciembre de 2026**) obliga a toda organiza
 > **Por qué primero las tablas:** sin la estructura de datos, ni las APIs ni las pantallas tienen dónde guardar la información. Cada tabla = una obligación de la ley.
 > Ruta: `Producto/dani-project-back/app/models/`
 
-### Tarea 1.1 — Tabla `data_treatments` (Registro de tratamientos / RoPA)
+### ✅ Tarea 1.1 — Tabla `data_treatments` (Registro de tratamientos / RoPA)
 - **Por qué:** es la obligación **O1**, el corazón de la ley. Sin este inventario no hay cumplimiento posible.
 - **Campos:** `id`, `nombre`, `finalidad`, `base_licitud`, `categorias_datos`, `origen`, `destinatarios`, `transferencias_internacionales`, `plazo_conservacion`, `responsable`, `organization_id`, `created_at`, `updated_at`.
 - **Archivo:** `models/data_treatment.py`
 
-### Tarea 1.2 — Tabla `consents` (Consentimientos)
+### ✅ Tarea 1.2 — Tabla `consents` (Consentimientos)
 - **Por qué:** obligación **O2**. Hay que probar el permiso de cada persona.
 - **Campos:** `id`, `titular` (identificación de la persona), `treatment_id` (FK → `data_treatments`), `fecha_otorgado`, `medio` (web, papel, etc.), `estado` (otorgado/revocado), `fecha_revocado`, `comprobante_url`, `organization_id`.
 - **Archivo:** `models/consent.py`
 
-### Tarea 1.3 — Tabla `data_subject_requests` (Solicitudes ARCO+P)
+### ✅ Tarea 1.3 — Tabla `data_subject_requests` (Solicitudes ARCO+P)
 - **Por qué:** obligación **O3**. La ley da **30 días hábiles** para responder; hay que controlar ese plazo.
 - **Campos:** `id`, `titular`, `tipo` (acceso/rectificación/cancelación/oposición/portabilidad), `descripcion`, `fecha_solicitud`, `fecha_limite` (calculada: +30 días hábiles), `estado` (pendiente/en_proceso/resuelta), `responsable`, `respuesta`, `organization_id`.
 - **Archivo:** `models/data_subject_request.py`
 
-### Tarea 1.4 — Tabla `data_breaches` (Brechas de datos)
+### ✅ Tarea 1.4 — Tabla `data_breaches` (Brechas de datos)
 - **Por qué:** obligación **O4**. Notificación en **72 horas**; hay que registrar el incidente y controlar el plazo.
 - **Campos:** `id`, `fecha_deteccion`, `descripcion`, `datos_afectados`, `cantidad_afectados`, `gravedad`, `fecha_limite_notificacion` (+72h), `fecha_notificacion`, `estado`, `medidas_tomadas`, `responsable`, `organization_id`.
 - **Archivo:** `models/data_breach.py`
 
-### Tarea 1.5 — Tabla `vendors` (Proveedores / encargados)
+### ✅ Tarea 1.5 — Tabla `vendors` (Proveedores / encargados)
 - **Por qué:** obligación **O5**. Los terceros que acceden a datos deben estar controlados por contrato.
 - **Campos:** `id`, `nombre`, `datos_compartidos`, `pais`, `estado_contrato` (vigente/pendiente/vencido), `treatment_id` (FK, qué tratamiento le corresponde), `organization_id`.
 - **Archivo:** `models/vendor.py`
 
-### Tarea 1.6 — Tabla `impact_assessments` (Evaluación de impacto / DPIA)
+### ✅ Tarea 1.6 — Tabla `impact_assessments` (Evaluación de impacto / DPIA)
 - **Por qué:** obligación **O6**. Para tratamientos de alto riesgo hay que evaluar antes.
 - **Campos:** `id`, `treatment_id` (FK), `nivel_riesgo`, `descripcion_riesgo`, `medidas_mitigacion`, `estado`, `responsable`, `organization_id`.
 - **Nota:** se puede reutilizar parte de la lógica del **Mapa de Riesgos** que ya existe (`models/risk.py`).
 - **Archivo:** `models/impact_assessment.py`
 
-### Tarea 1.7 — Campo/rol de DPO (Delegado)
+### ✅ Tarea 1.7 — Campo/rol de DPO (Delegado)
 - **Por qué:** obligación **O7**. En ciertos casos hay que designar un Delegado.
 - **Cómo:** **no requiere tabla nueva.** Se agrega un rol/campo al modelo `user.py` existente (ej. marcar a un usuario como DPO).
 - **Archivo:** `models/user.py`
 
-### Tarea 1.8 — Registrar los modelos y crear las tablas
+### ✅ Tarea 1.8 — Registrar los modelos y crear las tablas
 - **Por qué:** para que FastAPI/SQLAlchemy conozca las tablas nuevas y las cree en la BD.
 - **Cómo:** importar los modelos nuevos en `app/main.py` (donde ya se importan los demás). Al arrancar, se crean solas.
 - **Archivo:** `app/main.py`
@@ -95,17 +100,19 @@ La Ley 21.719 (vigencia plena **1 de diciembre de 2026**) obliga a toda organiza
 > **Por qué:** las pantallas necesitan endpoints para leer y guardar datos. Un módulo = un archivo de rutas (siguiendo el patrón de `routes/risk.py`, etc.).
 > Ruta: `Producto/dani-project-back/app/routes/`
 
-| Tarea | API | Qué hace | Obligación | Archivo |
-|---|---|---|---|---|
-| **2.1** | Registro de tratamientos | CRUD de `data_treatments` | O1 | `routes/treatments.py` |
-| **2.2** | Consentimientos | CRUD + registrar/revocar | O2 | `routes/consents.py` |
-| **2.3** | Solicitudes ARCO+P | CRUD + cálculo de plazo (30 días) + alertas | O3 | `routes/data_requests.py` |
-| **2.4** | Brechas | CRUD + flujo de notificación (72h) + alertas | O4 | `routes/breaches.py` |
-| **2.5** | Proveedores | CRUD de `vendors` | O5 | `routes/vendors.py` |
-| **2.6** | Evaluación de impacto | CRUD de `impact_assessments` | O6 | `routes/impact.py` |
-| **2.7** | Registrar routers | Incluir los routers nuevos | — | `app/main.py` |
+| Estado | Tarea | API | Qué hace | Obligación | Archivo |
+|---|---|---|---|---|---|
+| ✅ | **2.1** | Registro de tratamientos | CRUD de `data_treatments` | O1 | `routes/treatments.py` |
+| ⬜ | **2.2** | Consentimientos | CRUD + registrar/revocar | O2 | `routes/consents.py` |
+| ⬜ | **2.3** | Solicitudes ARCO+P | CRUD + cálculo de plazo (30 días) + alertas | O3 | `routes/data_requests.py` |
+| ⬜ | **2.4** | Brechas | CRUD + flujo de notificación (72h) + alertas | O4 | `routes/breaches.py` |
+| ⬜ | **2.5** | Proveedores | CRUD de `vendors` | O5 | `routes/vendors.py` |
+| ✅ | **2.6** | Evaluación de impacto | CRUD de `impact_assessments` | O6 | `routes/impact.py` |
+| 🟡 | **2.7** | Registrar routers | Incluir los routers nuevos | — | `app/main.py` |
 
-### Tarea 2.8 — Conectar la IA (reutilizar `ai_service.py`)
+> **Nota 2.7:** registrados los que ya existen → `treatments` (2.1) e `impact` (2.6). Falta registrar `consents`, `data_requests`, `breaches` y `vendors` a medida que se creen (2.2–2.5).
+
+### ✅ Tarea 2.8 — Conectar la IA (reutilizar `ai_service.py`)
 - **Por qué:** el valor diferenciador del proyecto es usar IA. La IA puede **asistir** en:
   - Sugerir la **base de licitud** de un tratamiento a partir de su descripción.
   - **Clasificar** qué datos son personales/sensibles en un documento subido.
