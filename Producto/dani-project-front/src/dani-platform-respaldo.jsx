@@ -25,6 +25,8 @@ import UserManagementScreen from './pages/UserManagementScreen';
 import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
+import VendorsScreen from './pages/VendorsScreen';
+import ConsentsScreen from './pages/ConsentsScreen';
 
 export default function DaniPlatform() {
   const { logout } = useAuth();
@@ -155,6 +157,8 @@ export default function DaniPlatform() {
           {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}
           {activeScreen === 'user-management' && <UserManagementScreen />}
+          {activeScreen === 'vendors' && <VendorsScreen />}
+          {activeScreen === 'consents' && <ConsentsScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
             
         </div>
