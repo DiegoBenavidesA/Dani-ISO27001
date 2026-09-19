@@ -28,6 +28,9 @@ import EmployeePortalScreen from './pages/EmployeePortal';
 import TreatmentsScreen from './pages/TreatmentsScreen';
 import ImpactScreen from './pages/ImpactScreen';
 
+import VendorsScreen from './pages/VendorsScreen';
+import ConsentsScreen from './pages/ConsentsScreen';
+
 export default function DaniPlatform() {
   const { logout } = useAuth();
   
@@ -157,6 +160,8 @@ export default function DaniPlatform() {
           {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}
           {activeScreen === 'user-management' && <UserManagementScreen />}
+          {activeScreen === 'vendors' && <VendorsScreen />}
+          {activeScreen === 'consents' && <ConsentsScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
           {activeScreen === 'treatments' && <TreatmentsScreen onNavigate={handleNavigate} />}
           {activeScreen === 'impact' && <ImpactScreen navParams={navParams} onNavigate={handleNavigate} />}

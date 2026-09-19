@@ -487,6 +487,128 @@ export const capaAPI = {
 };
 
 // ============================================
+// 👤 SOLICITUDES DE TITULARES (ARCO+P) API — Ley 21.719 (O3)
+// Backend: routes/data_requests.py  →  /api/data-requests
+// ============================================
+export const dataRequestsAPI = {
+  // Listar todas las solicitudes (ordenadas por fecha límite ascendente)
+  getAll: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/data-requests`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+
+  // Obtener el detalle de una solicitud
+  getOne: async (requestId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/data-requests/${requestId}`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return response.json();
+  },
+
+  // Crear una nueva solicitud (el backend calcula la fecha límite: +30 días hábiles)
+  // requestData: { titular, tipo, descripcion, organization_id? }
+  create: async (requestData, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/data-requests`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(requestData)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+
+  // Actualizar estado / responsable / respuesta de una solicitud
+  // updateData: { estado?, responsable?, respuesta? }
+  update: async (requestId, updateData, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/data-requests/${requestId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  }
+};
+
+// ============================================
+// 🚨 GESTIÓN DE BRECHAS API — Ley 21.719 (O4)
+// Backend: routes/breaches.py  →  /api/breaches
+// ============================================
+export const breachesAPI = {
+  // Listar todas las brechas (el backend marca alerta_vencida si venció el plazo de 72h)
+  getAll: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+
+  // Registrar una nueva brecha (el backend calcula fecha_limite_notificacion: +72 horas)
+  // breachData: { descripcion, datos_afectados, gravedad, fecha_deteccion?, cantidad_afectados?, organization_id? }
+  create: async (breachData, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(breachData)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+
+  // Actualizar la investigación de la brecha
+  // updateData: { estado?, medidas_tomadas?, responsable?, cantidad_afectados?, gravedad? }
+  update: async (breachId, updateData, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+
+  // Marcar la brecha como notificada a la Agencia (detiene el reloj de las 72h)
+  notify: async (breachId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  }
+};
+
+// ============================================
 // 🔧 FUNCIONES HELPER
 // ============================================
 export const authFetch = async (endpoint, options = {}) => {
@@ -549,6 +671,216 @@ export const impactAPI = {
   }
 };
 // ============================================
+// ✅ CONSENTS API
+// ============================================
+export const consentsAPI = {
+  getAll: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/consents`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al obtener los consentimientos');
+    }
+
+    return response.json();
+  },
+
+  getById: async (id, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/consents/${id}`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al obtener el consentimiento');
+    }
+
+    return response.json();
+  },
+
+  create: async (consentData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/consents`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      },
+      body: JSON.stringify(consentData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al registrar el consentimiento');
+    }
+
+    return response.json();
+  },
+
+  revoke: async (id, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/consents/${id}/revoke`, {
+      method: 'PATCH',
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al revocar el consentimiento');
+    }
+
+    return response.json();
+  },
+
+  delete: async (id, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/consents/${id}`, {
+      method: 'DELETE',
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al eliminar el consentimiento');
+    }
+
+    return response.json();
+  }
+};
+
+// ============================================
+// 🏢 VENDORS API
+// ============================================
+export const vendorsAPI = {
+  getAll: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al obtener los proveedores');
+    }
+
+    return response.json();
+  },
+
+  getById: async (vendorId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al obtener el proveedor');
+    }
+
+    return response.json();
+  },
+
+  create: async (vendorData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      },
+      body: JSON.stringify(vendorData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al crear el proveedor');
+    }
+
+    return response.json();
+  },
+
+  update: async (vendorId, vendorData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      },
+      body: JSON.stringify(vendorData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al actualizar el proveedor');
+    }
+
+    return response.json();
+  },
+
+  delete: async (vendorId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      method: 'DELETE',
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al eliminar el proveedor');
+    }
+
+    return response.json();
+  }
+};
+
+// ============================================
 // 📍 ENDPOINTS (para referencia)
 // ============================================
 export const endpoints = {
@@ -564,6 +896,8 @@ export const endpoints = {
   risks: `${API_URL}/api/risks`,
   chat: `${API_URL}/api/chat`,
   users: `${API_URL}/api/users`,
+  dataRequests: `${API_URL}/api/data-requests`,
+  breaches: `${API_URL}/api/breaches`,
 };
 
 // ============================================
@@ -578,6 +912,10 @@ const api = {
   authAPI,
   evidenceAPI,
   riskAPI,
+  vendorsAPI,
+  consentsAPI,
+  dataRequestsAPI,
+  breachesAPI,
   authFetch,
   endpoints,
   treatmentsAPI,
