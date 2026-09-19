@@ -1,7 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield, UserCircle, Building2, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDomainScores, getComplianceScore } from '../services/api';
 
@@ -100,7 +99,10 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, adminOnly: true },
     { id: 'user-management', label: l.userManagement, icon: Users, adminOnly: true },
     { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, adminOnly: true },
+    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, adminOnly: true },
     { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, adminOnly: true },
+    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, adminOnly: true },
+    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, adminOnly: true },
     { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, adminOnly: true },
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, adminOnly: false },
   ].filter(item => !item.adminOnly || isAdmin);
