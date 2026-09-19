@@ -25,6 +25,9 @@ import UserManagementScreen from './pages/UserManagementScreen';
 import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
+import TreatmentsScreen from './pages/TreatmentsScreen';
+import ImpactScreen from './pages/ImpactScreen';
+
 import VendorsScreen from './pages/VendorsScreen';
 import ConsentsScreen from './pages/ConsentsScreen';
 import DataRequestsScreen from './pages/DataRequestsScreen';
@@ -166,6 +169,8 @@ export default function DaniPlatform() {
           {activeScreen === 'breaches' && <BreachesScreen />}
           {activeScreen === 'assessment' && <AssessmentScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
+          {activeScreen === 'treatments' && <TreatmentsScreen onNavigate={handleNavigate} />}
+          {activeScreen === 'impact' && <ImpactScreen navParams={navParams} onNavigate={handleNavigate} />}
             
         </div>
       </main>

@@ -633,6 +633,43 @@ export const authFetch = async (endpoint, options = {}) => {
   return response;
 };
 
+
+// ============================================
+// 🛡️ TREATMENTS API (Ley 21.719 - RoPA)
+// ============================================
+export const treatmentsAPI = {
+  getAll: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_URL}/api/treatments`, {
+        headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+      });
+      if (!response.ok) throw new Error('Error al obtener tratamientos');
+      return await response.json();
+    } catch (e) {
+      console.warn("Usando datos de fallback para tratamientos");
+      return null; // El frontend manejará el fallback
+    }
+  }
+};
+
+// ============================================
+// 🎯 IMPACT ASSESSMENT API (Ley 21.719 - DPIA)
+// ============================================
+export const impactAPI = {
+  getAll: async (token) => {
+    const activeToken = token || localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_URL}/api/impact`, {
+        headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+      });
+      if (!response.ok) throw new Error('Error al obtener evaluaciones de impacto');
+      return await response.json();
+    } catch (e) {
+      return null;
+    }
+  }
+};
 // ============================================
 // ✅ CONSENTS API
 // ============================================
@@ -880,7 +917,9 @@ const api = {
   dataRequestsAPI,
   breachesAPI,
   authFetch,
-  endpoints
+  endpoints,
+  treatmentsAPI,
+  impactAPI
 };
 
 // services/api.js - Agregar estas funciones
