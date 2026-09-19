@@ -1,12 +1,12 @@
 // src/pages/GapAnalysisScreen.jsx
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useMemo } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
   AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { complianceAPI, documentsAPI, API_URL } from '../services/api';
+import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
@@ -248,72 +248,119 @@ function GapAnalysisScreen({ onNavigate }) {
   const [docAnalysisError, setDocAnalysisError] = useState(null);
 
   // ==========================================
-  // DATOS DE LAS FASES
+  // DATOS DE LAS FASES  (ahora vienen de la BASE DE DATOS: /api/assessment-questions)
+  // El catálogo de preguntas se agrupa en fases por cláusula/categoría.
   // ==========================================
-  const phases = [
-    {
-      id: 'context', name: tText.contextLeadership, clause: tText.clauses45, icon: Building2, color: '#3b82f6',
-      questions: [
-        { id: 'q1', title: tText.q1Title, question: tText.q1Question, options: [tText.yes, tText.no], critical: true },
-        { id: 'q2', title: tText.q2Title, question: tText.q2Question, options: [tText.yes, tText.no], critical: true },
-        { id: 'q3', title: tText.q3Title, question: tText.q3Question, options: [tText.yes, tText.no], critical: true }
-      ]
-    },
-    {
-      id: 'planning', name: tText.planningRisk, clause: tText.clause6, icon: Target, color: '#10b981',
-      questions: [
-        { id: 'q4', title: tText.q4Title, question: tText.q4Question, options: [tText.yes, tText.no], critical: true },
-        { id: 'q5', title: tText.q5Title, question: tText.q5Question, options: [tText.yes, tText.partially, tText.no], critical: true }
-      ]
-    },
-    {
-      id: 'support', name: tText.supportOps, clause: tText.clauses78, icon: Users, color: '#f59e0b',
-      questions: [
-        { id: 'q6', title: tText.q6Title, question: tText.q6Question, options: [tText.yes, tText.partially, tText.no], critical: false }
-      ]
-    },
-    {
-      id: 'annex', name: tText.annexA, clause: tText.annexAtext, icon: Lock, color: '#a855f7',
-      questions: [
-        { id: 'q7', title: tText.q7Title, question: tText.q7Question, options: [tText.yes, tText.partially, tText.no], critical: true },
-        { id: 'q8', title: tText.q8Title, question: tText.q8Question, options: [tText.yes, tText.partially, tText.no], critical: true }
-      ]
-    }
+  const [dbQuestions, setDbQuestions] = useState([]);
+  const [questionsLoading, setQuestionsLoading] = useState(true);
+  const [questionsError, setQuestionsError] = useState(null);
+
+  // Evaluar con IA (subir documentos -> la IA responde cada pregunta)
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [isEvaluating, setIsEvaluating] = useState(false);
+  const [evalError, setEvalError] = useState(null);
+  const [evalInfo, setEvalInfo] = useState(null);
+  const [aiResults, setAiResults] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('dani_gap_ai_results') || '{}'); } catch { return {}; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {}
+  }, [aiResults]);
+
+  useEffect(() => {
+    const loadQuestions = async () => {
+      setQuestionsLoading(true);
+      setQuestionsError(null);
+      try {
+        const data = await assessmentQuestionsAPI.getAll();
+        setDbQuestions(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error al cargar las preguntas de evaluación desde la BD.', err);
+        setQuestionsError('No se pudieron cargar las preguntas desde la base de datos.');
+        setDbQuestions([]);
+      } finally {
+        setQuestionsLoading(false);
+      }
+    };
+    loadQuestions();
+  }, []);
+
+  // Definición de las fases: a qué grupo pertenece cada pregunta según su código/categoría.
+  const clauseNum = (codigo) => (codigo || '').split('.')[0];
+  const phaseDefs = [
+    { id: 'context',  name: tText.contextLeadership || 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => q.categoria?.startsWith('Cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
+    { id: 'planning', name: tText.planningRisk || 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#10b981', match: (q) => q.categoria?.startsWith('Cláusula') && clauseNum(q.codigo) === '6' },
+    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => q.categoria?.startsWith('Cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
+    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => q.categoria === 'Organizacional' },
+    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
+    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
+    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
   ];
 
-  // Actualizar traducciones cuando cambia el idioma
-  useEffect(() => {
-    phases[0].name = tText.contextLeadership;
-    phases[0].clause = tText.clauses45;
-    phases[0].questions[0].title = tText.q1Title;
-    phases[0].questions[0].question = tText.q1Question;
-    phases[0].questions[0].options = [tText.yes, tText.no];
-    phases[0].questions[1].title = tText.q2Title;
-    phases[0].questions[1].question = tText.q2Question;
-    phases[0].questions[2].title = tText.q3Title;
-    phases[0].questions[2].question = tText.q3Question;
+  // Construir las fases a partir de las preguntas de la BD.
+  const phases = useMemo(() => {
+    return phaseDefs
+      .map((def) => ({
+        id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
+        questions: dbQuestions
+          .filter(def.match)
+          .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+          .map((q) => ({
+            id: q.id,
+            title: `${q.codigo} — ${q.nombre}`,
+            question: q.pregunta,
+            options: [tText.yes, tText.partially, tText.no],
+            critical: q.categoria?.startsWith('Cláusula'),
+            evidencia: q.evidencia_esperada,
+          })),
+      }))
+      .filter((p) => p.questions.length > 0);
+  }, [dbQuestions, language]);
 
-    phases[1].name = tText.planningRisk;
-    phases[1].clause = tText.clause6;
-    phases[1].questions[0].title = tText.q4Title;
-    phases[1].questions[0].question = tText.q4Question;
-    phases[1].questions[1].title = tText.q5Title;
-    phases[1].questions[1].question = tText.q5Question;
-    phases[1].questions[1].options = [tText.yes, tText.partially, tText.no];
+  // Mapear el veredicto de la IA a la opción de respuesta (Sí / Parcialmente / No)
+  const veredictoToOption = (veredicto) => {
+    if (veredicto === 'cumple') return tText.yes;
+    if (veredicto === 'parcial') return tText.partially;
+    return tText.no; // no_cumple o sin_evidencia
+  };
 
-    phases[2].name = tText.supportOps;
-    phases[2].clause = tText.clauses78;
-    phases[2].questions[0].title = tText.q6Title;
-    phases[2].questions[0].question = tText.q6Question;
-    phases[2].questions[0].options = [tText.yes, tText.partially, tText.no];
-
-    phases[3].name = tText.annexA;
-    phases[3].clause = tText.annexAtext;
-    phases[3].questions[0].title = tText.q7Title;
-    phases[3].questions[0].question = tText.q7Question;
-    phases[3].questions[1].title = tText.q8Title;
-    phases[3].questions[1].question = tText.q8Question;
-  }, [language]);
+  // Evaluar con IA (o revalidar). Si revalidate=true, solo reprocesa las que NO
+  // están en "Sí" (cumple): las ya aprobadas se omiten.
+  const handleEvaluateWithAI = async (revalidate = false) => {
+    setEvalError(null);
+    setEvalInfo(null);
+    if (!uploadedFiles.length) {
+      setEvalError('Sube al menos un documento antes de evaluar.');
+      return;
+    }
+    let ids = [];
+    if (revalidate) {
+      phases.forEach((p) => p.questions.forEach((q) => {
+        if (answers[q.id] !== tText.yes) ids.push(q.id);
+      }));
+      if (ids.length === 0) {
+        setEvalInfo('No hay preguntas pendientes: todas están en "Sí".');
+        return;
+      }
+    }
+    setIsEvaluating(true);
+    try {
+      const resp = await assessmentQuestionsAPI.evaluate(uploadedFiles, ids);
+      const newAnswers = { ...answers };
+      const newAI = { ...aiResults };
+      (resp.results || []).forEach((r) => {
+        newAnswers[r.id] = veredictoToOption(r.veredicto);
+        newAI[r.id] = { veredicto: r.veredicto, confianza: r.confianza, justificacion: r.justificacion };
+      });
+      setAnswers(newAnswers);
+      setAiResults(newAI);
+      setEvalInfo(`✅ IA evaluó ${resp.total} pregunta(s)${revalidate ? ' (revalidación)' : ''}.`);
+    } catch (e) {
+      setEvalError(e.message || 'Error al evaluar con IA.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   // Cargar controles ISO
   useEffect(() => {
@@ -1406,7 +1453,79 @@ function GapAnalysisScreen({ onNavigate }) {
             </div>
           </div>
 
+          {/* Aviso de carga / vacío / error de las preguntas (que ahora vienen de la BD) */}
+          {questionsLoading && (
+            <div style={{ color: t.textDim, padding: '24px', textAlign: 'center' }}>Cargando preguntas desde la base de datos...</div>
+          )}
+          {!questionsLoading && questionsError && (
+            <div style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', padding: '12px 16px', borderRadius: '10px', marginBottom: '16px', fontSize: '13px' }}>⚠️ {questionsError}</div>
+          )}
+          {!questionsLoading && !questionsError && phases.length === 0 && (
+            <div style={{ color: t.textDim, padding: '24px', textAlign: 'center' }}>No hay preguntas cargadas en la base de datos todavía.</div>
+          )}
+
+          {/* Panel de Evaluación con IA: subir documentos y evaluar */}
+          {phases.length > 0 && (
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+              <Wand2 size={18} color="#6366f1" />
+              <strong style={{ color: t.text, fontSize: '14px' }}>Evaluación con IA</strong>
+              <span style={{ color: t.textDim, fontSize: '12px' }}>Sube tus documentos y la IA responderá cada pregunta (Cumple / Parcial / No).</span>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '13px' }}>
+                <FolderUp size={16} /> Agregar documentos
+                <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
+                  const nuevos = Array.from(e.target.files || []);
+                  setUploadedFiles((prev) => {
+                    const combinado = [...prev];
+                    nuevos.forEach((nf) => {
+                      if (!combinado.some((f) => f.name === nf.name && f.size === nf.size)) combinado.push(nf);
+                    });
+                    return combinado;
+                  });
+                  e.target.value = ''; // permite volver a elegir el mismo archivo o agregar más
+                  setEvalError(null);
+                  setEvalInfo(null);
+                }} />
+              </label>
+              <button onClick={() => handleEvaluateWithAI(false)} disabled={isEvaluating} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: isEvaluating ? 'not-allowed' : 'pointer', opacity: isEvaluating ? 0.6 : 1 }}>
+                <Wand2 size={16} /> {isEvaluating ? 'Evaluando...' : 'Evaluar con IA'}
+              </button>
+              <button onClick={() => handleEvaluateWithAI(true)} disabled={isEvaluating} title="Reprocesa solo las preguntas que no están en 'Sí'" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontSize: '13px', cursor: isEvaluating ? 'not-allowed' : 'pointer', opacity: isEvaluating ? 0.6 : 1 }}>
+                <Activity size={16} /> Revalidar con IA
+              </button>
+            </div>
+            {uploadedFiles.length > 0 && (
+              <div style={{ marginTop: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', color: t.textMuted }}>📎 {uploadedFiles.length} documento(s) seleccionado(s)</span>
+                  <button onClick={() => { setUploadedFiles([]); setEvalInfo(null); setEvalError(null); }} style={{ fontSize: '11px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>Quitar todos</button>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {uploadedFiles.map((f, idx) => (
+                    <span key={`${f.name}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: t.text, background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '4px 10px' }}>
+                      {f.name}
+                      <button onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))} title="Quitar" style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {isEvaluating && (
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#6366f1' }}>🤖 La IA está analizando los documentos... esto puede tardar un poco.</div>
+            )}
+            {evalError && (
+              <div style={{ marginTop: '10px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>⚠️ {evalError}</div>
+            )}
+            {evalInfo && (
+              <div style={{ marginTop: '10px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>{evalInfo}</div>
+            )}
+          </div>
+          )}
+
           {/* Grid principal del wizard */}
+          {phases.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '24px' }}>
 
             {/* Columna izquierda - FASES */}
@@ -1445,6 +1564,24 @@ function GapAnalysisScreen({ onNavigate }) {
                     </button>
                   ))}
                 </div>
+                {aiResults[currentQuestionData.id] && (
+                  <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <Wand2 size={14} color="#6366f1" />
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Respuesta de la IA:</span>
+                      {(() => {
+                        const v = aiResults[currentQuestionData.id].veredicto;
+                        const map = { cumple: ['Cumple', '#10b981'], parcial: ['Parcial', '#f59e0b'], no_cumple: ['No cumple', '#ef4444'], sin_evidencia: ['Sin evidencia', '#6b7280'] };
+                        const [label, color] = map[v] || ['—', t.textDim];
+                        return <span style={{ fontSize: '11px', fontWeight: 700, color, background: `${color}22`, padding: '2px 8px', borderRadius: '10px' }}>{label}</span>;
+                      })()}
+                      {typeof aiResults[currentQuestionData.id].confianza === 'number' && (
+                        <span style={{ fontSize: '11px', color: t.textDim }}>Confianza: {Math.round((aiResults[currentQuestionData.id].confianza || 0) * 100)}%</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '12px', color: t.textMuted, lineHeight: '1.5' }}>{aiResults[currentQuestionData.id].justificacion}</div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
                   <button onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', cursor: (currentPhase === 0 && currentQuestion === 0) ? 'not-allowed' : 'pointer', opacity: (currentPhase === 0 && currentQuestion === 0) ? 0.5 : 1 }}>{tText.previous}</button>
                   <button onClick={goToNext} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>{tText.continue}</button>
@@ -1467,6 +1604,7 @@ function GapAnalysisScreen({ onNavigate }) {
               <button onClick={() => setActiveMainTab('soa')} style={{ width: '100%', marginTop: '20px', padding: '10px', background: 'rgba(16, 185, 129, 0.1)', border: `1px solid rgba(16, 185, 129, 0.3)`, borderRadius: '8px', color: '#10b981', cursor: 'pointer' }}>{tText.viewSOA}</button>
             </div>
           </div>
+          )}
         </>
       ) : activeMainTab === 'soa' ? (
         <InteractiveSOA />

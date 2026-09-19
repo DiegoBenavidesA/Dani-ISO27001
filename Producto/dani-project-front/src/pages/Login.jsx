@@ -13,6 +13,14 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [success, setSuccess] = useState('');
   const [localError, setLocalError] = useState('');
+  // Aviso cuando el usuario llega aquí porque su sesión expiró (401 global).
+  const [sessionExpired] = useState(() => {
+    try {
+      const v = sessionStorage.getItem('session_expired');
+      if (v) sessionStorage.removeItem('session_expired');
+      return !!v;
+    } catch { return false; }
+  });
 
   const isValidEmail = (email) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -223,9 +231,25 @@ const Login = () => {
             </div>
           )}
           
+          {sessionExpired && (
+            <div style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.15)',
+              border: '1px solid rgba(245, 158, 11, 0.35)',
+              color: '#f59e0b',
+              padding: '12px 14px',
+              borderRadius: '10px',
+              fontSize: '13px',
+              textAlign: 'center',
+              fontWeight: 500,
+              marginBottom: '4px'
+            }}>
+              Tu sesión expiró. Inicia sesión de nuevo para continuar.
+            </div>
+          )}
+
           {success && (
-            <div style={{ 
-              backgroundColor: 'rgba(16, 185, 129, 0.15)', 
+            <div style={{
+              backgroundColor: 'rgba(16, 185, 129, 0.15)',
               border: '1px solid rgba(16, 185, 129, 0.3)', 
               color: '#10b981', 
               padding: '14px', 

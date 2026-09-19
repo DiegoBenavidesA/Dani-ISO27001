@@ -27,6 +27,9 @@ import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
 import VendorsScreen from './pages/VendorsScreen';
 import ConsentsScreen from './pages/ConsentsScreen';
+import DataRequestsScreen from './pages/DataRequestsScreen';
+import BreachesScreen from './pages/BreachesScreen';
+import AssessmentScreen from './pages/AssessmentScreen';
 
 export default function DaniPlatform() {
   const { logout } = useAuth();
@@ -159,6 +162,9 @@ export default function DaniPlatform() {
           {activeScreen === 'user-management' && <UserManagementScreen />}
           {activeScreen === 'vendors' && <VendorsScreen />}
           {activeScreen === 'consents' && <ConsentsScreen />}
+          {activeScreen === 'data-requests' && <DataRequestsScreen />}
+          {activeScreen === 'breaches' && <BreachesScreen />}
+          {activeScreen === 'assessment' && <AssessmentScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
             
         </div>

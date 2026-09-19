@@ -930,4 +930,43 @@ export const getDomainScores = async () => {
   return response.json();
 };
 
+// ==========================================
+// Catálogo de preguntas de evaluación ISO 27001
+// ==========================================
+export const assessmentQuestionsAPI = {
+  // Listar preguntas (opcionalmente filtradas por categoría)
+  getAll: async (categoria = null, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const url = categoria
+      ? `${API_URL}/api/assessment-questions/?categoria=${encodeURIComponent(categoria)}`
+      : `${API_URL}/api/assessment-questions/`;
+    const response = await fetch(url, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+
+  // Evaluar con IA: sube documentos y la IA responde cada pregunta.
+  // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
+  evaluate: async (files, questionIds = [], token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const form = new FormData();
+    (files || []).forEach((f) => form.append('files', f));
+    form.append('question_ids', (questionIds || []).join(','));
+    const response = await fetch(`${API_URL}/api/assessment-questions/evaluate`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form,
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+};
+
 export default api;

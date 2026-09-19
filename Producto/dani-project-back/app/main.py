@@ -6,44 +6,33 @@ import logging
 import uuid
 import os
 
+from app.config import settings
+from app.dependencies.database import engine, Base, AsyncSessionLocal
+
+# --- Routers ---
+from app.routes import auth, risk, evidence, documents, users, treatments
 from app.routes import chat
 from app.routes import gap_analysis
 from app.routes import ai_routes
-
-from app.models.consent import Consent
-from app.models.data_treatment import DataTreatment
-from app.models.consent import Consent
-from app.models.consent import Consent
-from app.models.data_treatment import DataTreatment
-from app.models.data_subject_request import DataSubjectRequest 
-from app.models.consent import Consent
-from app.models.data_treatment import DataTreatment
-from app.models.data_subject_request import DataSubjectRequest
-from app.models.data_breach import DataBreach # <-- Agrega esta línea
-from app.routes import consents
-from app.routes import data_requests
-from app.routes import breaches
-
-
-
-from app.config import settings
-from app.dependencies.database import engine, Base, AsyncSessionLocal
-from app.routes import auth, risk, evidence, documents, users, treatments
-from app.routes import vendors
-from app.routes import impact
 from app.routes import compliance
 from app.routes import capa
 from app.routes import notifications
 from app.routes import report
+from app.routes import impact
+from app.routes import consents
+from app.routes import data_requests
+from app.routes import breaches
+from app.routes import vendors
+from app.routes import assessment_questions
+
+# --- Modelos base (se importan para que SQLAlchemy los registre) ---
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
 from app.models.document import Document, DocumentAcknowledgement
 from app.models.evidence import Evidence
 
 # --- Modelos Ley N° 21.719 ---
-# Se importan para que SQLAlchemy los registre
-# y cree sus tablas al arrancar.
-
+# Se importan para que SQLAlchemy los registre y cree sus tablas al arrancar.
 from app.models.data_treatment import DataTreatment
 from app.models.consent import Consent
 from app.models.data_subject_request import DataSubjectRequest
@@ -187,12 +176,15 @@ app.include_router(capa.router)
 app.include_router(notifications.router)
 app.include_router(report.router)
 app.include_router(ai_routes.router)
+
+# --- Routers Ley N° 21.719 ---
+app.include_router(treatments.router)
 app.include_router(consents.router)
 app.include_router(data_requests.router)
 app.include_router(breaches.router)
-app.include_router(treatments.router)
-app.include_router(impact.router)
 app.include_router(vendors.router)
+app.include_router(impact.router)
+app.include_router(assessment_questions.router)
 
 
 @app.get("/")

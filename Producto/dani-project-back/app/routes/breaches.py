@@ -1,172 +1,230 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from typing import List, Optional
-from pydantic import BaseModel
 from datetime import datetime, timedelta
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user
-from app.models.data_breach import DataBreach, SeverityLevel, BreachState
+from app.models.data_breach import DataBreach
 
-router = APIRouter(prefix="/api/breaches", tags=["Data Breaches"])
 
-# ==========================================
-# ESQUEMAS (PYDANTIC)
-# ==========================================
+router = APIRouter(
+    prefix="/api/breaches",
+    tags=["Data Breaches"]
+)
+
+
+# =========================================================
+# MODELOS DE ENTRADA Y SALIDA
+# =========================================================
+
 class BreachCreate(BaseModel):
     fecha_deteccion: Optional[datetime] = None
     descripcion: str
     datos_afectados: str
     cantidad_afectados: Optional[int] = None
-    gravedad: SeverityLevel
-    organization_id: Optional[str] = None
-
-class BreachUpdate(BaseModel):
-    estado: Optional[BreachState] = None
+    gravedad: str
+    estado: Optional[str] = None
     medidas_tomadas: Optional[str] = None
     responsable: Optional[str] = None
+    organization_id: Optional[str] = None
+
+
+class BreachUpdate(BaseModel):
+    descripcion: Optional[str] = None
+    datos_afectados: Optional[str] = None
     cantidad_afectados: Optional[int] = None
-    gravedad: Optional[SeverityLevel] = None
+    gravedad: Optional[str] = None
+    estado: Optional[str] = None
+    medidas_tomadas: Optional[str] = None
+    responsable: Optional[str] = None
+    organization_id: Optional[str] = None
+
 
 class BreachResponse(BaseModel):
     id: str
-    fecha_deteccion: datetime
+    fecha_deteccion: Optional[datetime] = None
     descripcion: str
     datos_afectados: str
     cantidad_afectados: Optional[int] = None
-    gravedad: SeverityLevel
-    fecha_limite_notificacion: datetime
+    gravedad: str
+    fecha_limite_notificacion: Optional[datetime] = None
     fecha_notificacion: Optional[datetime] = None
-    estado: BreachState
+    estado: Optional[str] = None
     medidas_tomadas: Optional[str] = None
     responsable: Optional[str] = None
     organization_id: Optional[str] = None
-    
-    # Campo extra calculado al vuelo para saber si hay alerta
-    alerta_vencida: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
-# ==========================================
-# ENDPOINTS
-# ==========================================
-@router.post("", response_model=BreachResponse, status_code=status.HTTP_201_CREATED)
-@router.post("/", response_model=BreachResponse, status_code=status.HTTP_201_CREATED)
+
+# =========================================================
+# CREATE — Registrar una brecha (calcula el plazo de 72h, O4)
+# La Ley 21.719 obliga a notificar a la Agencia en máximo 72 horas
+# desde la detección.
+# =========================================================
+
+@router.post("/", response_model=BreachResponse)
 async def create_breach(
     breach_data: BreachCreate,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Registrar una nueva brecha y calcular el plazo de 72 horas"""
-    # Si no envían fecha, asumimos el momento actual
-    deteccion = breach_data.fecha_deteccion or datetime.utcnow()
-    
-    # Obligación O4: 72 horas exactas de límite
-    limite = deteccion + timedelta(hours=72)
-    
-    new_breach = DataBreach(
-        fecha_deteccion=deteccion,
-        descripcion=breach_data.descripcion,
-        datos_afectados=breach_data.datos_afectados,
-        cantidad_afectados=breach_data.cantidad_afectados,
-        gravedad=breach_data.gravedad,
-        fecha_limite_notificacion=limite,
-        estado=BreachState.DETECTADA,
-        organization_id=breach_data.organization_id
-    )
-    
+    data = breach_data.model_dump(exclude_unset=True)
+
+    fecha_deteccion = data.get("fecha_deteccion") or datetime.utcnow()
+    data["fecha_deteccion"] = fecha_deteccion
+    data["fecha_limite_notificacion"] = fecha_deteccion + timedelta(hours=72)
+
+    new_breach = DataBreach(**data)
+
     db.add(new_breach)
     await db.commit()
     await db.refresh(new_breach)
-    
-    # Evaluar alerta
-    response_data = BreachResponse.model_validate(new_breach)
-    response_data.alerta_vencida = datetime.utcnow() > limite
-    return response_data
 
-@router.get("", response_model=List[BreachResponse])
+    return new_breach
+
+
+# =========================================================
+# READ — Todas las brechas
+# =========================================================
+
 @router.get("/", response_model=List[BreachResponse])
-async def get_all_breaches(
+async def get_breaches(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Listar todas las brechas y verificar alertas de tiempo"""
-    query = select(DataBreach).order_by(DataBreach.fecha_limite_notificacion.asc())
-    result = await db.execute(query)
-    breaches = result.scalars().all()
-    
-    now = datetime.utcnow()
-    response_list = []
-    
-    for b in breaches:
-        resp = BreachResponse.model_validate(b)
-        # Si no ha sido notificada y ya pasó la fecha límite
-        if b.estado != BreachState.NOTIFICADA and b.estado != BreachState.CERRADA:
-            resp.alerta_vencida = now > b.fecha_limite_notificacion
-        response_list.append(resp)
-        
-    return response_list
+    result = await db.execute(
+        select(DataBreach).order_by(
+            DataBreach.fecha_deteccion.desc()
+        )
+    )
 
-@router.patch("/{breach_id}/notify", response_model=BreachResponse)
-async def mark_breach_as_notified(
+    return result.scalars().all()
+
+
+# =========================================================
+# READ — Una brecha por ID
+# =========================================================
+
+@router.get("/{breach_id}", response_model=BreachResponse)
+async def get_breach_by_id(
     breach_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Marcar la brecha como notificada a la Agencia y detener el reloj"""
-    query = select(DataBreach).where(DataBreach.id == breach_id)
-    result = await db.execute(query)
+    result = await db.execute(
+        select(DataBreach).where(DataBreach.id == breach_id)
+    )
+
     breach = result.scalar_one_or_none()
-    
+
     if not breach:
-        raise HTTPException(status_code=404, detail="Brecha no encontrada")
-        
-    if breach.estado == BreachState.NOTIFICADA or breach.estado == BreachState.CERRADA:
-        raise HTTPException(status_code=400, detail="La brecha ya fue notificada o cerrada")
+        raise HTTPException(
+            status_code=404,
+            detail="Brecha no encontrada"
+        )
 
-    breach.estado = BreachState.NOTIFICADA
-    breach.fecha_notificacion = datetime.utcnow()
-        
-    await db.commit()
-    await db.refresh(breach)
-    
-    resp = BreachResponse.model_validate(breach)
-    resp.alerta_vencida = breach.fecha_notificacion > breach.fecha_limite_notificacion
-    return resp
+    return breach
 
-@router.patch("/{breach_id}", response_model=BreachResponse)
+
+# =========================================================
+# UPDATE — Actualizar una brecha
+# =========================================================
+
+@router.put("/{breach_id}", response_model=BreachResponse)
 async def update_breach(
     breach_id: str,
-    update_data: BreachUpdate,
+    breach_data: BreachUpdate,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Actualizar detalles de la investigación de la brecha"""
-    query = select(DataBreach).where(DataBreach.id == breach_id)
-    result = await db.execute(query)
+    result = await db.execute(
+        select(DataBreach).where(DataBreach.id == breach_id)
+    )
+
     breach = result.scalar_one_or_none()
-    
+
     if not breach:
-        raise HTTPException(status_code=404, detail="Brecha no encontrada")
-        
-    if update_data.estado is not None:
-        breach.estado = update_data.estado
-    if update_data.medidas_tomadas is not None:
-        breach.medidas_tomadas = update_data.medidas_tomadas
-    if update_data.responsable is not None:
-        breach.responsable = update_data.responsable
-    if update_data.cantidad_afectados is not None:
-        breach.cantidad_afectados = update_data.cantidad_afectados
-    if update_data.gravedad is not None:
-        breach.gravedad = update_data.gravedad
-        
+        raise HTTPException(
+            status_code=404,
+            detail="Brecha no encontrada"
+        )
+
+    update_data = breach_data.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(breach, field, value)
+
+    breach.updated_at = datetime.utcnow()
+
     await db.commit()
     await db.refresh(breach)
-    
-    resp = BreachResponse.model_validate(breach)
-    if breach.estado not in [BreachState.NOTIFICADA, BreachState.CERRADA]:
-        resp.alerta_vencida = datetime.utcnow() > breach.fecha_limite_notificacion
-        
-    return resp
+
+    return breach
+
+
+# =========================================================
+# NOTIFICAR — Marcar la brecha como notificada a la Agencia (O4)
+# =========================================================
+
+@router.post("/{breach_id}/notify", response_model=BreachResponse)
+async def notify_breach(
+    breach_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(DataBreach).where(DataBreach.id == breach_id)
+    )
+
+    breach = result.scalar_one_or_none()
+
+    if not breach:
+        raise HTTPException(
+            status_code=404,
+            detail="Brecha no encontrada"
+        )
+
+    breach.estado = "notificada"
+    breach.fecha_notificacion = datetime.utcnow()
+    breach.updated_at = datetime.utcnow()
+
+    await db.commit()
+    await db.refresh(breach)
+
+    return breach
+
+
+# =========================================================
+# DELETE — Eliminar una brecha
+# =========================================================
+
+@router.delete("/{breach_id}")
+async def delete_breach(
+    breach_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(
+        select(DataBreach).where(DataBreach.id == breach_id)
+    )
+
+    breach = result.scalar_one_or_none()
+
+    if not breach:
+        raise HTTPException(
+            status_code=404,
+            detail="Brecha no encontrada"
+        )
+
+    await db.delete(breach)
+    await db.commit()
+
+    return {"message": "Brecha eliminada exitosamente"}

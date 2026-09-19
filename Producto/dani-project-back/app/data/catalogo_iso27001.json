@@ -1,0 +1,2081 @@
+[
+  {
+    "codigo": "4.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Comprender la organización y su contexto",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'comprender la organización y su contexto'?",
+        "evidencia_esperada": "Análisis de contexto interno/externo, PESTEL, análisis FODA"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'comprender la organización y su contexto' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Análisis de contexto interno/externo, PESTEL, análisis FODA; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "4.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Comprender las necesidades y expectativas de las partes interesadas",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'comprender las necesidades y expectativas de las partes interesadas'?",
+        "evidencia_esperada": "Matriz de partes interesadas, registro de requisitos legales/contractuales"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'comprender las necesidades y expectativas de las partes interesadas' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Matriz de partes interesadas, registro de requisitos legales/contractuales; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "4.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Determinar el alcance del SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'determinar el alcance del sgsi'?",
+        "evidencia_esperada": "Documento de alcance del SGSI, mapa de procesos/ubicaciones incluidas"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'determinar el alcance del sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Documento de alcance del SGSI, mapa de procesos/ubicaciones incluidas; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "4.4",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Sistema de gestión de seguridad de la información (SGSI) establecido",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'sistema de gestión de seguridad de la información (sgsi) establecido'?",
+        "evidencia_esperada": "Manual del SGSI, mapa de procesos del sistema de gestión"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'sistema de gestión de seguridad de la información (sgsi) establecido' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Manual del SGSI, mapa de procesos del sistema de gestión; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "5.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Liderazgo y compromiso de la alta dirección",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'liderazgo y compromiso de la alta dirección'?",
+        "evidencia_esperada": "Actas de comité de seguridad, evidencia de asignación de recursos, comunicaciones de la dirección"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'liderazgo y compromiso de la alta dirección' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Actas de comité de seguridad, evidencia de asignación de recursos, comunicaciones de la dirección; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "5.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Política de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'política de seguridad de la información'?",
+        "evidencia_esperada": "Política de seguridad firmada, evidencia de difusión a la organización"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'política de seguridad de la información' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Política de seguridad firmada, evidencia de difusión a la organización; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "5.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Roles, responsabilidades y autoridades organizacionales",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'roles, responsabilidades y autoridades organizacionales'?",
+        "evidencia_esperada": "Organigrama de seguridad, matriz RACI, descripciones de cargo"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'roles, responsabilidades y autoridades organizacionales' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Organigrama de seguridad, matriz RACI, descripciones de cargo; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "6.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Metodología de evaluación y tratamiento de riesgos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'metodología de evaluación y tratamiento de riesgos'?",
+        "evidencia_esperada": "Metodología de riesgo documentada, matriz de riesgos, plan de tratamiento de riesgos"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'metodología de evaluación y tratamiento de riesgos' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Metodología de riesgo documentada, matriz de riesgos, plan de tratamiento de riesgos; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "6.1.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Declaración de Aplicabilidad (SoA)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'declaración de aplicabilidad (soa)'?",
+        "evidencia_esperada": "Documento SoA con justificación de inclusión/exclusión de controles del Anexo A"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'declaración de aplicabilidad (soa)' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Documento SoA con justificación de inclusión/exclusión de controles del Anexo A; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "6.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Objetivos de seguridad de la información y planificación para lograrlos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'objetivos de seguridad de la información y planificación para lograrlos'?",
+        "evidencia_esperada": "Registro de objetivos SMART, plan de acción con responsables y fechas"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'objetivos de seguridad de la información y planificación para lograrlos' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Registro de objetivos SMART, plan de acción con responsables y fechas; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "6.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Planificación de cambios al SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'planificación de cambios al sgsi'?",
+        "evidencia_esperada": "Registro de cambios al sistema de gestión, evaluación de impacto"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'planificación de cambios al sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Registro de cambios al sistema de gestión, evaluación de impacto; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "7.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Determinación y provisión de recursos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'determinación y provisión de recursos'?",
+        "evidencia_esperada": "Presupuesto asignado a seguridad, evidencia de dotación de personal/herramientas"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'determinación y provisión de recursos' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Presupuesto asignado a seguridad, evidencia de dotación de personal/herramientas; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "7.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Competencia del personal involucrado en el SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'competencia del personal involucrado en el sgsi'?",
+        "evidencia_esperada": "Perfiles de cargo, certificaciones, registros de capacitación"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'competencia del personal involucrado en el sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Perfiles de cargo, certificaciones, registros de capacitación; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "7.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Toma de conciencia (awareness) del personal",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'toma de conciencia (awareness) del personal'?",
+        "evidencia_esperada": "Programa de concientización, registros de asistencia, resultados de campañas de phishing simulado"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'toma de conciencia (awareness) del personal' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Programa de concientización, registros de asistencia, resultados de campañas de phishing simulado; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "7.4",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Comunicación interna y externa sobre el SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'comunicación interna y externa sobre el sgsi'?",
+        "evidencia_esperada": "Plan de comunicaciones, evidencia de comunicados internos/externos"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'comunicación interna y externa sobre el sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Plan de comunicaciones, evidencia de comunicados internos/externos; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "7.5",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Control de información documentada",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'control de información documentada'?",
+        "evidencia_esperada": "Procedimiento de control documental, lista maestra de documentos, control de versiones"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'control de información documentada' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Procedimiento de control documental, lista maestra de documentos, control de versiones; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "8.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Planificación y control operacional",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'planificación y control operacional'?",
+        "evidencia_esperada": "Procedimientos operativos documentados, criterios de aceptación de riesgo"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'planificación y control operacional' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Procedimientos operativos documentados, criterios de aceptación de riesgo; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "8.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Evaluación de riesgos de seguridad de la información (ejecución periódica)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'evaluación de riesgos de seguridad de la información (ejecución periódica)'?",
+        "evidencia_esperada": "Informes de evaluación de riesgos con fecha, evidencia de periodicidad definida"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'evaluación de riesgos de seguridad de la información (ejecución periódica)' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Informes de evaluación de riesgos con fecha, evidencia de periodicidad definida; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "8.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Tratamiento de riesgos de seguridad de la información (ejecución)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'tratamiento de riesgos de seguridad de la información (ejecución)'?",
+        "evidencia_esperada": "Plan de tratamiento de riesgos ejecutado, evidencia de cierre de acciones"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'tratamiento de riesgos de seguridad de la información (ejecución)' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Plan de tratamiento de riesgos ejecutado, evidencia de cierre de acciones; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "9.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Monitoreo, medición, análisis y evaluación",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'monitoreo, medición, análisis y evaluación'?",
+        "evidencia_esperada": "Indicadores (KPIs/KRIs) de seguridad, dashboards, informes de métricas"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'monitoreo, medición, análisis y evaluación' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Indicadores (KPIs/KRIs) de seguridad, dashboards, informes de métricas; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "9.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Auditoría interna del SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'auditoría interna del sgsi'?",
+        "evidencia_esperada": "Programa de auditoría interna, informes de auditoría, hallazgos"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'auditoría interna del sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Programa de auditoría interna, informes de auditoría, hallazgos; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "9.3",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Revisión por la dirección",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'revisión por la dirección'?",
+        "evidencia_esperada": "Actas de revisión por la dirección con entradas y salidas según la norma"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'revisión por la dirección' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Actas de revisión por la dirección con entradas y salidas según la norma; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "10.1",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "No conformidades y acciones correctivas",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'no conformidades y acciones correctivas'?",
+        "evidencia_esperada": "Registro de no conformidades, análisis de causa raíz, evidencia de cierre"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'no conformidades y acciones correctivas' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Registro de no conformidades, análisis de causa raíz, evidencia de cierre; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "10.2",
+    "categoria": "Cláusula (obligatoria)",
+    "nombre": "Mejora continua del SGSI",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación formal y aprobada que cubra 'mejora continua del sgsi'?",
+        "evidencia_esperada": "Registro de mejoras implementadas, seguimiento de efectividad"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que 'mejora continua del sgsi' se ejecuta/actualiza de forma periódica (no solo existe en papel)?",
+        "evidencia_esperada": "Registro de mejoras implementadas, seguimiento de efectividad; registro de fechas de revisión/actualización"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.1",
+    "categoria": "Organizacional",
+    "nombre": "Políticas de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'políticas de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'políticas de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'políticas de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.2",
+    "categoria": "Organizacional",
+    "nombre": "Roles y responsabilidades de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'roles y responsabilidades de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'roles y responsabilidades de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'roles y responsabilidades de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.3",
+    "categoria": "Organizacional",
+    "nombre": "Segregación de funciones",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'segregación de funciones'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'segregación de funciones' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'segregación de funciones', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.4",
+    "categoria": "Organizacional",
+    "nombre": "Responsabilidades de gestión",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'responsabilidades de gestión'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'responsabilidades de gestión' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'responsabilidades de gestión', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.5",
+    "categoria": "Organizacional",
+    "nombre": "Contacto con autoridades",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'contacto con autoridades'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'contacto con autoridades' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'contacto con autoridades', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.6",
+    "categoria": "Organizacional",
+    "nombre": "Contacto con grupos de interés especial",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'contacto con grupos de interés especial'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'contacto con grupos de interés especial' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'contacto con grupos de interés especial', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.7",
+    "categoria": "Organizacional",
+    "nombre": "Inteligencia de amenazas",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'inteligencia de amenazas'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'inteligencia de amenazas' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'inteligencia de amenazas', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.8",
+    "categoria": "Organizacional",
+    "nombre": "Seguridad de la información en gestión de proyectos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de la información en gestión de proyectos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de la información en gestión de proyectos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de la información en gestión de proyectos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.9",
+    "categoria": "Organizacional",
+    "nombre": "Inventario de información y otros activos asociados",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'inventario de información y otros activos asociados'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'inventario de información y otros activos asociados' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'inventario de información y otros activos asociados', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.10",
+    "categoria": "Organizacional",
+    "nombre": "Uso aceptable de la información y otros activos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'uso aceptable de la información y otros activos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'uso aceptable de la información y otros activos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'uso aceptable de la información y otros activos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.11",
+    "categoria": "Organizacional",
+    "nombre": "Devolución de activos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'devolución de activos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'devolución de activos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'devolución de activos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.12",
+    "categoria": "Organizacional",
+    "nombre": "Clasificación de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'clasificación de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'clasificación de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'clasificación de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.13",
+    "categoria": "Organizacional",
+    "nombre": "Etiquetado de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'etiquetado de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'etiquetado de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'etiquetado de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.14",
+    "categoria": "Organizacional",
+    "nombre": "Transferencia de información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'transferencia de información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'transferencia de información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'transferencia de información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.15",
+    "categoria": "Organizacional",
+    "nombre": "Control de acceso",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'control de acceso'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'control de acceso' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'control de acceso', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.16",
+    "categoria": "Organizacional",
+    "nombre": "Gestión de identidades",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'gestión de identidades'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'gestión de identidades' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'gestión de identidades', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.17",
+    "categoria": "Organizacional",
+    "nombre": "Información de autenticación",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'información de autenticación'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'información de autenticación' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'información de autenticación', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.18",
+    "categoria": "Organizacional",
+    "nombre": "Derechos de acceso",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'derechos de acceso'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'derechos de acceso' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'derechos de acceso', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.19",
+    "categoria": "Organizacional",
+    "nombre": "Seguridad de la información en relaciones con proveedores",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de la información en relaciones con proveedores'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de la información en relaciones con proveedores' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de la información en relaciones con proveedores', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.20",
+    "categoria": "Organizacional",
+    "nombre": "Tratamiento de la seguridad dentro de acuerdos con proveedores",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'tratamiento de la seguridad dentro de acuerdos con proveedores'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'tratamiento de la seguridad dentro de acuerdos con proveedores' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'tratamiento de la seguridad dentro de acuerdos con proveedores', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.21",
+    "categoria": "Organizacional",
+    "nombre": "Gestión de seguridad en la cadena de suministro TIC",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'gestión de seguridad en la cadena de suministro tic'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'gestión de seguridad en la cadena de suministro tic' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'gestión de seguridad en la cadena de suministro tic', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.22",
+    "categoria": "Organizacional",
+    "nombre": "Monitoreo, revisión y gestión de cambios de servicios de proveedores",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'monitoreo, revisión y gestión de cambios de servicios de proveedores'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'monitoreo, revisión y gestión de cambios de servicios de proveedores' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'monitoreo, revisión y gestión de cambios de servicios de proveedores', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.23",
+    "categoria": "Organizacional",
+    "nombre": "Seguridad de la información para uso de servicios en la nube",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de la información para uso de servicios en la nube'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de la información para uso de servicios en la nube' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de la información para uso de servicios en la nube', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.24",
+    "categoria": "Organizacional",
+    "nombre": "Planificación y preparación de gestión de incidentes",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'planificación y preparación de gestión de incidentes'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'planificación y preparación de gestión de incidentes' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'planificación y preparación de gestión de incidentes', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.25",
+    "categoria": "Organizacional",
+    "nombre": "Evaluación y decisión sobre eventos de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'evaluación y decisión sobre eventos de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'evaluación y decisión sobre eventos de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'evaluación y decisión sobre eventos de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.26",
+    "categoria": "Organizacional",
+    "nombre": "Respuesta a incidentes de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'respuesta a incidentes de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'respuesta a incidentes de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'respuesta a incidentes de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.27",
+    "categoria": "Organizacional",
+    "nombre": "Aprendizaje de incidentes de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'aprendizaje de incidentes de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'aprendizaje de incidentes de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'aprendizaje de incidentes de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.28",
+    "categoria": "Organizacional",
+    "nombre": "Recolección de evidencia",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'recolección de evidencia'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'recolección de evidencia' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'recolección de evidencia', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.29",
+    "categoria": "Organizacional",
+    "nombre": "Seguridad de la información durante interrupciones/continuidad",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de la información durante interrupciones/continuidad'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de la información durante interrupciones/continuidad' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de la información durante interrupciones/continuidad', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.30",
+    "categoria": "Organizacional",
+    "nombre": "Preparación de las TIC para continuidad del negocio",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'preparación de las tic para continuidad del negocio'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'preparación de las tic para continuidad del negocio' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'preparación de las tic para continuidad del negocio', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.31",
+    "categoria": "Organizacional",
+    "nombre": "Requisitos legales, estatutarios, regulatorios y contractuales",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'requisitos legales, estatutarios, regulatorios y contractuales'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'requisitos legales, estatutarios, regulatorios y contractuales' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'requisitos legales, estatutarios, regulatorios y contractuales', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.32",
+    "categoria": "Organizacional",
+    "nombre": "Derechos de propiedad intelectual",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'derechos de propiedad intelectual'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'derechos de propiedad intelectual' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'derechos de propiedad intelectual', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.33",
+    "categoria": "Organizacional",
+    "nombre": "Protección de registros",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'protección de registros'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'protección de registros' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'protección de registros', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.34",
+    "categoria": "Organizacional",
+    "nombre": "Privacidad y protección de datos personales (PII)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'privacidad y protección de datos personales (pii)'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'privacidad y protección de datos personales (pii)' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'privacidad y protección de datos personales (pii)', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.35",
+    "categoria": "Organizacional",
+    "nombre": "Revisión independiente de la seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'revisión independiente de la seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'revisión independiente de la seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'revisión independiente de la seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.36",
+    "categoria": "Organizacional",
+    "nombre": "Cumplimiento de políticas, normas y estándares de seguridad",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'cumplimiento de políticas, normas y estándares de seguridad'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'cumplimiento de políticas, normas y estándares de seguridad' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'cumplimiento de políticas, normas y estándares de seguridad', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.5.37",
+    "categoria": "Organizacional",
+    "nombre": "Procedimientos operativos documentados",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'procedimientos operativos documentados'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'procedimientos operativos documentados' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'procedimientos operativos documentados', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.1",
+    "categoria": "Personas",
+    "nombre": "Verificación de antecedentes (screening)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'verificación de antecedentes (screening)'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'verificación de antecedentes (screening)' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'verificación de antecedentes (screening)', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.2",
+    "categoria": "Personas",
+    "nombre": "Términos y condiciones de empleo",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'términos y condiciones de empleo'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'términos y condiciones de empleo' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'términos y condiciones de empleo', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.3",
+    "categoria": "Personas",
+    "nombre": "Concientización, educación y capacitación en seguridad",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'concientización, educación y capacitación en seguridad'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'concientización, educación y capacitación en seguridad' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'concientización, educación y capacitación en seguridad', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.4",
+    "categoria": "Personas",
+    "nombre": "Proceso disciplinario",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'proceso disciplinario'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'proceso disciplinario' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'proceso disciplinario', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.5",
+    "categoria": "Personas",
+    "nombre": "Responsabilidades tras la terminación o cambio de empleo",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'responsabilidades tras la terminación o cambio de empleo'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'responsabilidades tras la terminación o cambio de empleo' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'responsabilidades tras la terminación o cambio de empleo', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.6",
+    "categoria": "Personas",
+    "nombre": "Acuerdos de confidencialidad o no divulgación",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'acuerdos de confidencialidad o no divulgación'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'acuerdos de confidencialidad o no divulgación' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'acuerdos de confidencialidad o no divulgación', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.7",
+    "categoria": "Personas",
+    "nombre": "Trabajo remoto",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'trabajo remoto'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'trabajo remoto' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'trabajo remoto', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.6.8",
+    "categoria": "Personas",
+    "nombre": "Reporte de eventos de seguridad de la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'reporte de eventos de seguridad de la información'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'reporte de eventos de seguridad de la información' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'reporte de eventos de seguridad de la información', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.1",
+    "categoria": "Físico",
+    "nombre": "Perímetros de seguridad física",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'perímetros de seguridad física'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'perímetros de seguridad física' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'perímetros de seguridad física', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.2",
+    "categoria": "Físico",
+    "nombre": "Control de entrada física",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'control de entrada física'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'control de entrada física' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'control de entrada física', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.3",
+    "categoria": "Físico",
+    "nombre": "Seguridad de oficinas, salas e instalaciones",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de oficinas, salas e instalaciones'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de oficinas, salas e instalaciones' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de oficinas, salas e instalaciones', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.4",
+    "categoria": "Físico",
+    "nombre": "Monitoreo de seguridad física",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'monitoreo de seguridad física'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'monitoreo de seguridad física' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'monitoreo de seguridad física', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.5",
+    "categoria": "Físico",
+    "nombre": "Protección contra amenazas físicas y ambientales",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'protección contra amenazas físicas y ambientales'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'protección contra amenazas físicas y ambientales' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'protección contra amenazas físicas y ambientales', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.6",
+    "categoria": "Físico",
+    "nombre": "Trabajo en áreas seguras",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'trabajo en áreas seguras'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'trabajo en áreas seguras' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'trabajo en áreas seguras', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.7",
+    "categoria": "Físico",
+    "nombre": "Escritorio y pantalla limpios",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'escritorio y pantalla limpios'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'escritorio y pantalla limpios' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'escritorio y pantalla limpios', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.8",
+    "categoria": "Físico",
+    "nombre": "Ubicación y protección de equipos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'ubicación y protección de equipos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'ubicación y protección de equipos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'ubicación y protección de equipos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.9",
+    "categoria": "Físico",
+    "nombre": "Seguridad de activos fuera de las instalaciones",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad de activos fuera de las instalaciones'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad de activos fuera de las instalaciones' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad de activos fuera de las instalaciones', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.10",
+    "categoria": "Físico",
+    "nombre": "Medios de almacenamiento",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'medios de almacenamiento'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'medios de almacenamiento' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'medios de almacenamiento', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.11",
+    "categoria": "Físico",
+    "nombre": "Servicios de suministro (utilities)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'servicios de suministro (utilities)'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'servicios de suministro (utilities)' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'servicios de suministro (utilities)', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.12",
+    "categoria": "Físico",
+    "nombre": "Seguridad del cableado",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'seguridad del cableado'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'seguridad del cableado' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'seguridad del cableado', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.13",
+    "categoria": "Físico",
+    "nombre": "Mantenimiento de equipos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'mantenimiento de equipos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'mantenimiento de equipos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'mantenimiento de equipos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.7.14",
+    "categoria": "Físico",
+    "nombre": "Disposición segura o reutilización de equipos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política, norma o procedimiento formal y aprobado que defina cómo se gestiona 'disposición segura o reutilización de equipos'?",
+        "evidencia_esperada": "Política/procedimiento documentado, con fecha de aprobación y responsable (dueño del control)"
+      },
+      {
+        "pregunta": "¿Hay evidencia concreta de que 'disposición segura o reutilización de equipos' está implementado en la práctica (no solo documentado)?",
+        "evidencia_esperada": "Capturas de configuración, registros/logs, tickets, listas de verificación, muestras de aplicación real"
+      },
+      {
+        "pregunta": "¿Se revisa, mide o audita periódicamente la efectividad de 'disposición segura o reutilización de equipos', y hay registro de esa revisión?",
+        "evidencia_esperada": "Informes de revisión periódica, resultados de auditoría interna, indicadores (KPI/KRI), plan de acción ante hallazgos"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.1",
+    "categoria": "Tecnológico",
+    "nombre": "Dispositivos de usuario final (endpoints)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política de gestión de dispositivos de usuario final (laptops, móviles, BYOD) con configuraciones mínimas de seguridad?",
+        "evidencia_esperada": "Política de endpoints/BYOD aprobada"
+      },
+      {
+        "pregunta": "¿Los endpoints tienen controles técnicos activos (cifrado de disco, bloqueo automático, antivirus/EDR)?",
+        "evidencia_esperada": "Capturas de configuración MDM/EDR, reporte de cumplimiento de flota"
+      },
+      {
+        "pregunta": "¿Existe un inventario actualizado de dispositivos autorizados y se detectan los no autorizados?",
+        "evidencia_esperada": "Inventario de activos (CMDB), reporte de dispositivos no gestionados detectados"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.2",
+    "categoria": "Tecnológico",
+    "nombre": "Derechos de acceso privilegiado",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe un procedimiento formal para otorgar, revisar y revocar accesos privilegiados (admin, root, superusuario)?",
+        "evidencia_esperada": "Procedimiento de gestión de privilegios, formularios de solicitud/aprobación"
+      },
+      {
+        "pregunta": "¿Los accesos privilegiados están limitados al mínimo necesario y se usan cuentas separadas de las cuentas normales?",
+        "evidencia_esperada": "Listado de cuentas privilegiadas vs. cuentas estándar por usuario"
+      },
+      {
+        "pregunta": "¿Hay evidencia de revisión periódica (ej. trimestral) de quién tiene privilegios elevados y por qué?",
+        "evidencia_esperada": "Informe de recertificación de accesos privilegiados con fecha"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.3",
+    "categoria": "Tecnológico",
+    "nombre": "Restricción de acceso a la información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una matriz de control de acceso basada en roles (RBAC) o necesidad de conocer?",
+        "evidencia_esperada": "Matriz de roles y permisos documentada"
+      },
+      {
+        "pregunta": "¿Se aplican restricciones técnicas reales en los sistemas (permisos, ACLs, roles de aplicación) que reflejan esa matriz?",
+        "evidencia_esperada": "Capturas de configuración de permisos en sistemas críticos"
+      },
+      {
+        "pregunta": "¿Hay evidencia de auditoría de que los accesos otorgados corresponden al rol actual del usuario?",
+        "evidencia_esperada": "Informe de revisión de accesos vs. cargo/rol"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.4",
+    "categoria": "Tecnológico",
+    "nombre": "Acceso al código fuente",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿El código fuente está almacenado en un repositorio con control de acceso (ej. Git con permisos)?",
+        "evidencia_esperada": "Configuración de permisos del repositorio (ej. GitHub/GitLab settings)"
+      },
+      {
+        "pregunta": "¿Existe registro de quién puede leer/modificar/aprobar cambios en el código (pull requests, code review)?",
+        "evidencia_esperada": "Historial de pull requests con aprobadores, reglas de branch protection"
+      },
+      {
+        "pregunta": "¿Se restringe el acceso al código de producción solo a personal autorizado, con logs de acceso?",
+        "evidencia_esperada": "Logs de acceso al repositorio de producción"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.5",
+    "categoria": "Tecnológico",
+    "nombre": "Autenticación segura",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política de autenticación que exija MFA para accesos críticos, remotos o privilegiados?",
+        "evidencia_esperada": "Política de autenticación, configuración de MFA activada"
+      },
+      {
+        "pregunta": "¿Los mecanismos de autenticación implementados cumplen estándares mínimos de robustez (largo, complejidad, expiración)?",
+        "evidencia_esperada": "Política de contraseñas configurada en el directorio activo / IdP"
+      },
+      {
+        "pregunta": "¿Se ha identificado y eliminado autenticación insegura (contraseñas por defecto, protocolos legacy sin MFA)?",
+        "evidencia_esperada": "Reporte de hallazgos de autenticación débil y su remediación"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.6",
+    "categoria": "Tecnológico",
+    "nombre": "Gestión de capacidad",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe un proceso de planificación de capacidad (CPU, almacenamiento, red) basado en proyecciones de crecimiento?",
+        "evidencia_esperada": "Plan de capacidad, proyecciones de uso"
+      },
+      {
+        "pregunta": "¿Se monitorean métricas de uso de recursos de forma continua (dashboards, alertas de umbral)?",
+        "evidencia_esperada": "Dashboards de monitoreo de capacidad, alertas configuradas"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.7",
+    "categoria": "Tecnológico",
+    "nombre": "Protección contra malware",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una solución antimalware/EDR desplegada en endpoints y servidores, con actualización automática?",
+        "evidencia_esperada": "Reporte de cobertura y estado de actualización de EDR/antivirus"
+      },
+      {
+        "pregunta": "¿Existe procedimiento de respuesta ante detección de malware, con evidencia de casos gestionados?",
+        "evidencia_esperada": "Procedimiento de respuesta, tickets/incidentes de malware resueltos"
+      },
+      {
+        "pregunta": "¿Hay capacitación al personal sobre riesgos de malware (phishing, adjuntos, USBs) con registro de entrega?",
+        "evidencia_esperada": "Registros de capacitación, resultados de simulacros de phishing"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.8",
+    "categoria": "Tecnológico",
+    "nombre": "Gestión de vulnerabilidades técnicas",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe un proceso de identificación de vulnerabilidades (escaneos automatizados, boletines CVE, pentesting)?",
+        "evidencia_esperada": "Informes de escaneo de vulnerabilidades, contrato/reporte de pentest"
+      },
+      {
+        "pregunta": "¿Hay un SLA definido para remediar vulnerabilidades según severidad, con evidencia de cumplimiento?",
+        "evidencia_esperada": "SLA documentado, dashboard de remediación con tiempos reales"
+      },
+      {
+        "pregunta": "¿Se documentan y aprueban formalmente las excepciones cuando una vulnerabilidad no se remedia a tiempo?",
+        "evidencia_esperada": "Registro de excepciones/riesgo aceptado, firma de aprobador"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.9",
+    "categoria": "Tecnológico",
+    "nombre": "Gestión de configuración",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen líneas base de configuración segura documentadas para sistemas, redes y aplicaciones?",
+        "evidencia_esperada": "Documento de hardening/baseline (ej. CIS Benchmarks adoptados)"
+      },
+      {
+        "pregunta": "¿Se usan herramientas de gestión de configuración (IaC, CMDB) para aplicar y mantener esas líneas base?",
+        "evidencia_esperada": "Código de infraestructura (Terraform/Ansible), CMDB actualizada"
+      },
+      {
+        "pregunta": "¿Hay evidencia de detección y corrección de configuraciones que se desvían de la línea base (drift)?",
+        "evidencia_esperada": "Reporte de compliance/drift de herramientas de configuración"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.10",
+    "categoria": "Tecnológico",
+    "nombre": "Eliminación de información",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política que defina cuándo y cómo debe eliminarse la información (retención y disposición)?",
+        "evidencia_esperada": "Política de retención y eliminación de datos"
+      },
+      {
+        "pregunta": "¿Se usan métodos de eliminación segura (borrado criptográfico, wipe certificado) según la clasificación?",
+        "evidencia_esperada": "Certificados de destrucción/borrado seguro"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.11",
+    "categoria": "Tecnológico",
+    "nombre": "Enmascaramiento de datos",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Se identifican los datos sensibles que requieren enmascaramiento (ej. datos personales en pruebas)?",
+        "evidencia_esperada": "Inventario de datos sensibles por entorno"
+      },
+      {
+        "pregunta": "¿Existen técnicas de enmascaramiento/anonimización implementadas en los entornos correspondientes?",
+        "evidencia_esperada": "Configuración de herramientas de data masking, muestras de datos enmascarados"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.12",
+    "categoria": "Tecnológico",
+    "nombre": "Prevención de fuga de datos (DLP)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una herramienta o control DLP implementado en canales críticos (correo, USB, nube)?",
+        "evidencia_esperada": "Configuración de solución DLP, reglas activas"
+      },
+      {
+        "pregunta": "¿Las reglas de DLP están alineadas con la clasificación de información de la organización?",
+        "evidencia_esperada": "Mapeo de reglas DLP vs. esquema de clasificación"
+      },
+      {
+        "pregunta": "¿Hay evidencia de alertas o incidentes de fuga de datos detectados y su gestión?",
+        "evidencia_esperada": "Registro de alertas DLP e incidentes asociados"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.13",
+    "categoria": "Tecnológico",
+    "nombre": "Respaldo de información (backup)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política de respaldo que defina frecuencia, retención y alcance (qué se respalda)?",
+        "evidencia_esperada": "Política/procedimiento de backup"
+      },
+      {
+        "pregunta": "¿Los respaldos se ejecutan efectivamente según lo programado, con evidencia (logs de éxito/fallo)?",
+        "evidencia_esperada": "Logs de ejecución de backups, reporte de éxito/fallo"
+      },
+      {
+        "pregunta": "¿Se realizan pruebas periódicas de restauración para confirmar que los respaldos son recuperables?",
+        "evidencia_esperada": "Informe de pruebas de restauración con fecha y resultado"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.14",
+    "categoria": "Tecnológico",
+    "nombre": "Redundancia de instalaciones de procesamiento",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen componentes redundantes (servidores, enlaces, centros de datos) para los sistemas críticos identificados?",
+        "evidencia_esperada": "Diagrama de arquitectura con componentes redundantes"
+      },
+      {
+        "pregunta": "¿Existe un plan de continuidad/DRP que defina RTO/RPO para esos sistemas críticos?",
+        "evidencia_esperada": "Plan de continuidad de TI (DRP) con RTO/RPO definidos"
+      },
+      {
+        "pregunta": "¿Se han realizado pruebas de failover o conmutación con resultados documentados?",
+        "evidencia_esperada": "Informe de prueba de failover/DRP"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.15",
+    "categoria": "Tecnológico",
+    "nombre": "Registro de eventos (logging)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política que defina qué eventos deben registrarse (logging) en sistemas, aplicaciones y redes?",
+        "evidencia_esperada": "Política de logging, lista de eventos auditables"
+      },
+      {
+        "pregunta": "¿Los logs se generan efectivamente y se centralizan (ej. SIEM) con protección contra alteración/borrado?",
+        "evidencia_esperada": "Configuración de SIEM/log management, controles de integridad de logs"
+      },
+      {
+        "pregunta": "¿Se define y cumple un periodo mínimo de retención de logs según requisitos legales/de negocio?",
+        "evidencia_esperada": "Configuración de retención en la herramienta de logs"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.16",
+    "categoria": "Tecnológico",
+    "nombre": "Actividades de monitoreo",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe monitoreo activo (SOC, SIEM, alertas) de eventos de seguridad en tiempo real o cuasi real?",
+        "evidencia_esperada": "Configuración de SIEM, dashboard de monitoreo"
+      },
+      {
+        "pregunta": "¿Hay procedimientos y personal asignado para responder a alertas generadas por el monitoreo?",
+        "evidencia_esperada": "Procedimiento de respuesta a alertas, roster de guardia/on-call"
+      },
+      {
+        "pregunta": "¿Se revisan periódicamente las reglas/umbrales de alerta para reducir falsos positivos/negativos?",
+        "evidencia_esperada": "Registro de ajuste de reglas de correlación/alertas"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.17",
+    "categoria": "Tecnológico",
+    "nombre": "Sincronización de relojes",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Todos los sistemas relevantes sincronizan su hora con una fuente confiable (NTP)?",
+        "evidencia_esperada": "Configuración de NTP en servidores/dispositivos de red"
+      },
+      {
+        "pregunta": "¿Se verifica periódicamente que no existan desincronizaciones que afecten la trazabilidad de logs?",
+        "evidencia_esperada": "Reporte de monitoreo de deriva de reloj (clock drift)"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.18",
+    "categoria": "Tecnológico",
+    "nombre": "Uso de programas utilitarios privilegiados",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe inventario y control de programas utilitarios que pueden anular controles de seguridad?",
+        "evidencia_esperada": "Inventario de herramientas privilegiadas/administrativas"
+      },
+      {
+        "pregunta": "¿El uso de estos programas está restringido, registrado y requiere autorización previa?",
+        "evidencia_esperada": "Registro de autorizaciones y logs de uso"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.19",
+    "categoria": "Tecnológico",
+    "nombre": "Instalación de software en sistemas operacionales",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política que restrinja quién puede instalar software en sistemas operacionales/producción?",
+        "evidencia_esperada": "Política de instalación de software, permisos administrativos restringidos"
+      },
+      {
+        "pregunta": "¿Se usa lista de software aprobado (whitelisting) o proceso de aprobación previa a la instalación?",
+        "evidencia_esperada": "Configuración de whitelisting, catálogo de software aprobado"
+      },
+      {
+        "pregunta": "¿Hay evidencia de auditorías o escaneos que detecten software no autorizado instalado?",
+        "evidencia_esperada": "Reporte de escaneo de software no autorizado"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.20",
+    "categoria": "Tecnológico",
+    "nombre": "Seguridad de redes",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe documentación de la arquitectura de red con controles de seguridad identificados (firewalls, IDS/IPS)?",
+        "evidencia_esperada": "Diagrama de red, reglas de firewall documentadas"
+      },
+      {
+        "pregunta": "¿Los dispositivos de red están configurados de forma segura (hardening) y actualizados?",
+        "evidencia_esperada": "Reporte de hardening/parches de dispositivos de red"
+      },
+      {
+        "pregunta": "¿Se monitorea el tráfico de red para detectar actividad anómala?",
+        "evidencia_esperada": "Configuración de IDS/IPS, alertas de tráfico anómalo"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.21",
+    "categoria": "Tecnológico",
+    "nombre": "Seguridad de servicios de red",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen acuerdos o especificaciones de seguridad definidos para los servicios de red (propios o de terceros)?",
+        "evidencia_esperada": "Contratos/SLA de servicios de red con cláusulas de seguridad"
+      },
+      {
+        "pregunta": "¿Se verifica que los proveedores de servicios de red cumplan los niveles de seguridad acordados?",
+        "evidencia_esperada": "Informe de revisión/auditoría a proveedor de red"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.22",
+    "categoria": "Tecnológico",
+    "nombre": "Segregación de redes",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿La red está segmentada (VLANs, zonas DMZ) separando sistemas críticos de los que no lo son?",
+        "evidencia_esperada": "Diagrama de segmentación de red"
+      },
+      {
+        "pregunta": "¿Existen reglas de firewall que controlan el tráfico entre segmentos según necesidad de negocio?",
+        "evidencia_esperada": "Reglas de firewall entre segmentos"
+      },
+      {
+        "pregunta": "¿Se revisa periódicamente que la segmentación siga vigente y no existan accesos no autorizados entre segmentos?",
+        "evidencia_esperada": "Informe de revisión de reglas de firewall/segmentación"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.23",
+    "categoria": "Tecnológico",
+    "nombre": "Filtrado web",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una solución de filtrado web que bloquee acceso a sitios maliciosos o no autorizados?",
+        "evidencia_esperada": "Configuración de proxy/filtrado web"
+      },
+      {
+        "pregunta": "¿Las reglas de filtrado se actualizan y hay evidencia de bloqueos/alertas registrados?",
+        "evidencia_esperada": "Reporte de bloqueos del filtro web"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.24",
+    "categoria": "Tecnológico",
+    "nombre": "Uso de criptografía",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe una política de uso de criptografía que defina algoritmos, longitudes de clave y casos de uso obligatorios (datos en tránsito/reposo)?",
+        "evidencia_esperada": "Política de criptografía aprobada"
+      },
+      {
+        "pregunta": "¿Existe un proceso de gestión del ciclo de vida de claves criptográficas (generación, distribución, rotación, revocación)?",
+        "evidencia_esperada": "Procedimiento de gestión de llaves, evidencia de rotación"
+      },
+      {
+        "pregunta": "¿Se verifica que los sistemas usen los algoritmos aprobados y no algoritmos obsoletos/débiles?",
+        "evidencia_esperada": "Reporte de escaneo de configuración TLS/cifrado en sistemas"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.25",
+    "categoria": "Tecnológico",
+    "nombre": "Ciclo de vida de desarrollo seguro",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe un ciclo de vida de desarrollo seguro (SDLC) documentado que incorpore seguridad en cada fase?",
+        "evidencia_esperada": "Documento de SDLC/metodología de desarrollo"
+      },
+      {
+        "pregunta": "¿Se aplican controles de seguridad (revisión de diseño, modelado de amenazas) desde etapas tempranas?",
+        "evidencia_esperada": "Informes de threat modeling / revisión de diseño"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que los proyectos efectivamente siguen ese SDLC (no solo existe en papel)?",
+        "evidencia_esperada": "Checklist de fases de SDLC completadas por proyecto"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.26",
+    "categoria": "Tecnológico",
+    "nombre": "Requisitos de seguridad de aplicaciones",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Se definen requisitos de seguridad específicos antes de desarrollar o adquirir una aplicación?",
+        "evidencia_esperada": "Documento de requisitos de seguridad por proyecto"
+      },
+      {
+        "pregunta": "¿Esos requisitos se validan antes del paso a producción (checklist, pruebas, aprobación formal)?",
+        "evidencia_esperada": "Checklist de aceptación de seguridad firmado"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.27",
+    "categoria": "Tecnológico",
+    "nombre": "Principios de arquitectura e ingeniería de sistemas seguros",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen principios de arquitectura segura documentados (defensa en profundidad, mínimo privilegio) que guíen el diseño?",
+        "evidencia_esperada": "Documento de principios/estándares de arquitectura segura"
+      },
+      {
+        "pregunta": "¿Se aplican estos principios de forma consistente en proyectos nuevos, con evidencia de revisión de arquitectura?",
+        "evidencia_esperada": "Actas de revisión de arquitectura por proyecto"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.28",
+    "categoria": "Tecnológico",
+    "nombre": "Codificación segura",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen estándares de codificación segura documentados (ej. OWASP) que los desarrolladores deban seguir?",
+        "evidencia_esperada": "Estándar de codificación segura adoptado"
+      },
+      {
+        "pregunta": "¿Se realiza revisión de código (manual o con herramientas SAST) para verificar cumplimiento?",
+        "evidencia_esperada": "Reporte de análisis SAST, historial de code review"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que los hallazgos de revisión de código se corrigen antes del despliegue?",
+        "evidencia_esperada": "Tickets de remediación de hallazgos de código vinculados a releases"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.29",
+    "categoria": "Tecnológico",
+    "nombre": "Pruebas de seguridad en desarrollo y aceptación",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Se realizan pruebas de seguridad (SAST/DAST, pentesting) antes de pasar software a producción?",
+        "evidencia_esperada": "Informes de pruebas de seguridad pre-producción"
+      },
+      {
+        "pregunta": "¿Existen criterios de aceptación de seguridad que deben cumplirse antes del despliegue?",
+        "evidencia_esperada": "Criterios de aceptación documentados (gate de seguridad)"
+      },
+      {
+        "pregunta": "¿Hay evidencia de que los hallazgos de estas pruebas se remedian antes o después del despliegue, con seguimiento?",
+        "evidencia_esperada": "Registro de remediación de hallazgos de pruebas de seguridad"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.30",
+    "categoria": "Tecnológico",
+    "nombre": "Desarrollo externalizado (outsourced)",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen requisitos de seguridad contractuales para proveedores de desarrollo externalizado?",
+        "evidencia_esperada": "Cláusulas de seguridad en contratos de outsourcing de desarrollo"
+      },
+      {
+        "pregunta": "¿Se supervisa o audita que el código desarrollado externamente cumpla los estándares de seguridad de la organización?",
+        "evidencia_esperada": "Informe de auditoría/revisión de código de terceros"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.31",
+    "categoria": "Tecnológico",
+    "nombre": "Separación de entornos de desarrollo, prueba y producción",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Los entornos de desarrollo, pruebas y producción están técnicamente separados (redes, accesos, credenciales distintas)?",
+        "evidencia_esperada": "Diagrama de entornos, configuración de accesos por entorno"
+      },
+      {
+        "pregunta": "¿Se restringe el uso de datos reales de producción en entornos de desarrollo/pruebas sin enmascarar?",
+        "evidencia_esperada": "Política de uso de datos por entorno, evidencia de enmascaramiento"
+      },
+      {
+        "pregunta": "¿El acceso a producción requiere un proceso de aprobación distinto al de los otros entornos?",
+        "evidencia_esperada": "Procedimiento de acceso a producción con aprobación diferenciada"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.32",
+    "categoria": "Tecnológico",
+    "nombre": "Gestión de cambios",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existe un proceso formal de gestión de cambios que incluya evaluación de riesgo/impacto y aprobación previa?",
+        "evidencia_esperada": "Procedimiento de gestión de cambios (change management)"
+      },
+      {
+        "pregunta": "¿Los cambios se registran y quedan trazables a quién los solicitó/aprobó/ejecutó?",
+        "evidencia_esperada": "Tickets/changelog con historial de aprobación"
+      },
+      {
+        "pregunta": "¿Existe un procedimiento de rollback y ha sido probado o usado en caso de cambios fallidos?",
+        "evidencia_esperada": "Procedimiento de rollback, registro de casos de reversión"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.33",
+    "categoria": "Tecnológico",
+    "nombre": "Información de prueba",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen reglas sobre qué información puede usarse en entornos de prueba (evitar datos reales sensibles sin proteger)?",
+        "evidencia_esperada": "Política de datos de prueba"
+      },
+      {
+        "pregunta": "¿Se protege y elimina la información de prueba una vez que ya no es necesaria?",
+        "evidencia_esperada": "Registro de eliminación de datos de prueba"
+      }
+    ]
+  },
+  {
+    "codigo": "A.8.34",
+    "categoria": "Tecnológico",
+    "nombre": "Protección de sistemas de información durante auditorías",
+    "sub_preguntas": [
+      {
+        "pregunta": "¿Existen acuerdos/procedimientos que limiten el impacto de pruebas de auditoría (ej. pentest) sobre producción?",
+        "evidencia_esperada": "Procedimiento de pruebas de auditoría con reglas de alcance"
+      },
+      {
+        "pregunta": "¿Las pruebas de auditoría/técnicas se planifican y autorizan formalmente antes de ejecutarse, con alcance definido?",
+        "evidencia_esperada": "Autorización firmada de alcance de pentest/auditoría técnica"
+      }
+    ]
+  }
+]

@@ -69,6 +69,34 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
   }, []);
 
+  // ==========================================================================
+  // Manejo global de sesión vencida (401).
+  // Interceptamos TODAS las llamadas fetch: si alguna responde 401 y había una
+  // sesión activa, significa que el token venció o es inválido. En ese caso
+  // cerramos sesión y volvemos al login automáticamente, en vez de mostrar el
+  // cartel rojo "Error cargando..." y quedar atascados.
+  // ==========================================================================
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      try {
+        if (response.status === 401 && localStorage.getItem('token')) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          if (!window.__sessionExpiredRedirect) {
+            window.__sessionExpiredRedirect = true;
+            // Marcamos el motivo para poder avisar en la pantalla de login.
+            try { sessionStorage.setItem('session_expired', '1'); } catch (_) {}
+            window.location.replace('/');
+          }
+        }
+      } catch (_) { /* nunca romper la petición original */ }
+      return response;
+    };
+    return () => { window.fetch = originalFetch; };
+  }, []);
+
   const value = {
     user,
     token,

@@ -444,3 +444,83 @@ class AIService:
                 "descripcion_riesgo": f"No se pudo evaluar automáticamente: {str(e)[:50]}",
                 "medidas_mitigacion": "Revisar manualmente el tratamiento."
             }
+
+    async def evaluate_assessment_questions(self, control_nombre: str, preguntas: list, contexto: str) -> list:
+        """
+        Evalúa en LOTE las sub-preguntas de un control ISO 27001 contra el texto de
+        los documentos subidos por el usuario (contexto). Para cada pregunta la IA
+        determina si la evidencia CUMPLE / PARCIAL / NO CUMPLE / SIN EVIDENCIA.
+
+        `preguntas`: lista de dicts {id, pregunta, evidencia_esperada}.
+        Devuelve una lista de dicts {id, veredicto, confianza, justificacion}.
+        Se procesan juntas las preguntas de un mismo control para ahorrar llamadas.
+        """
+        # Sin cliente de IA: devolver "sin evidencia" para todas (modo demo offline).
+        if not self.client:
+            return [
+                {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0,
+                 "justificacion": "[Demo Offline] IA no configurada."}
+                for p in preguntas
+            ]
+
+        lista_preguntas = "\n".join(
+            f'{i+1}. (id={p["id"]}) {p["pregunta"]} '
+            f'[Evidencia esperada: {p.get("evidencia_esperada") or "no especificada"}]'
+            for i, p in enumerate(preguntas)
+        )
+
+        prompt = f"""Actúa como un Auditor Líder de ISO 27001:2022.
+Debes evaluar el siguiente control: "{control_nombre}".
+
+Tienes estas preguntas de evaluación:
+{lista_preguntas}
+
+Basándote ÚNICAMENTE en la siguiente evidencia (extraída de los documentos que subió la organización), responde cada pregunta.
+
+=== EVIDENCIA (documentos subidos) ===
+{contexto[:8000]}
+=== FIN EVIDENCIA ===
+
+Para cada pregunta asigna un veredicto EXACTAMENTE uno de:
+- "cumple": la evidencia demuestra claramente que sí se cumple.
+- "parcial": hay evidencia parcial o incompleta.
+- "no_cumple": la evidencia muestra que no se cumple.
+- "sin_evidencia": los documentos no contienen información para responder.
+
+Responde SOLO con un arreglo JSON válido, un objeto por pregunta, en el mismo orden. Ejemplo:
+[
+  {{"id": "<el id de la pregunta>", "veredicto": "cumple", "confianza": 0.9, "justificacion": "Breve motivo basado en la evidencia (máx 30 palabras)."}}
+]"""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=1500
+            )
+            import json
+            content = response.choices[0].message.content
+            content = content.replace('```json', '').replace('```', '').strip()
+            data = json.loads(content)
+            if isinstance(data, dict):
+                data = [data]
+            # Asegurar que cada pregunta tenga respuesta (aunque la IA omita alguna)
+            by_id = {str(item.get("id")): item for item in data if isinstance(item, dict)}
+            resultados = []
+            for p in preguntas:
+                item = by_id.get(str(p["id"]), {})
+                resultados.append({
+                    "id": p["id"],
+                    "veredicto": item.get("veredicto", "sin_evidencia"),
+                    "confianza": item.get("confianza", 0.0),
+                    "justificacion": item.get("justificacion", "La IA no devolvió respuesta para esta pregunta."),
+                })
+            return resultados
+        except Exception as e:
+            logger.error(f"Error en evaluate_assessment_questions: {e}")
+            return [
+                {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0,
+                 "justificacion": f"Fallo al evaluar con IA: {str(e)[:50]}"}
+                for p in preguntas
+            ]

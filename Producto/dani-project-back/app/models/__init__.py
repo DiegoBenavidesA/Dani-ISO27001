@@ -17,6 +17,7 @@ from app.models.data_subject_request import DataSubjectRequest, RequestType, Req
 from app.models.data_breach import DataBreach, SeverityLevel, BreachState  # Tarea 1.4
 from app.models.vendor import Vendor, ContractStatus                     # Tarea 1.5
 from app.models.impact_assessment import ImpactAssessment, ImpactRiskLevel, ImpactStatus  # Tarea 1.6
+from app.models.assessment_question import AssessmentQuestion  # Catálogo de preguntas de evaluación
 
 __all__ = [
     "User", "UserRole",
@@ -33,4 +34,5 @@ __all__ = [
     "DataBreach", "SeverityLevel", "BreachState",
     "Vendor", "ContractStatus",
     "ImpactAssessment", "ImpactRiskLevel", "ImpactStatus",
+    "AssessmentQuestion",
 ]
