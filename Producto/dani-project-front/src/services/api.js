@@ -512,6 +512,111 @@ export const authFetch = async (endpoint, options = {}) => {
 };
 
 // ============================================
+// 🏢 VENDORS API
+// ============================================
+export const vendorsAPI = {
+  getAll: async (token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al obtener los proveedores');
+    }
+
+    return response.json();
+  },
+
+  getById: async (vendorId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al obtener el proveedor');
+    }
+
+    return response.json();
+  },
+
+  create: async (vendorData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      },
+      body: JSON.stringify(vendorData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al crear el proveedor');
+    }
+
+    return response.json();
+  },
+
+  update: async (vendorId, vendorData, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      },
+      body: JSON.stringify(vendorData)
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al actualizar el proveedor');
+    }
+
+    return response.json();
+  },
+
+  delete: async (vendorId, token = null) => {
+    const resolvedToken = token || localStorage.getItem('token');
+
+    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, {
+      method: 'DELETE',
+      headers: {
+        ...(resolvedToken && {
+          Authorization: `Bearer ${resolvedToken}`
+        })
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Error al eliminar el proveedor');
+    }
+
+    return response.json();
+  }
+};
+
+// ============================================
 // 📍 ENDPOINTS (para referencia)
 // ============================================
 export const endpoints = {
@@ -541,6 +646,7 @@ const api = {
   authAPI,
   evidenceAPI,
   riskAPI,
+  vendorsAPI,
   authFetch,
   endpoints
 };
