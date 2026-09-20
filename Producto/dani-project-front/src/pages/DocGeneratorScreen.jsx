@@ -49,13 +49,18 @@ const DocGeneratorScreen = ({ navParams }) => {
   }, [selectedChapter]);
 
   const chapters = [
+    // --- ISO 27001 ---
     { id: 4, number: '4', title: 'Contexto de la Organización', sections: '4 sections', icon: Building2, color: '#3b82f6' },
     { id: 5, number: '5', title: 'Liderazgo', sections: '3 sections', icon: Users, color: '#f59e0b' },
     { id: 6, number: '6', title: 'Planificación', sections: '2 sections', icon: Target, color: '#10b981' },
     { id: 7, number: '7', title: 'Apoyo', sections: '5 sections', icon: HelpCircle, color: '#8b5cf6' },
     { id: 8, number: '8', title: 'Operación', sections: '3 sections', icon: Zap, color: '#ec4899' },
     { id: 9, number: '9', title: 'Evaluación del Desempeño', sections: '3 sections', icon: Search, color: '#0ea5e9' },
-    { id: 10, number: '10', title: 'Mejora', sections: '2 sections', icon: RefreshCw, color: '#ef4444' }
+    { id: 10, number: '10', title: 'Mejora', sections: '2 sections', icon: RefreshCw, color: '#ef4444' },
+    
+    // --- LEY N° 21.719 ---
+    { id: 'ley_pol', number: 'Ley 21.719', title: 'Política de Tratamiento de Datos', sections: 'Obligaciones O1, O2, O3', icon: FileText, color: '#8b5cf6' },
+    { id: 'ley_bre', number: 'Ley 21.719', title: 'Protocolo de Gestión de Brechas', sections: 'Obligación O4', icon: AlertTriangle, color: '#ef4444' }
   ];
 
   const totalGenerated = Object.keys(generatedContent).length;

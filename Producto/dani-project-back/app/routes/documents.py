@@ -52,17 +52,48 @@ async def generate_document(
     prompt_data: dict = Body(...),
     current_user: dict = Depends(get_current_user)
 ):
-    """Generar un documento usando IA"""
+    """Generar un documento usando IA adaptativo (ISO o Ley 21.719)"""
     title = prompt_data.get("title", "")
     chapter_number = prompt_data.get("chapter_number", "")
     target_control = prompt_data.get("target_control", None)
     target_control_title = prompt_data.get("target_control_title", "")
     
-    control_context = ""
-    if target_control:
-        control_context = f"\n\nATENCIÓN ESPECIAL: El usuario necesita explícitamente que este documento cierre la brecha del Control ISO 27001: '{target_control} - {target_control_title}'. Debes hacer un énfasis detallado y exhaustivo en dar cumplimiento total y absoluto a las directrices de este control específico dentro del capítulo, diseñando procedimientos y políticas precisas para solucionarlo."
-        
-    prompt = f"""Actúa como un Consultor Lead Implementer y Auditor Líder de ISO 27001 con 20 años de experiencia.
+    # 1. EVALUAR SI ES UN DOCUMENTO DE LA LEY 21.719
+    if "Ley 21.719" in str(chapter_number):
+        prompt = f"""Actúa como un Abogado Experto en Privacidad y Oficial de Protección de Datos (DPO) en Chile con profunda experiencia corporativa.
+Se te ha asignado redactar un borrador extenso, exhaustivo y listo para producción del documento legal: '{title}' para dar estricto cumplimiento a la Ley N° 21.719 de Protección de Datos Personales.
+Tu objetivo es generar un documento que sea TAN COMPLETO que el cliente solo tenga que rellenar los datos de su empresa. No hagas un resumen corto; redacta políticas, plazos legales, procedimientos y responsabilidades reales. Usa marcadores como [NOMBRE_EMPRESA] para los datos personalizables.
+
+Estructura obligatoria (en Markdown):
+# {title}
+
+## 1. Propósito y Objetivo
+(Redacta de manera formal el objetivo de este documento en el contexto de la protección de la privacidad y los derechos fundamentales de los titulares).
+
+## 2. Alcance y Ámbito de Aplicación
+(Detalla exhaustivamente a quiénes aplica esta política y sobre qué bases de datos o tratamientos).
+
+## 3. Definiciones Legales
+(Incluye las definiciones críticas de la ley aplicables a este documento, ej: Titular, Tratamiento, Brecha, Consentimiento).
+
+## 4. Desarrollo Normativo y Procedimientos
+(Desarrolla en profundidad los procesos. Si es la Política de Tratamiento, incluye las bases de licitud, el catálogo de derechos ARCO+P y plazos. Si es el Protocolo de Brechas, incluye la matriz de escalamiento, el formato de evaluación de riesgo y el plazo de 72 horas para notificar a la Agencia de Protección de Datos).
+
+## 5. Roles y Responsabilidades
+(Crea una matriz detallada del DPO, Comité de Crisis, TI y empleados generales).
+
+## 6. Sanciones por Incumplimiento
+(Redacta las posibles medidas disciplinarias internas).
+
+IMPORTANTE: Escribe al menos 800 palabras. El tono debe ser altamente legal, directivo y riguroso."""
+
+    # 2. SI NO ES LEY, UTILIZAR EL PROMPT ORIGINAL DE ISO 27001
+    else:
+        control_context = ""
+        if target_control:
+            control_context = f"\n\nATENCIÓN ESPECIAL: El usuario necesita explícitamente que este documento cierre la brecha del Control ISO 27001: '{target_control} - {target_control_title}'. Debes hacer un énfasis detallado y exhaustivo en dar cumplimiento total y absoluto a las directrices de este control específico dentro del capítulo, diseñando procedimientos y políticas precisas para solucionarlo."
+            
+        prompt = f"""Actúa como un Consultor Lead Implementer y Auditor Líder de ISO 27001 con 20 años de experiencia.
 Se te ha asignado redactar un borrador extenso, exhaustivo y listo para producción del 'Capítulo {chapter_number}: {title}' para el Manual del Sistema de Gestión de Seguridad de la Información (SGSI).
 {control_context}
 Tu objetivo es generar un documento que sea TAN COMPLETO que el cliente solo tenga que rellenar los datos de su empresa. No hagas un resumen corto; redacta políticas, directrices, flujos y responsabilidades reales. Usa marcadores como [NOMBRE_EMPRESA] para los datos personalizables.
