@@ -1,6 +1,7 @@
 # app/models/__init__.py
 
 # Importar en orden para evitar dependencias circulares SQLAlchemy
+from app.models.organization import Organization   # Multi-tenant (N1)
 from app.models.user import User, UserRole
 from app.models.risk import Risk, RiskLevel, RiskStatus, RiskCategory
 from app.models.evidence import Evidence, EvidenceType
@@ -19,7 +20,12 @@ from app.models.vendor import Vendor, ContractStatus                     # Tarea
 from app.models.impact_assessment import ImpactAssessment, ImpactRiskLevel, ImpactStatus  # Tarea 1.6
 from app.models.assessment_question import AssessmentQuestion  # Catálogo de preguntas de evaluación
 
+# --- Multi-tenant: estado por empresa separado de los catálogos (N6) ---
+from app.models.control_status import ControlStatus
+from app.models.assessment_answer import AssessmentAnswer
+
 __all__ = [
+    "Organization",
     "User", "UserRole",
     "Risk", "RiskLevel", "RiskStatus", "RiskCategory",
     "Evidence", "EvidenceType",
@@ -35,4 +41,6 @@ __all__ = [
     "Vendor", "ContractStatus",
     "ImpactAssessment", "ImpactRiskLevel", "ImpactStatus",
     "AssessmentQuestion",
+    "ControlStatus",
+    "AssessmentAnswer",
 ]
