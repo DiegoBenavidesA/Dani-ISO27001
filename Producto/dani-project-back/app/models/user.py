@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum, JSON
+from sqlalchemy import Column, String, Boolean, DateTime, Enum as SQLEnum, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 import enum
 import uuid
@@ -25,3 +25,10 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
     preferences = Column(JSON, default={})
+
+    # --- Multi-tenant (N3) ---
+    # Empresa a la que pertenece el usuario. Nullable por ahora para no romper
+    # el login del admin existente; en N7 se hace el backfill (empresa por
+    # defecto) y más adelante se puede volver obligatorio.
+    organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=True, index=True)
+    organization = relationship("Organization")

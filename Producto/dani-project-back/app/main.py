@@ -26,6 +26,9 @@ from app.routes import vendors
 from app.routes import assessment_questions
 
 # --- Modelos base (se importan para que SQLAlchemy los registre) ---
+from app.models.organization import Organization   # Multi-tenant (N1)
+from app.models.control_status import ControlStatus   # Multi-tenant (N6)
+from app.models.assessment_answer import AssessmentAnswer  # Multi-tenant (N6)
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
 from app.models.document import Document, DocumentAcknowledgement
