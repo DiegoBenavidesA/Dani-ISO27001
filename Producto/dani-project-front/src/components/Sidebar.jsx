@@ -104,6 +104,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, adminOnly: true },
     { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, adminOnly: true },
     { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, adminOnly: true },
+    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, adminOnly: true },
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, adminOnly: false },
   ].filter(item => !item.adminOnly || isAdmin);
 
