@@ -19,6 +19,7 @@ from app.models.data_breach import DataBreach, SeverityLevel, BreachState  # Tar
 from app.models.vendor import Vendor, ContractStatus                     # Tarea 1.5
 from app.models.impact_assessment import ImpactAssessment, ImpactRiskLevel, ImpactStatus  # Tarea 1.6
 from app.models.assessment_question import AssessmentQuestion  # Catálogo de preguntas de evaluación
+from app.models.law_obligation import LawObligation  # Catálogo de obligaciones Ley 21.719
 
 # --- Multi-tenant: estado por empresa separado de los catálogos (N6) ---
 from app.models.control_status import ControlStatus
@@ -41,6 +42,7 @@ __all__ = [
     "Vendor", "ContractStatus",
     "ImpactAssessment", "ImpactRiskLevel", "ImpactStatus",
     "AssessmentQuestion",
+    "LawObligation",
     "ControlStatus",
     "AssessmentAnswer",
 ]
