@@ -1,0 +1,66 @@
+[
+  {
+    "codigo": "L21719-O1",
+    "categoria": "Tratamiento de datos personales",
+    "nombre": "Registro y control de actividades de tratamiento",
+    "referencia_legal": "Artículos 3, 12, 13 y 14",
+    "descripcion": "Mantener información que permita identificar y controlar los tratamientos de datos personales, sus finalidades, fuentes de licitud y condiciones aplicables.",
+    "modulo": "Registro de Tratamientos"
+  },
+  {
+    "codigo": "L21719-O2",
+    "categoria": "Licitud y consentimiento",
+    "nombre": "Gestión del consentimiento y fuentes de licitud",
+    "referencia_legal": "Artículos 12 y 13",
+    "descripcion": "Acreditar la licitud del tratamiento y, cuando corresponda, obtener, registrar y permitir la revocación del consentimiento del titular.",
+    "modulo": "Consentimientos"
+  },
+  {
+    "codigo": "L21719-O3",
+    "categoria": "Derechos de los titulares",
+    "nombre": "Ejercicio de derechos de los titulares",
+    "referencia_legal": "Artículos 4 a 11",
+    "descripcion": "Disponer de mecanismos que permitan a los titulares ejercer los derechos reconocidos por la ley, incluyendo acceso, rectificación, supresión, oposición y portabilidad.",
+    "modulo": "Solicitudes de Titulares"
+  },
+  {
+    "codigo": "L21719-O4",
+    "categoria": "Seguridad de los datos",
+    "nombre": "Gestión de vulneraciones de seguridad",
+    "referencia_legal": "Artículos 14 quinquies y 14 sexies",
+    "descripcion": "Adoptar medidas de seguridad y mantener mecanismos para gestionar, registrar y comunicar vulneraciones de seguridad de datos personales cuando corresponda.",
+    "modulo": "Gestión de Brechas"
+  },
+  {
+    "codigo": "L21719-O5",
+    "categoria": "Encargados del tratamiento",
+    "nombre": "Control de terceros encargados del tratamiento",
+    "referencia_legal": "Artículo 15 bis",
+    "descripcion": "Regular mediante contrato el tratamiento realizado por terceros encargados, definiendo el objeto, duración, finalidad, tipos de datos y obligaciones de las partes.",
+    "modulo": "Proveedores"
+  },
+  {
+    "codigo": "L21719-O6",
+    "categoria": "Gestión de riesgos",
+    "nombre": "Evaluación de impacto en protección de datos",
+    "referencia_legal": "Artículo 15 ter",
+    "descripcion": "Evaluar los riesgos para los derechos de los titulares cuando las características del tratamiento hagan necesaria una evaluación de impacto en protección de datos.",
+    "modulo": "Evaluación de Impacto"
+  },
+  {
+    "codigo": "L21719-O7",
+    "categoria": "Gobernanza y cumplimiento",
+    "nombre": "Delegado de protección de datos",
+    "referencia_legal": "Artículos 49 y 50",
+    "descripcion": "Contemplar, cuando corresponda, la designación y funciones de un delegado de protección de datos personales dentro del marco de cumplimiento aplicable.",
+    "modulo": "DPO"
+  },
+  {
+    "codigo": "L21719-O8",
+    "categoria": "Seguridad de la información",
+    "nombre": "Medidas técnicas y organizativas de seguridad",
+    "referencia_legal": "Artículo 3 letra f y artículo 14 quinquies",
+    "descripcion": "Aplicar medidas técnicas y organizativas apropiadas para proteger los datos personales y asegurar un nivel de seguridad adecuado al riesgo.",
+    "modulo": "ISO 27001"
+  }
+]
