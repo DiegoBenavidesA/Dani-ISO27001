@@ -121,24 +121,26 @@ async def evaluate_with_ai(
     if not preguntas:
         return {"total": 0, "results": []}
 
-    # 3) Agrupar por control y evaluar cada grupo con la IA (concurrencia limitada)
-    grupos = {}
-    for q in preguntas:
-        grupos.setdefault((q.codigo, q.nombre), []).append(q)
+    # 3) Evaluar en LOTES GRANDES (no una llamada por control).
+    #    Antes se hacía 1 llamada por control (~117 llamadas) y con el límite de
+    #    tasa de Groq eso tardaba minutos o no terminaba. Ahora agrupamos varias
+    #    preguntas por llamada (TAMANO_LOTE) para reducir mucho las llamadas.
+    TAMANO_LOTE = 12
+    lotes = [preguntas[i:i + TAMANO_LOTE] for i in range(0, len(preguntas), TAMANO_LOTE)]
 
-    sem = asyncio.Semaphore(4)
+    sem = asyncio.Semaphore(3)
 
-    async def evaluar_grupo(nombre_control, qs):
+    async def evaluar_lote(qs):
         async with sem:
             items = [
-                {"id": q.id, "pregunta": q.pregunta, "evidencia_esperada": q.evidencia_esperada}
+                {"id": q.id, "pregunta": f"[{q.codigo}] {q.pregunta}", "evidencia_esperada": q.evidencia_esperada}
                 for q in qs
             ]
-            return await ai_service.evaluate_assessment_questions(nombre_control, items, contexto)
+            return await ai_service.evaluate_assessment_questions(
+                "Varios controles ISO 27001 / Ley 21.719", items, contexto
+            )
 
-    grupos_res = await asyncio.gather(
-        *[evaluar_grupo(nombre, qs) for (codigo, nombre), qs in grupos.items()]
-    )
-    resultados = [item for sub in grupos_res for item in sub]
+    lotes_res = await asyncio.gather(*[evaluar_lote(qs) for qs in lotes])
+    resultados = [item for sub in lotes_res for item in sub]
 
     return {"total": len(resultados), "results": resultados}
