@@ -2,8 +2,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { 
   Download, Building2, Users, Target, HelpCircle, Zap, Search, RefreshCw,
-  Wand2, GitBranch, Edit2, Eye, UserCheck, CheckCircle, Send, 
-  ArrowLeftRight, Edit3, Tag, History, Sparkles, FileText, Loader2
+  Wand2, GitBranch, Edit2, Eye, UserCheck, CheckCircle, Send,
+  ArrowLeftRight, Edit3, Tag, History, Sparkles, FileText, Loader2, AlertTriangle
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { documentsAPI } from '../services/api';
