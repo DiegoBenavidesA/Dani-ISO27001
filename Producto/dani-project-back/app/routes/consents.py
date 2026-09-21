@@ -65,6 +65,19 @@ async def create_consent(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Validar que el tratamiento exista antes de insertar. Así devolvemos un
+    # error claro (400) en vez de un 500 por violación de llave foránea si el
+    # treatment_id no corresponde a ningún tratamiento.
+    from app.models.data_treatment import DataTreatment
+    result = await db.execute(
+        select(DataTreatment).where(DataTreatment.id == consent_data.treatment_id)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400,
+            detail="El tratamiento indicado no existe. Selecciona un tratamiento válido."
+        )
+
     new_consent = Consent(
         **consent_data.model_dump(exclude_unset=True)
     )

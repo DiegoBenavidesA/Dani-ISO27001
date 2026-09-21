@@ -650,6 +650,36 @@ export const treatmentsAPI = {
       console.warn("Usando datos de fallback para tratamientos");
       return null; // El frontend manejará el fallback
     }
+  },
+
+  // Crear un tratamiento
+  create: async (treatmentData, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/treatments/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(treatmentData)
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
+  // Eliminar un tratamiento
+  delete: async (treatmentId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/treatments/${treatmentId}`, {
+      method: 'DELETE',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return response.json();
   }
 };
 

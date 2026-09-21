@@ -111,7 +111,7 @@ const BreachesScreen = () => {
   // ==========================================
   const horasRestantes = (fechaLimite) => {
     const ahora = new Date();
-    const limite = new Date(fechaLimite);
+    const limite = parseServerDate(fechaLimite);
     return Math.round((limite - ahora) / (1000 * 60 * 60));
   };
 
@@ -214,7 +214,7 @@ const BreachesScreen = () => {
                           <Icon size={14} /> {badge.text}
                         </span>
                         <div style={{ color: t.textDim, fontSize: '11px', marginTop: '2px' }}>
-                          Límite: {new Date(b.fecha_limite_notificacion).toLocaleString()}
+                          Límite: {parseServerDate(b.fecha_limite_notificacion).toLocaleString()}
                         </div>
                       </td>
                       <td style={tdStyle(t)}>
@@ -303,6 +303,17 @@ const BreachesScreen = () => {
     </div>
   );
 };
+
+// ==========================================
+// Helper: el backend devuelve fechas en UTC SIN zona horaria; hay que
+// interpretarlas como UTC (si no, JS las toma como local y el contador se
+// desfasa por el offset del país, ej. Chile −3h → 72h se veían como 75h).
+// ==========================================
+function parseServerDate(s) {
+  if (!s) return new Date(NaN);
+  const tieneZona = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+  return new Date(tieneZona ? s : s + 'Z');
+}
 
 // ==========================================
 // Helper: suma horas (solo para datos demo del frontend)
