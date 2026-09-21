@@ -1024,17 +1024,31 @@ export const assessmentQuestionsAPI = {
     const form = new FormData();
     (files || []).forEach((f) => form.append('files', f));
     form.append('question_ids', (questionIds || []).join(','));
-    const response = await fetch(`${API_URL}/api/assessment-questions/evaluate`, {
-      method: 'POST',
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
-      body: form,
-    });
-    if (!response.ok) {
-      let detail = `Error ${response.status}`;
-      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
-      throw new Error(detail);
+    // Timeout de seguridad: la evaluación con IA puede tardar, pero no debe
+    // colgarse indefinidamente. Cortamos a los 5 minutos.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 300000);
+    try {
+      const response = await fetch(`${API_URL}/api/assessment-questions/evaluate`, {
+        method: 'POST',
+        headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+        body: form,
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        let detail = `Error ${response.status}`;
+        try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+        throw new Error(detail);
+      }
+      return response.json();
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw new Error('La evaluación con IA tardó demasiado (timeout). Intenta con menos preguntas o vuelve a intentar.');
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return response.json();
   },
 };
 
