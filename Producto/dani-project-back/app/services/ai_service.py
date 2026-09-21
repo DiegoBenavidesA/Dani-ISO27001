@@ -14,10 +14,15 @@ class AIService:
             logger.warning("⚠️ API key no configurada")
             self.client = None
         else:
-            # Configurar cliente
+            # Configurar cliente.
+            # timeout + max_retries acotados: si el proveedor (Groq) aplica
+            # límite de tasa, el SDK NO se queda reintentando con backoff durante
+            # minutos; falla rápido y el endpoint devuelve un fallback controlado.
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
-                base_url=settings.AI_BASE_URL
+                base_url=settings.AI_BASE_URL,
+                timeout=30.0,
+                max_retries=1,
             )
             logger.info(f"✅ AI client inicializado en {settings.AI_BASE_URL}")
     
@@ -497,7 +502,7 @@ Responde SOLO con un arreglo JSON válido, un objeto por pregunta, en el mismo o
                 model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.2,
-                max_tokens=1500
+                max_tokens=3500
             )
             import json
             content = response.choices[0].message.content
