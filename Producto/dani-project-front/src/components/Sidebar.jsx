@@ -98,6 +98,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'documents', label: l.documents, icon: FileText, adminOnly: true },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, adminOnly: true },
     { id: 'user-management', label: l.userManagement, icon: Users, adminOnly: true },
+    { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, adminOnly: true },
     { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, adminOnly: true },
     { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, adminOnly: true },
     { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, adminOnly: true },
