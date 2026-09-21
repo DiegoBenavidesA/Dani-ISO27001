@@ -9,13 +9,14 @@ import {
   Ban
 } from 'lucide-react';
 
-import { consentsAPI } from '../services/api';
+import { consentsAPI, treatmentsAPI } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
 const ConsentsScreen = () => {
   const { theme: t } = useTheme();
 
   const [consents, setConsents] = useState([]);
+  const [treatments, setTreatments] = useState([]); // para el desplegable
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -49,9 +50,27 @@ const ConsentsScreen = () => {
     }
   };
 
+  // Cargar los tratamientos para el desplegable (así no se escribe el ID a mano)
+  const loadTreatments = async () => {
+    try {
+      const data = await treatmentsAPI.getAll();
+      setTreatments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('No se pudieron cargar los tratamientos.', err);
+      setTreatments([]);
+    }
+  };
+
   useEffect(() => {
     loadConsents();
+    loadTreatments();
   }, []);
+
+  // Nombre legible del tratamiento a partir de su id (para la tabla)
+  const treatmentName = (id) => {
+    const found = treatments.find((tr) => tr.id === id);
+    return found ? found.nombre : id;
+  };
 
   // ============================================
   // LIMPIAR FORMULARIO
@@ -108,7 +127,7 @@ const ConsentsScreen = () => {
     }
 
     if (!formData.treatment_id.trim()) {
-      alert('Debes ingresar el ID del tratamiento.');
+      alert('Debes seleccionar un tratamiento.');
       return;
     }
 
@@ -571,7 +590,7 @@ const ConsentsScreen = () => {
                               whiteSpace: 'nowrap'
                             }}
                           >
-                            {consent.treatment_id}
+                            {treatmentName(consent.treatment_id)}
                           </span>
                         </td>
 
@@ -761,15 +780,13 @@ const ConsentsScreen = () => {
                     fontWeight: 600
                   }}
                 >
-                  ID del tratamiento *
+                  Tratamiento *
                 </label>
 
-                <input
-                  type="text"
+                <select
                   name="treatment_id"
                   value={formData.treatment_id}
                   onChange={handleChange}
-                  placeholder="ID del tratamiento de datos"
                   required
                   style={{
                     width: '100%',
@@ -781,7 +798,18 @@ const ConsentsScreen = () => {
                     color: t.text,
                     outline: 'none'
                   }}
-                />
+                >
+                  <option value="">
+                    {treatments.length === 0
+                      ? '— No hay tratamientos: crea uno primero —'
+                      : 'Selecciona un tratamiento...'}
+                  </option>
+                  {treatments.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* MEDIO */}

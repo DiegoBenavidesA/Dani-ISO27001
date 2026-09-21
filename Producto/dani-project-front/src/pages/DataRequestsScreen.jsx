@@ -93,7 +93,7 @@ const DataRequestsScreen = () => {
   // ==========================================
   const diasRestantes = (fechaLimite) => {
     const ahora = new Date();
-    const limite = new Date(fechaLimite);
+    const limite = parseServerDate(fechaLimite);
     return Math.ceil((limite - ahora) / (1000 * 60 * 60 * 24));
   };
 
@@ -197,7 +197,7 @@ const DataRequestsScreen = () => {
                           <Icon size={14} /> {badge.text}
                         </span>
                         <div style={{ color: t.textDim, fontSize: '11px', marginTop: '2px' }}>
-                          Límite: {new Date(req.fecha_limite).toLocaleDateString()}
+                          Límite: {parseServerDate(req.fecha_limite).toLocaleDateString()}
                         </div>
                       </td>
                       <td style={tdStyle(t)}>
@@ -271,6 +271,17 @@ const DataRequestsScreen = () => {
     </div>
   );
 };
+
+// ==========================================
+// Helper: el backend devuelve fechas en UTC SIN zona horaria; hay que
+// interpretarlas como UTC (si no, JS las toma como local y el plazo se desfasa
+// por el offset del país).
+// ==========================================
+function parseServerDate(s) {
+  if (!s) return new Date(NaN);
+  const tieneZona = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+  return new Date(tieneZona ? s : s + 'Z');
+}
 
 // ==========================================
 // Helper: suma días hábiles (solo para datos demo del frontend)
