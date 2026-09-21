@@ -5,13 +5,14 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
-from app.dependencies.auth import get_current_user, RequireRole
+# Importamos los helpers del núcleo multi-tenant
+from app.dependencies.auth import get_current_user, RequireRole, get_current_org
+from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db
 from app.models.capa import CAPA, CAPAStatus, CAPAPriority, CAPASource
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api/capas", tags=["CAPA"])
-
 
 class CAPACreate(BaseModel):
     title: str
@@ -23,11 +24,9 @@ class CAPACreate(BaseModel):
     root_cause: Optional[str] = None
     corrective_action: Optional[str] = None
 
-
 class CAPAStatusUpdate(BaseModel):
     status: str
     progress: Optional[int] = None
-
 
 def _serialize(capa: CAPA) -> dict:
     return {
@@ -46,31 +45,33 @@ def _serialize(capa: CAPA) -> dict:
         "createdAt": capa.created_at.isoformat() if capa.created_at else None,
     }
 
-
-async def _next_nc_code(db: AsyncSession) -> str:
-    result = await db.execute(select(func.count()).select_from(CAPA))
+async def _next_nc_code(db: AsyncSession, org_id: str) -> str:
+    # Aislamiento: El conteo de NC es independiente por empresa
+    stmt = select(func.count()).select_from(CAPA).where(CAPA.organization_id == org_id)
+    result = await db.execute(stmt)
     count = result.scalar() or 0
     year = datetime.utcnow().year
     return f"NC-{year}-{str(count + 1).zfill(3)}"
 
-
 @router.get("/")
 async def get_all_capas(
+    org_id: str = Depends(get_current_org),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(CAPA).order_by(CAPA.created_at.desc()))
+    stmt = scope_to_org(select(CAPA), CAPA, org_id).order_by(CAPA.created_at.desc())
+    result = await db.execute(stmt)
     capas = result.scalars().all()
     return [_serialize(c) for c in capas]
-
 
 @router.post("/")
 async def create_capa(
     data: CAPACreate,
+    org_id: str = Depends(get_current_org),
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
     db: AsyncSession = Depends(get_db)
 ):
-    nc_code = await _next_nc_code(db)
+    nc_code = await _next_nc_code(db, org_id)
     try:
         due = datetime.strptime(data.due_date, "%Y-%m-%d")
     except ValueError:
@@ -89,24 +90,22 @@ async def create_capa(
         corrective_action=data.corrective_action,
         status=CAPAStatus.OPEN,
         progress=0,
+        organization_id=org_id # Asignación estricta de empresa
     )
     db.add(capa)
     await db.commit()
     await db.refresh(capa)
     return _serialize(capa)
 
-
 @router.patch("/{db_id}/status")
 async def update_capa_status(
     db_id: str,
     data: CAPAStatusUpdate,
+    org_id: str = Depends(get_current_org),
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(CAPA).where(CAPA.id == db_id))
-    capa = result.scalar_one_or_none()
-    if not capa:
-        raise HTTPException(status_code=404, detail="CAPA no encontrada")
+    capa = await get_scoped_or_404(db, CAPA, db_id, org_id)
 
     try:
         capa.status = CAPAStatus(data.status)
@@ -125,17 +124,14 @@ async def update_capa_status(
     await db.refresh(capa)
     return _serialize(capa)
 
-
 @router.delete("/{db_id}")
 async def delete_capa(
     db_id: str,
+    org_id: str = Depends(get_current_org),
     current_user: dict = Depends(RequireRole(["admin"])),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(CAPA).where(CAPA.id == db_id))
-    capa = result.scalar_one_or_none()
-    if not capa:
-        raise HTTPException(status_code=404, detail="CAPA no encontrada")
+    capa = await get_scoped_or_404(db, CAPA, db_id, org_id)
     await db.delete(capa)
     await db.commit()
     return {"message": "CAPA eliminada"}

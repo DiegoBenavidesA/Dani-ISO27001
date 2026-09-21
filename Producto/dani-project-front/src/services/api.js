@@ -1052,4 +1052,34 @@ export const assessmentQuestionsAPI = {
   },
 };
 
+// ============================================
+// 🏢 ORGANIZATIONS API (Multi-Tenant)
+// ============================================
+export const organizationsAPI = {
+  getAll: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('Error al obtener empresas');
+    return response.json();
+  },
+  
+  update: async (orgId, data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/${orgId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al actualizar empresa');
+    return response.json();
+  }
+};
+// Recuerda exportarlo al final del archivo dentro de const api = { ... organizationsAPI ... }
+
+
 export default api;
