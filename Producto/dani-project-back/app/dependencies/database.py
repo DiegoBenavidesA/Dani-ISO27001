@@ -37,6 +37,14 @@ if "postgresql://" in DATABASE_URL and "+asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
     print("✅ Convertida URL a formato asyncpg")
 
+# asyncpg NO entiende algunos parámetros de la URL estilo libpq (sslmode,
+# channel_binding) que agregan Neon/Supabase. Los quitamos; asyncpg negocia el
+# SSL igual con esos proveedores. (Para URLs que no los traen, esto es no-op.)
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+_p = urlsplit(DATABASE_URL)
+_q = [(k, v) for k, v in parse_qsl(_p.query) if k not in ("sslmode", "channel_binding")]
+DATABASE_URL = urlunsplit((_p.scheme, _p.netloc, _p.path, urlencode(_q), _p.fragment))
+
 print(f"🔗 Conectando a BD: {DATABASE_URL[:60]}...")
 
 USING_PGBOUNCER = ":6543" in DATABASE_URL
