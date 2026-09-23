@@ -7,8 +7,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_org
+from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.consent import Consent
+from app.models.data_treatment import DataTreatment
 
 
 router = APIRouter(
@@ -28,7 +30,6 @@ class ConsentCreate(BaseModel):
     estado: Optional[str] = None
     fecha_otorgado: Optional[datetime] = None
     comprobante_url: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class ConsentUpdate(BaseModel):
@@ -37,7 +38,6 @@ class ConsentUpdate(BaseModel):
     medio: Optional[str] = None
     estado: Optional[str] = None
     comprobante_url: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class ConsentResponse(BaseModel):
@@ -56,30 +56,33 @@ class ConsentResponse(BaseModel):
 
 
 # =========================================================
-# CREATE — Registrar un consentimiento
+# CREATE — la empresa se asigna desde el token
 # =========================================================
 
 @router.post("/", response_model=ConsentResponse)
 async def create_consent(
     consent_data: ConsentCreate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    # Validar que el tratamiento exista antes de insertar. Así devolvemos un
-    # error claro (400) en vez de un 500 por violación de llave foránea si el
-    # treatment_id no corresponde a ningún tratamiento.
-    from app.models.data_treatment import DataTreatment
-    result = await db.execute(
-        select(DataTreatment).where(DataTreatment.id == consent_data.treatment_id)
+    # El tratamiento debe existir Y pertenecer a la misma empresa.
+    treatment = await get_scoped_or_404(
+        db,
+        DataTreatment,
+        consent_data.treatment_id,
+        org_id,
+        detail="El tratamiento indicado no existe"
     )
-    if not result.scalar_one_or_none():
+
+    if not treatment:
         raise HTTPException(
             status_code=400,
-            detail="El tratamiento indicado no existe. Selecciona un tratamiento válido."
+            detail="El tratamiento indicado no existe"
         )
 
     new_consent = Consent(
-        **consent_data.model_dump(exclude_unset=True)
+        **consent_data.model_dump(exclude_unset=True),
+        organization_id=org_id
     )
 
     db.add(new_consent)
@@ -90,72 +93,71 @@ async def create_consent(
 
 
 # =========================================================
-# READ — Todos los consentimientos
+# READ — solo consentimientos de mi empresa
 # =========================================================
 
 @router.get("/", response_model=List[ConsentResponse])
 async def get_consents(
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Consent).order_by(
-            Consent.fecha_otorgado.desc()
-        )
-    )
+    stmt = scope_to_org(select(Consent), Consent, org_id)
+    stmt = stmt.order_by(Consent.fecha_otorgado.desc())
+
+    result = await db.execute(stmt)
 
     return result.scalars().all()
 
 
 # =========================================================
-# READ — Un consentimiento por ID
+# READ — un consentimiento solo si es de mi empresa
 # =========================================================
 
 @router.get("/{consent_id}", response_model=ConsentResponse)
 async def get_consent_by_id(
     consent_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Consent).where(Consent.id == consent_id)
+    return await get_scoped_or_404(
+        db,
+        Consent,
+        consent_id,
+        org_id,
+        detail="Consentimiento no encontrado"
     )
-
-    consent = result.scalar_one_or_none()
-
-    if not consent:
-        raise HTTPException(
-            status_code=404,
-            detail="Consentimiento no encontrado"
-        )
-
-    return consent
 
 
 # =========================================================
-# UPDATE — Actualizar un consentimiento
+# UPDATE — solo si es de mi empresa
 # =========================================================
 
 @router.put("/{consent_id}", response_model=ConsentResponse)
 async def update_consent(
     consent_id: str,
     consent_data: ConsentUpdate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Consent).where(Consent.id == consent_id)
+    consent = await get_scoped_or_404(
+        db,
+        Consent,
+        consent_id,
+        org_id,
+        detail="Consentimiento no encontrado"
     )
 
-    consent = result.scalar_one_or_none()
-
-    if not consent:
-        raise HTTPException(
-            status_code=404,
-            detail="Consentimiento no encontrado"
-        )
-
     update_data = consent_data.model_dump(exclude_unset=True)
+
+    # Si se cambia el tratamiento, debe pertenecer a la misma empresa.
+    if "treatment_id" in update_data:
+        await get_scoped_or_404(
+            db,
+            DataTreatment,
+            update_data["treatment_id"],
+            org_id,
+            detail="El tratamiento indicado no existe"
+        )
 
     for field, value in update_data.items():
         setattr(consent, field, value)
@@ -167,27 +169,22 @@ async def update_consent(
 
 
 # =========================================================
-# REVOCAR — Marcar un consentimiento como revocado (O2)
-# La ley exige poder retirar el consentimiento en cualquier momento.
+# REVOCAR — solo si el consentimiento es de mi empresa
 # =========================================================
 
 @router.post("/{consent_id}/revoke", response_model=ConsentResponse)
 async def revoke_consent(
     consent_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Consent).where(Consent.id == consent_id)
+    consent = await get_scoped_or_404(
+        db,
+        Consent,
+        consent_id,
+        org_id,
+        detail="Consentimiento no encontrado"
     )
-
-    consent = result.scalar_one_or_none()
-
-    if not consent:
-        raise HTTPException(
-            status_code=404,
-            detail="Consentimiento no encontrado"
-        )
 
     consent.estado = "revocado"
     consent.fecha_revocado = datetime.utcnow()
@@ -199,26 +196,22 @@ async def revoke_consent(
 
 
 # =========================================================
-# DELETE — Eliminar un consentimiento
+# DELETE — solo si es de mi empresa
 # =========================================================
 
 @router.delete("/{consent_id}")
 async def delete_consent(
     consent_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Consent).where(Consent.id == consent_id)
+    consent = await get_scoped_or_404(
+        db,
+        Consent,
+        consent_id,
+        org_id,
+        detail="Consentimiento no encontrado"
     )
-
-    consent = result.scalar_one_or_none()
-
-    if not consent:
-        raise HTTPException(
-            status_code=404,
-            detail="Consentimiento no encontrado"
-        )
 
     await db.delete(consent)
     await db.commit()
