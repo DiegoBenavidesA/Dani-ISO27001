@@ -12,7 +12,6 @@ from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user, get_current_org
 from app.models.iso_controls import ISOCControl
 from app.models.control_status import ControlStatus
-from app.models.user import User
 from app.services.iso_compliance_analyzer import ISOComplianceAnalyzer
 
 router = APIRouter(prefix="/api/compliance", tags=["ISO 27001 Compliance"])
@@ -119,13 +118,13 @@ async def _catalog_with_status(db: AsyncSession, org_id: str):
 
 
 async def _organization_evidences(db: AsyncSession, org_id: str):
-    """Aísla evidencias por la organización del usuario que las subió."""
+    """Obtiene únicamente las evidencias de la organización actual."""
     from app.models.evidence import Evidence
 
     result = await db.execute(
-        select(Evidence)
-        .join(User, Evidence.uploaded_by == User.id)
-        .where(User.organization_id == org_id)
+        select(Evidence).where(
+            Evidence.organization_id == org_id
+        )
     )
     return result.scalars().all()
 
@@ -281,8 +280,7 @@ async def bulk_audit(
     chunk_scope = (
         select(EvidenceChunk)
         .join(Evidence, EvidenceChunk.evidence_id == Evidence.id)
-        .join(User, Evidence.uploaded_by == User.id)
-        .where(User.organization_id == org_id)
+        .where(Evidence.organization_id == org_id)
     )
     chunk_count_result = await db.execute(chunk_scope.limit(1))
     has_chunks = chunk_count_result.scalars().first() is not None
@@ -297,8 +295,7 @@ async def bulk_audit(
                 chunk_stmt = (
                     select(EvidenceChunk)
                     .join(Evidence, EvidenceChunk.evidence_id == Evidence.id)
-                    .join(User, Evidence.uploaded_by == User.id)
-                    .where(User.organization_id == org_id)
+                    .where(Evidence.organization_id == org_id)
                     .order_by(EvidenceChunk.embedding.cosine_distance(query_vector))
                     .limit(4)
                 )
