@@ -9,11 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, RequireRole
 from app.models.assessment_question import AssessmentQuestion
 from app.services.ai_service import AIService
 from app.services.embedding_service import EmbeddingService
-
 
 router = APIRouter(
     prefix="/api/assessment-questions",
@@ -22,17 +21,13 @@ router = APIRouter(
 
 ai_service = AIService()
 
-# La extracción de texto (PDF/Word) vive en EmbeddingService. Se instancia
-# perezosamente para no cargar nada pesado al importar el módulo.
 _embedding_service = None
-
 
 def _get_embedding_service():
     global _embedding_service
     if _embedding_service is None:
         _embedding_service = EmbeddingService()
     return _embedding_service
-
 
 class QuestionResponse(BaseModel):
     id: str
@@ -46,11 +41,25 @@ class QuestionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class QuestionCreate(BaseModel):
+    codigo: str
+    categoria: str
+    nombre: str
+    pregunta: str
+    evidencia_esperada: Optional[str] = None
+    orden: int = 0
+
+class QuestionUpdate(BaseModel):
+    codigo: Optional[str] = None
+    categoria: Optional[str] = None
+    nombre: Optional[str] = None
+    pregunta: Optional[str] = None
+    evidencia_esperada: Optional[str] = None
+    orden: Optional[int] = None
 
 # =========================================================
-# READ — Listar preguntas del catálogo (opcionalmente por categoría)
+# READ — Listar preguntas
 # =========================================================
-
 @router.get("/", response_model=List[QuestionResponse])
 async def get_questions(
     categoria: Optional[str] = None,
@@ -65,17 +74,58 @@ async def get_questions(
     result = await db.execute(stmt)
     return result.scalars().all()
 
+# =========================================================
+# CRUD ADMINISTRATIVO (Solo Admin)
+# =========================================================
+@router.post("/", response_model=QuestionResponse)
+async def create_question(
+    data: QuestionCreate,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    new_q = AssessmentQuestion(**data.model_dump(exclude_unset=True))
+    db.add(new_q)
+    await db.commit()
+    await db.refresh(new_q)
+    return new_q
+
+@router.put("/{q_id}", response_model=QuestionResponse)
+async def update_question(
+    q_id: str,
+    data: QuestionUpdate,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))
+    q = result.scalar_one_or_none()
+    if not q:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(q, key, value)
+        
+    await db.commit()
+    await db.refresh(q)
+    return q
+
+@router.delete("/{q_id}")
+async def delete_question(
+    q_id: str,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))
+    q = result.scalar_one_or_none()
+    if not q:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+        
+    await db.delete(q)
+    await db.commit()
+    return {"message": "Pregunta eliminada exitosamente"}
 
 # =========================================================
 # EVALUAR CON IA
-# Recibe los documentos subidos, extrae su texto y pide a la IA que responda
-# cada pregunta (cumple / parcial / no_cumple / sin_evidencia).
-#
-# - question_ids vacío  -> evalúa TODAS las preguntas ("Evaluar con IA").
-# - question_ids con lista -> evalúa solo esas ("Revalidar con IA": el frontend
-#   manda solo las que NO están en 'cumple', para no reprocesar las ya aprobadas).
 # =========================================================
-
 @router.post("/evaluate")
 async def evaluate_with_ai(
     files: List[UploadFile] = File(...),
@@ -83,7 +133,6 @@ async def evaluate_with_ai(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    # 1) Extraer el texto de todos los documentos subidos
     emb = _get_embedding_service()
     contexto = ""
     for f in files:
@@ -98,19 +147,14 @@ async def evaluate_with_ai(
             if texto:
                 contexto += f"\n\n### Documento: {f.filename}\n{texto}"
         except Exception as e:
-            # Un archivo ilegible no debe tumbar toda la evaluación.
             contexto += f"\n\n### Documento: {f.filename}\n[No se pudo leer: {str(e)[:60]}]"
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
     if not contexto.strip():
-        raise HTTPException(
-            status_code=400,
-            detail="No se pudo extraer texto de los documentos subidos."
-        )
+        raise HTTPException(status_code=400, detail="No se pudo extraer texto de los documentos subidos.")
 
-    # 2) Cargar las preguntas a evaluar (todas, o solo las indicadas)
     stmt = select(AssessmentQuestion)
     ids = [x.strip() for x in question_ids.split(",") if x.strip()]
     if ids:
@@ -121,24 +165,14 @@ async def evaluate_with_ai(
     if not preguntas:
         return {"total": 0, "results": []}
 
-    # 3) Evaluar en LOTES GRANDES (no una llamada por control).
-    #    Antes se hacía 1 llamada por control (~117 llamadas) y con el límite de
-    #    tasa de Groq eso tardaba minutos o no terminaba. Ahora agrupamos varias
-    #    preguntas por llamada (TAMANO_LOTE) para reducir mucho las llamadas.
     TAMANO_LOTE = 12
     lotes = [preguntas[i:i + TAMANO_LOTE] for i in range(0, len(preguntas), TAMANO_LOTE)]
-
     sem = asyncio.Semaphore(3)
 
     async def evaluar_lote(qs):
         async with sem:
-            items = [
-                {"id": q.id, "pregunta": f"[{q.codigo}] {q.pregunta}", "evidencia_esperada": q.evidencia_esperada}
-                for q in qs
-            ]
-            return await ai_service.evaluate_assessment_questions(
-                "Varios controles ISO 27001 / Ley 21.719", items, contexto
-            )
+            items = [{"id": q.id, "pregunta": f"[{q.codigo}] {q.pregunta}", "evidencia_esperada": q.evidencia_esperada} for q in qs]
+            return await ai_service.evaluate_assessment_questions("Varios controles ISO 27001 / Ley 21.719", items, contexto)
 
     lotes_res = await asyncio.gather(*[evaluar_lote(qs) for qs in lotes])
     resultados = [item for sub in lotes_res for item in sub]
