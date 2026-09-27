@@ -25,6 +25,8 @@ from app.routes import breaches
 from app.routes import vendors
 from app.routes import assessment_questions
 
+from app.routes import auth, risk, evidence, organizations
+
 # --- Modelos base (se importan para que SQLAlchemy los registre) ---
 from app.models.organization import Organization   # Multi-tenant (N1)
 from app.models.control_status import ControlStatus   # Multi-tenant (N6)
@@ -189,6 +191,7 @@ app.include_router(vendors.router)
 app.include_router(impact.router)
 app.include_router(assessment_questions.router)
 
+app.include_router(organizations.router)  
 
 @app.get("/")
 async def root():

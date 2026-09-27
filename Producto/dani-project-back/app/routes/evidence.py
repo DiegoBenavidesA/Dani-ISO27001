@@ -10,7 +10,8 @@ from datetime import datetime
 import uuid
 import os
 
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_user, get_current_org
+from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
 from app.services.embedding_service import EmbeddingService
@@ -21,16 +22,10 @@ embedding_service = EmbeddingService()
 
 TMP_DIR = "/tmp"
 
-
-async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_type: str, tmp_path: str):
-    """Procesa el RAG en background sin bloquear el request de upload."""
+async def _index_evidence_background(evidence_id: str, org_id: str, file_bytes: bytes, mime_type: str, tmp_path: str):
     async with AsyncSessionLocal() as db:
         try:
-            result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
-            evidence = result.scalar_one_or_none()
-            if not evidence:
-                return
-
+            evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
             evidence.indexing_status = "indexing"
             await db.commit()
 
@@ -47,6 +42,7 @@ async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_t
                     for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
                         db.add(EvidenceChunk(
                             evidence_id=evidence_id,
+                            organization_id=org_id,
                             content=chunk_content,
                             embedding=chunk_emb,
                             chunk_index=idx
@@ -54,30 +50,25 @@ async def _index_evidence_background(evidence_id: str, file_bytes: bytes, mime_t
 
             evidence.indexing_status = "done"
             await db.commit()
-            print(f"✅ RAG completado para evidencia {evidence_id}")
         except Exception as e:
-            print(f"⚠️ Error RAG background para {evidence_id}: {e}")
             try:
-                result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
-                ev = result.scalar_one_or_none()
-                if ev:
-                    ev.indexing_status = "error"
-                    await db.commit()
+                ev = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
+                ev.indexing_status = "error"
+                await db.commit()
             except Exception:
                 pass
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-
 @router.get("/")
 async def get_all_evidence(
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    """Obtener todas las evidencias desde la Base de Datos"""
-    query = select(Evidence)
-    result = await db.execute(query)
+    stmt = scope_to_org(select(Evidence), Evidence, org_id)
+    result = await db.execute(stmt)
     evidences = result.scalars().all()
 
     return [
@@ -96,7 +87,6 @@ async def get_all_evidence(
         for ev in evidences
     ]
 
-
 @router.post("/upload")
 async def upload_evidence(
     background_tasks: BackgroundTasks,
@@ -104,33 +94,28 @@ async def upload_evidence(
     control: str = Form("General"),
     source: str = Form("Manual"),
     validityDays: int = Form(30),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    """Sube la evidencia a BD y lanza la indexación RAG en background."""
     try:
         file_bytes = await file.read()
         file_size = len(file_bytes)
-        # Sanitizar nombre: solo ASCII alfanumérico, puntos y guiones
         import unicodedata
         safe_filename = unicodedata.normalize('NFKD', file.filename).encode('ascii', 'ignore').decode('ascii')
         safe_filename = "".join(c for c in safe_filename if c.isalnum() or c in "._-") or "file"
-        storage_path = f"{uuid.uuid4()}_{safe_filename}"
+        storage_path = f"{org_id}/{uuid.uuid4()}_{safe_filename}" # Aislamiento físico en storage
 
         try:
             from app.config import settings
-            print(f"🔧 SUPABASE_URL={settings.SUPABASE_URL!r}  BUCKET={settings.SUPABASE_STORAGE_BUCKET!r}")
             if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY:
                 await storage_service.upload(
                     path=storage_path,
                     content=file_bytes,
                     content_type=file.content_type or "application/octet-stream",
                 )
-                print(f"✅ Archivo subido a Supabase Storage: {storage_path}")
             else:
-                print("⚠️ Supabase no configurado, usando local")
                 storage_path = f"local:{file.filename}"
         except Exception as se:
-            print(f"❌ Error Supabase Storage: {se}")
             storage_path = f"local:{file.filename}"
 
         now = datetime.utcnow()
@@ -143,6 +128,7 @@ async def upload_evidence(
             evidence_type=EvidenceType.DOCUMENT,
             verified_at=now,
             indexing_status="pending",
+            organization_id=org_id,
             evidence_metadata={
                 "control": control,
                 "type": "manual",
@@ -157,13 +143,11 @@ async def upload_evidence(
         await db.refresh(new_evidence)
 
         evidence_id = new_evidence.id
-        safe_name = "".join(c for c in file.filename if c.isalnum() or c in "._-")[:60]
-        tmp_path = os.path.join(TMP_DIR, f"{evidence_id}_{safe_name}")
+        tmp_path = os.path.join(TMP_DIR, f"{evidence_id}_{safe_filename[:60]}")
         mime = file.content_type or ""
 
-        # Lanzar indexación RAG en background — el request responde inmediato
         background_tasks.add_task(
-            _index_evidence_background, evidence_id, file_bytes, mime, tmp_path
+            _index_evidence_background, evidence_id, org_id, file_bytes, mime, tmp_path
         )
 
         return {
@@ -173,41 +157,25 @@ async def upload_evidence(
             "indexing_status": "pending"
         }
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al subir archivo: {str(e)}")
-
 
 @router.get("/{evidence_id}/status")
 async def get_evidence_status(
     evidence_id: str,
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    """Consulta el estado de indexación RAG de una evidencia."""
-    result = await db.execute(select(Evidence).where(Evidence.id == evidence_id))
-    ev = result.scalar_one_or_none()
-    if not ev:
-        raise HTTPException(status_code=404, detail="Evidencia no encontrada")
+    ev = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
     return {"id": evidence_id, "indexing_status": ev.indexing_status or "done"}
-
 
 @router.get("/{evidence_id}/download")
 async def download_evidence(
     evidence_id: str,
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    """Descargar el archivo físico de una evidencia"""
-    query = select(Evidence).where(Evidence.id == evidence_id)
-    result = await db.execute(query)
-    evidence = result.scalar_one_or_none()
-
-    if not evidence:
-        raise HTTPException(status_code=404, detail="Evidencia no encontrada en la base de datos")
-
-    # CAMBIO: antes se verificaba os.path.exists(evidence.file_url) y se
-    # devolvía con FileResponse desde disco. Ahora descargamos el contenido
-    # desde Supabase Storage y lo devolvimos como stream.
+    evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
     try:
         content = await storage_service.download(evidence.file_url)
     except Exception:
@@ -219,9 +187,7 @@ async def download_evidence(
         headers={"Content-Disposition": f'attachment; filename="{evidence.file_name}"'}
     )
 
-
 def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
-    """Genera un PDF real usando PyMuPDF."""
     import fitz
     doc = fitz.open()
     page = doc.new_page()
@@ -236,35 +202,33 @@ def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
         if y > 750:  
             page = doc.new_page()
             y = 50
-            
         page.insert_text((50, y), heading, fontsize=12, fontname="hebo")
         y += 20
-        
         for label, value in fields:
             if y > 780:
                 page = doc.new_page()
                 y = 50
-            
             val_str = str(value).replace("\n", " ")
             val_str = val_str[:90] + ("..." if len(val_str) > 90 else "")
-            
             page.insert_text((70, y), f"{label}: {val_str}", fontsize=10, fontname="helv")
             y += 15
-            
         y += 15
-        
     return doc.tobytes()
 
-
 @router.get("/export/zip")
-async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
-    """Exportar paquete de auditoría ISO 27001 con PDFs profesionales por cláusula"""
+async def export_evidences_zip(
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
     from app.models.risk import Risk
-
-    ev_result = await db.execute(select(Evidence))
+    
+    # Exportación estrictamente multi-tenant
+    ev_stmt = scope_to_org(select(Evidence), Evidence, org_id)
+    ev_result = await db.execute(ev_stmt)
     evidences = ev_result.scalars().all()
 
-    risk_result = await db.execute(select(Risk))
+    risk_stmt = scope_to_org(select(Risk), Risk, org_id)
+    risk_result = await db.execute(risk_stmt)
     risks = risk_result.scalars().all()
 
     clause_folders = {
@@ -290,14 +254,11 @@ async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
 
         ev_by_clause: dict = {k: [] for k in clause_folders}
-        ev_general = []
         for ev in evidences:
             ctrl = (ev.evidence_metadata or {}).get("control", "") if ev.evidence_metadata else ""
             prefix = ctrl.split(".")[0] if ctrl else ""
             if prefix in ev_by_clause:
                 ev_by_clause[prefix].append(ev)
-            else:
-                ev_general.append(ev)
 
         for prefix, folder in clause_folders.items():
             evs = ev_by_clause[prefix]
@@ -312,83 +273,35 @@ async def export_evidences_zip(db: AsyncSession = Depends(get_db)):
                         ("Fuente", (ev.evidence_metadata or {}).get("source", "Manual")),
                         ("Fecha verificacion", ev.verified_at.strftime("%d/%m/%Y") if ev.verified_at else "Sin fecha"),
                         ("Descripcion", ev.description or "Sin descripcion"),
-                        ("Tamano archivo", f"{ev.file_size or 0} bytes"),
                     ]))
             else:
-                sections.append(("Sin evidencias registradas", [
-                    ("Estado", "Pendiente de documentacion"),
-                    ("Recomendacion", "Agregar evidencias desde el Centro de Evidencias"),
-                ]))
+                sections.append(("Sin evidencias registradas", [("Estado", "Pendiente de documentacion")]))
 
-            pdf_bytes = _make_pdf(
-                f"Clausula {prefix} - {clause_name}",
-                f"Evidencias ISO 27001:2022 | {len(evs)} documento(s)",
-                sections
-            )
+            pdf_bytes = _make_pdf(f"Clausula {prefix} - {clause_name}", f"Evidencias ISO | {len(evs)} documento(s)", sections)
             zf.writestr(f"{folder}/Evidencias_Clausula_{prefix}.pdf", pdf_bytes)
 
-            # CAMBIO: antes -> `if ev.file_url and os.path.exists(ev.file_url): zf.write(...)`
-            # leía del disco local. Ahora descargamos cada archivo desde
-            # Supabase Storage y lo escribimos directo en el zip en memoria.
             for ev in evs:
                 if not ev.file_url:
                     continue
                 try:
                     file_bytes = await storage_service.download(ev.file_url)
+                    safe = "".join(c for c in (ev.file_name or ev.title) if c.isalnum() or c in " ._-")[:50]
+                    zf.writestr(f"{folder}/{safe}", file_bytes)
                 except Exception:
-                    continue  # si un archivo individual falla, no rompemos todo el export
-                safe = "".join(c for c in (ev.file_name or ev.title) if c.isalnum() or c in " ._-")[:50]
-                zf.writestr(f"{folder}/{safe}", file_bytes)
+                    continue 
 
-        # --- PDF Registro de Riesgos y Resumen Ejecutivo: sin cambios ---
         risk_sections = []
         for r in risks:
             risk_sections.append((r.title[:70], [
-                ("Categoria",    r.category.value if r.category else "N/A"),
-                ("Probabilidad", f"{r.likelihood}/5"),
-                ("Impacto",      f"{r.impact}/5"),
-                ("Nivel",        r.risk_level.value if r.risk_level else "N/A"),
-                ("Estado",       r.status.value if r.status else "N/A"),
-                ("Responsable",  r.owner),
-                ("Plan de mitigacion", r.mitigation_plan or "Sin plan definido"),
+                ("Nivel", r.risk_level.value if r.risk_level else "N/A"),
+                ("Estado", r.status.value if r.status else "N/A"),
+                ("Responsable", r.owner)
             ]))
         if not risk_sections:
-            risk_sections = [("Sin riesgos registrados", [("Estado", "No hay riesgos en el sistema")])]
+            risk_sections = [("Sin riesgos registrados", [("Estado", "No hay riesgos")])]
 
-        risk_pdf = _make_pdf(
-            "Registro de Riesgos",
-            f"ISO 27001:2022 - Gestion de Riesgos | {len(risks)} riesgo(s)",
-            risk_sections
-        )
-        zf.writestr("Riesgos/Registro_de_Riesgos.pdf", risk_pdf)
-
-        criticos = sum(1 for r in risks if r.risk_level and r.risk_level.value == "critical")
-        altos    = sum(1 for r in risks if r.risk_level and r.risk_level.value == "high")
-        medios   = sum(1 for r in risks if r.risk_level and r.risk_level.value == "medium")
-        bajos    = sum(1 for r in risks if r.risk_level and r.risk_level.value == "low")
-
-        resumen_pdf = _make_pdf(
-            "Resumen Ejecutivo SGSI",
-            "Paquete de Auditoria ISO 27001:2022",
-            [
-                ("Metricas Generales", [
-                    ("Evidencias documentadas",    str(len(evidences))),
-                    ("Riesgos identificados",      str(len(risks))),
-                    ("Riesgos criticos",           str(criticos)),
-                    ("Riesgos altos",              str(altos)),
-                    ("Riesgos medios",             str(medios)),
-                    ("Riesgos bajos",              str(bajos)),
-                    ("Clausulas cubiertas",        f"{sum(1 for v in ev_by_clause.values() if v)} de 7"),
-                ]),
-                ("Informacion del Paquete", [
-                    ("Estandar",   "ISO/IEC 27001:2022"),
-                    ("Generado",   datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC")),
-                    ("Plataforma", "DANI GRC Platform"),
-                    ("Clasificacion", "CONFIDENCIAL"),
-                ]),
-            ]
-        )
-        zf.writestr("Resumen/Resumen_Ejecutivo.pdf", resumen_pdf)
+        zf.writestr("Riesgos/Registro_de_Riesgos.pdf", _make_pdf("Registro de Riesgos", "ISO 27001", risk_sections))
+        zf.writestr("Resumen/Resumen_Ejecutivo.pdf", _make_pdf("Resumen Ejecutivo", "Paquete de Auditoria", [("Resumen", [("Evidencias", str(len(evidences))), ("Riesgos", str(len(risks)))])]))
 
     zip_buffer.seek(0)
     return StreamingResponse(

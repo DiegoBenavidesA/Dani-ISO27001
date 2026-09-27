@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Login = () => {
   const { login, isLoading, error } = useAuth();  // ← ESTO ES CLAVE
-  
+  const [empresa, setEmpresa] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -47,10 +47,7 @@ const Login = () => {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
 
-    if (!cleanEmail || !cleanPassword || (isRegistering && !cleanName)) {
-      setLocalError('Los campos no pueden estar vacíos.');
-      return;
-    }
+    if (!cleanEmail || !cleanPassword || (isRegistering && (!cleanName || !empresa.trim())))
 
     if (!isValidEmail(cleanEmail)) {
       setLocalError('Por favor, ingresa un correo electrónico válido.');
@@ -69,7 +66,7 @@ const Login = () => {
     }
 
     try {
-      await login(cleanEmail, cleanPassword, isRegistering, cleanName);
+      await login(cleanEmail, cleanPassword, isRegistering, cleanName, empresa.trim());
       
       if (isRegistering) {
         // Mostrar mensaje de éxito
@@ -131,6 +128,23 @@ const Login = () => {
             <div>
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
                 Nombre Completo
+                {isRegistering && (
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+                Nombre de la Empresa
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  required={isRegistering} 
+                  value={empresa} 
+                  onChange={(e) => setEmpresa(e.target.value)} 
+                  placeholder="Ej. TechCorp Spa"
+                  style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px', color: 'white', fontSize: '14px', outline: 'none' }}
+                />
+              </div>
+            </div>
+          )}
               </label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
