@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from sqlalchemy import select
-from app.dependencies.auth import get_current_user, RequireRole
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole
 from app.dependencies.database import get_db
 from app.services.gap_analyzer import GapAnalyzer
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI
@@ -20,10 +20,11 @@ router = APIRouter(prefix="/api/gap-analysis", tags=["Gap Analysis"])
 @router.get("/full")
 async def get_full_gap_analysis(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict[str, Any]:
     """Obtener análisis de brecha completo"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer.generate_complete_gap_analysis()
     return result
 
@@ -32,74 +33,94 @@ async def get_control_gaps(
     priority: str = None,
     category: str = None,
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Obtener brechas de controles ISO"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer._analyze_controls()
-    
+
     if priority:
         result["by_priority"]["filtered"] = result["by_priority"].get(priority, [])
+
     if category:
         result["by_category"]["filtered"] = result["by_category"].get(category, {})
-    
+
     return result
 
 @router.get("/maturity")
 async def get_maturity_matrix(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Obtener matriz de madurez"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer._calculate_maturity()
     return result
 
 @router.get("/remediation-plan")
 async def get_remediation_plan(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Obtener plan de remediación"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer._create_remediation_plan()
     return result
 
 @router.get("/kpi-dashboard")
 async def get_kpi_dashboard(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Obtener dashboard de KPIs"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer._generate_kpi_dashboard()
     return result
 
 @router.get("/score")
 async def get_compliance_score(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Obtener score de cumplimiento"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer._calculate_overall_score()
     return result
 
 @router.get("/domains")
 async def get_domain_scores(
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
     """Scores de cumplimiento por dominio ISO 27001 para el sidebar"""
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     clauses = await analyzer._analyze_clauses()
     clause_map = {c["clause_id"]: c["current_score"] for c in clauses}
 
     return {
-        "people":     round((clause_map.get("7", 75) + clause_map.get("6", 60)) / 2, 1),
-        "technology": round((clause_map.get("8", 65) + clause_map.get("9", 50)) / 2, 1),
-        "physical":   round(clause_map.get("9", 50), 1),
-        "processes":  round((clause_map.get("4", 80) + clause_map.get("5", 70) + clause_map.get("10", 45)) / 3, 1),
+        "people": round(
+            (clause_map.get("7", 75) + clause_map.get("6", 60)) / 2, 1
+        ),
+        "technology": round(
+            (clause_map.get("8", 65) + clause_map.get("9", 50)) / 2, 1
+        ),
+        "physical": round(
+            clause_map.get("9", 50), 1
+        ),
+        "processes": round(
+            (
+                clause_map.get("4", 80)
+                + clause_map.get("5", 70)
+                + clause_map.get("10", 45)
+            ) / 3,
+            1
+        ),
     }
 
 @router.post("/remediation-actions/{gap_id}")
@@ -135,9 +156,11 @@ async def create_remediation_action(
     return {"message": "Acción creada", "action": action}
 
 @router.post("/analyze-document")
+@router.post("/analyze-document")
 async def analyze_document(
     request: DocumentAnalysisRequest,
     current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict[str, Any]:
     """
@@ -145,9 +168,12 @@ async def analyze_document(
     Recibe el texto del documento y devuelve qué controles cumple, cuáles no, y el score global.
     """
     if not request.document_text or len(request.document_text.strip()) < 50:
-        raise HTTPException(status_code=400, detail="El documento debe tener al menos 50 caracteres de contenido.")
+        raise HTTPException(
+            status_code=400,
+            detail="El documento debe tener al menos 50 caracteres de contenido."
+        )
 
-    analyzer = GapAnalyzer(db)
+    analyzer = GapAnalyzer(db, org_id)
     result = await analyzer.analyze_document_with_llm(
         document_text=request.document_text,
         document_name=request.document_name
