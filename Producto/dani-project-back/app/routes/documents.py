@@ -53,27 +53,62 @@ async def generate_document(
     prompt_data: dict = Body(...),
     org_id: str = Depends(get_current_org)
 ):
-    title = prompt_data.get("title", "")
-    chapter_number = prompt_data.get("chapter_number", "")
-    target_control = prompt_data.get("target_control", None)
-    target_control_title = prompt_data.get("target_control_title", "")
-    
-    if "Ley 21.719" in str(chapter_number):
-        prompt = f"""Actúa como un Abogado Experto en Privacidad y Oficial de Protección de Datos (DPO) en Chile.
-Redacta un borrador extenso del documento legal: '{title}' para dar estricto cumplimiento a la Ley N° 21.719 de Protección de Datos Personales.
-# {title}\n## 1. Propósito y Objetivo\n## 2. Alcance\n## 3. Definiciones\n## 4. Desarrollo Normativo\n## 5. Roles\n## 6. Sanciones\nEscribe al menos 800 palabras."""
-    else:
-        control_context = f"Enfasis en Control: {target_control}" if target_control else ""
-        prompt = f"""Actúa como Consultor ISO 27001. Redacta un borrador del 'Capítulo {chapter_number}: {title}'.
-{control_context}
-# {chapter_number}. {title}\n## Propósito\n## Alcance\n## Políticas\n## Responsabilidades\nEscribe al menos 800 palabras."""
-    
     try:
-        content = await ai_service.generate_document(prompt)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error IA: {str(e)}")
+        title = prompt_data.get("title", "")
+        chapter_number = prompt_data.get("chapter_number", "")
+        target_control = prompt_data.get("target_control", None)
+        target_control_title = prompt_data.get("target_control_title", "")
         
-    return {"message": f"Documento {doc_type} generado", "content": content}
+        if "Ley 21.719" in str(chapter_number):
+            prompt = f"""Actúa como un Abogado Experto en Privacidad y Oficial de Protección de Datos (DPO) en Chile.
+    Redacta un borrador extenso del documento legal: '{title}' para dar estricto cumplimiento a la Ley N° 21.719 de Protección de Datos Personales.
+    # {title}\n## 1. Propósito y Objetivo\n## 2. Alcance\n## 3. Definiciones\n## 4. Desarrollo Normativo\n## 5. Roles\n## 6. Sanciones\nEscribe al menos 800 palabras."""
+        else:
+            control_context = f"Enfasis en Control: {target_control}" if target_control else ""
+            prompt = f"""Actúa como Consultor ISO 27001. Redacta un borrador del 'Capítulo {chapter_number}: {title}'.
+    {control_context}
+    # {chapter_number}. {title}\n## Propósito\n## Alcance\n## Políticas\n## Responsabilidades\nEscribe al menos 800 palabras."""
+        
+        content = await ai_service.generate_document(prompt)
+        return {"message": f"Documento {doc_type} generado", "content": content}
+        
+    except Exception as e:
+        # Enviar detalle controlado para no tumbar el frontend
+        raise HTTPException(status_code=500, detail=f"Fallo del motor de IA o red: {str(e)}")
+
+@router.post("/")
+async def save_document(
+    data: DocumentCreate,
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        stmt = scope_to_org(select(Document), Document, org_id).filter(Document.chapter_id == data.chapter_id)
+        result = await db.execute(stmt)
+        document = result.scalar_one_or_none()
+        
+        if document:
+            document.content = data.content
+            document.title = data.title
+        else:
+            document = Document(
+                chapter_id=data.chapter_id,
+                title=data.title,
+                content=data.content,
+                status=DocumentStatus.DRAFT,
+                version="v1.0",
+                organization_id=org_id
+            )
+            db.add(document)
+            
+        await db.commit()
+        await db.refresh(document)
+        return {"message": "Document saved successfully", "id": document.id, "status": document.status.value}
+        
+    except Exception as e:
+        await db.rollback() # Rollback obligatorio en caso de fallo DB
+        raise HTTPException(status_code=500, detail=f"Error transaccional al guardar el documento: {str(e)}")
+
 
 @router.get("/published/policies")
 async def get_published_policies(
@@ -107,33 +142,7 @@ async def get_document(
         raise HTTPException(status_code=404, detail="Document not found")
     return {"id": document.id, "chapter_id": document.chapter_id, "content": document.content, "status": document.status.value}
 
-@router.post("/")
-async def save_document(
-    data: DocumentCreate,
-    org_id: str = Depends(get_current_org),
-    db: AsyncSession = Depends(get_db)
-):
-    stmt = scope_to_org(select(Document), Document, org_id).filter(Document.chapter_id == data.chapter_id)
-    result = await db.execute(stmt)
-    document = result.scalar_one_or_none()
-    
-    if document:
-        document.content = data.content
-        document.title = data.title
-    else:
-        document = Document(
-            chapter_id=data.chapter_id,
-            title=data.title,
-            content=data.content,
-            status=DocumentStatus.DRAFT,
-            version="v1.0",
-            organization_id=org_id
-        )
-        db.add(document)
-        
-    await db.commit()
-    await db.refresh(document)
-    return {"message": "Document saved successfully", "id": document.id, "status": document.status.value}
+
 
 @router.put("/{chapter_id}/status")
 async def update_document_status(
