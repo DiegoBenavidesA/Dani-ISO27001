@@ -18,38 +18,8 @@ const DocGeneratorScreen = ({ navParams }) => {
   
   const canApprove = user && ['admin', 'manager', 'auditor'].includes(user?.role);
 
-  const [selectedChapter, setSelectedChapter] = useState(null);
-  const [generatedContent, setGeneratedContent] = useState({});
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [documentContent, setDocumentContent] = useState({});
-  const [documentStatus, setDocumentStatus] = useState({});
-  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
-  const [targetControl, setTargetControl] = useState(null);
-  const [targetControlTitle, setTargetControlTitle] = useState(null);
-
-  useEffect(() => {
-    if (selectedChapter) {
-      const loadDocument = async () => {
-        setIsLoadingDoc(true);
-        try {
-          const res = await documentsAPI.getDocument(`chapter_${selectedChapter.id}`);
-          if (res && res.content) {
-            setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: res.content }));
-            setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: res.content }));
-            setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: res.status }));
-          }
-        } catch (error) {
-          console.log("No existing document found or error fetching", error);
-        } finally {
-          setIsLoadingDoc(false);
-        }
-      };
-      loadDocument();
-    }
-  }, [selectedChapter]);
-
+  // 1. EL ARREGLO DE CAPÍTULOS
   const chapters = [
-    // --- ISO 27001 ---
     { id: 4, number: '4', title: 'Contexto de la Organización', sections: '4 sections', icon: Building2, color: '#3b82f6' },
     { id: 5, number: '5', title: 'Liderazgo', sections: '3 sections', icon: Users, color: '#f59e0b' },
     { id: 6, number: '6', title: 'Planificación', sections: '2 sections', icon: Target, color: '#10b981' },
@@ -57,11 +27,42 @@ const DocGeneratorScreen = ({ navParams }) => {
     { id: 8, number: '8', title: 'Operación', sections: '3 sections', icon: Zap, color: '#ec4899' },
     { id: 9, number: '9', title: 'Evaluación del Desempeño', sections: '3 sections', icon: Search, color: '#0ea5e9' },
     { id: 10, number: '10', title: 'Mejora', sections: '2 sections', icon: RefreshCw, color: '#ef4444' },
-    
-    // --- LEY N° 21.719 ---
     { id: 'ley_pol', number: 'Ley 21.719', title: 'Política de Tratamiento de Datos', sections: 'Obligaciones O1, O2, O3', icon: FileText, color: '#8b5cf6' },
     { id: 'ley_bre', number: 'Ley 21.719', title: 'Protocolo de Gestión de Brechas', sections: 'Obligación O4', icon: AlertTriangle, color: '#ef4444' }
   ];
+
+  // 2. ESTADO DEL CAPÍTULO CON PERSISTENCIA
+  const [selectedChapter, setSelectedChapter] = useState(() => {
+    try {
+      const savedId = sessionStorage.getItem('dani_doc_chapter_id');
+      if (savedId) {
+        return chapters.find(c => String(c.id) === savedId) || null;
+      }
+      return null;
+    } catch { return null; }
+  });
+
+  useEffect(() => {
+    if (selectedChapter) sessionStorage.setItem('dani_doc_chapter_id', String(selectedChapter.id));
+    else sessionStorage.removeItem('dani_doc_chapter_id');
+  }, [selectedChapter]);
+
+  // 3. TODOS LOS ESTADOS NECESARIOS RESTAURADOS
+  const [generatedContent, setGeneratedContent] = useState({});
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState(null);
+  const [documentContent, setDocumentContent] = useState({});
+  const [documentStatus, setDocumentStatus] = useState({});
+  const [isLoadingDoc, setIsLoadingDoc] = useState(false);
+  const [targetControl, setTargetControl] = useState(null);
+  const [targetControlTitle, setTargetControlTitle] = useState(null);
+
+  // A partir de aquí sigue el useEffect que carga el documento...
+  useEffect(() => {
+    if (selectedChapter) sessionStorage.setItem('dani_doc_chapter_id', String(selectedChapter.id));
+    else sessionStorage.removeItem('dani_doc_chapter_id');
+  }, [selectedChapter]);
+
 
   const totalGenerated = Object.keys(generatedContent).length;
   const progressPercent = Math.round((totalGenerated / chapters.length) * 100);
@@ -84,9 +85,11 @@ const DocGeneratorScreen = ({ navParams }) => {
     }
   }, [navParams]);
 
+
   const handleGenerate = async () => {
     if (!selectedChapter) return;
     setIsGenerating(true);
+    setGenerateError(null);
     
     try {
       const promptData = { 
@@ -99,7 +102,7 @@ const DocGeneratorScreen = ({ navParams }) => {
       const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, promptData);
       const text = response.content || response.text || response.generated_text;
       
-      if (!text) throw new Error("La API no devolvió contenido de texto.");
+      if (!text) throw new Error("La API no devolvió contenido de texto válido.");
 
       setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: text }));
       setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: text }));
@@ -108,15 +111,11 @@ const DocGeneratorScreen = ({ navParams }) => {
         await documentsAPI.saveDocument(`chapter_${selectedChapter.id}`, selectedChapter.title, text);
         setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: 'draft' }));
       } catch (saveError) {
-        console.error("Error saving to DB:", saveError);
+        console.error("Error guardando en BD:", saveError);
       }
-
     } catch (error) {
       console.error("Error conectando con la API de IA:", error);
-      const fallbackText = `# ${selectedChapter.number}. ${selectedChapter.title}\n\n## 1. Objetivo\n\nEstablece los lineamientos para el cumplimiento del capítulo ${selectedChapter.number} de la norma ISO 27001:2022, asegurando la confidencialidad, integridad y disponibilidad de la información de la organización.\n\n## 2. Alcance\n\nAplica a todos los procesos, sistemas y personal de la organización que interactúan con activos de información.\n\n## 3. Responsabilidades\n\n### 3.1 Alta Dirección\nProveer los recursos necesarios y demostrar liderazgo en el sistema de gestión de seguridad de la información (SGSI).\n\n### 3.2 Responsable de Seguridad (CISO)\nDefinir, implementar y mantener los controles asociados a este capítulo.\n\n### 3.3 Todo el Personal\nConocer y cumplir las disposiciones establecidas en este documento.\n\n## 4. Procedimiento\n\nLa organización debe revisar y actualizar periódicamente los controles establecidos en este capítulo, documentando los resultados y evidencias correspondientes conforme a los requisitos de la norma ISO 27001:2022.\n\n## 5. Registros\n\nSe mantendrán registros de todas las actividades realizadas en el marco de este capítulo, con una retención mínima de 3 años.\n\n## 6. Referencias\n\n- ISO/IEC 27001:2022 — Cláusula ${selectedChapter.number}\n- ISO/IEC 27002:2022 — Guía de implementación\n\n---\n*[MODO DEMO — Documento generado sin conexión a la API]*`;
-
-      setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));
-      setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: fallbackText }));
+      setGenerateError(error.message || "Error al conectar con el servidor de IA.");
     } finally {
       setIsGenerating(false);
     }
@@ -169,7 +168,7 @@ const DocGeneratorScreen = ({ navParams }) => {
   };
 
   const renderMarkdown = (text, activeColor) => {
-    if (!text) return null;
+    if (!text || typeof text !== 'string') return null; // Previene el crash de React si text no es string
     return text.split('\n').map((line, idx) => {
       if (line.startsWith('# ')) return <h1 key={idx} style={{ fontSize: '24px', fontWeight: 700, color: activeColor, marginBottom: '24px' }}>{line.substring(2)}</h1>;
       if (line.startsWith('## ')) return <h2 key={idx} style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginTop: '24px', marginBottom: '12px' }}>{line.substring(3)}</h2>;
@@ -312,14 +311,25 @@ const DocGeneratorScreen = ({ navParams }) => {
                 <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: `${selectedChapter.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '24px' }}>
                   {isGenerating ? <Loader2 size={36} color={selectedChapter.color} className="animate-spin" /> : <Wand2 size={36} color={selectedChapter.color} />}
                 </div>
+
                 <h2 style={{ fontSize: '22px', fontWeight: 700, color: t.text, marginBottom: '12px' }}>Generar Borrador {selectedChapter.number}</h2>
                 <p style={{ fontSize: '15px', color: t.textDim, maxWidth: '400px', lineHeight: '1.5', marginBottom: '32px' }}>
                   La IA generará un borrador en el panel izquierdo que podrás editar en el derecho.
                 </p>
+
+                {/* AQUÍ VA EL MENSAJE DE ERROR */}
+                {generateError && (
+                  <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '8px', marginBottom: '16px', fontSize: '13px' }}>
+                    ⚠️ {generateError}
+                  </div>
+                )}
+
+                {/* ESTE ES EL BOTÓN QUE YA TIENES */}
                 <button onClick={handleGenerate} disabled={isGenerating} style={{ padding: '14px 32px', background: selectedChapter.color, border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '15px', opacity: isGenerating ? 0.7 : 1 }}>
                   {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Wand2 size={20} />} 
                   {isGenerating ? 'Conectando con IA...' : 'Generar Borrador'}
                 </button>
+
               </div>
             </div>
           )}

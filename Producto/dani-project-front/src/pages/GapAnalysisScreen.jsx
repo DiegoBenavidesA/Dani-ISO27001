@@ -13,15 +13,15 @@ import { getControlName } from '../translations/controls';
 
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
-  const { user } = useAuth(); // Importamos el usuario para validar roles
+  const { user } = useAuth();
   const isAdmin = user && ['admin', 'manager'].includes(user?.role);
 
   // Traducciones básicas
   const tText = {
-    en: { gapAnalysis: 'Gap Analysis', completeAssessment: 'Complete the assessment to generate your SOA', question: 'Question', previous: 'Previous', continue: 'Continue', yes: 'Yes', no: 'No', partially: 'Partially' },
-    es: { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente' },
-    pt: { gapAnalysis: 'Análise de Lacunas', completeAssessment: 'Complete a avaliação para gerar sua Declaração de Aplicabilidade (SOA)', question: 'Pergunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sim', no: 'Não', partially: 'Parcialmente' }
-  }[language] || { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente' };
+    en: { gapAnalysis: 'Gap Analysis', completeAssessment: 'Complete the assessment to generate your SOA', question: 'Question', previous: 'Previous', continue: 'Continue', yes: 'Yes', no: 'No', partially: 'Partially', soaTitle: 'Statement of Applicability (SOA)', soaApplicable: 'Applicable', soaImplemented: 'Implemented', showAll: 'All', showApplicable: 'Applicable', showNotApplicable: 'Not Applicable', control: 'Control', description: 'Description', applicable: 'Applicable', status: 'Status', justification: 'Justification', implemented: 'Implemented', planned: 'Planned', notImplemented: 'Not Implemented', required: 'Required', autoSaved: 'Auto-saved' },
+    es: { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente', soaTitle: 'Declaración de Aplicabilidad (SOA)', soaApplicable: 'Aplica', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplica', showNotApplicable: 'No Aplica', control: 'Control', description: 'Descripción', applicable: 'Aplica', status: 'Estado', justification: 'Justificación', implemented: 'Implementado', planned: 'Planificado', notImplemented: 'No Implementado', required: 'Requerido', autoSaved: 'Auto-guardado' },
+    pt: { gapAnalysis: 'Análise de Lacunas', completeAssessment: 'Complete a avaliação para gerar sua Declaração de Aplicabilidade (SOA)', question: 'Pergunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sim', no: 'Não', partially: 'Parcialmente', soaTitle: 'Declaração de Aplicabilidade (SOA)', soaApplicable: 'Aplicável', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplicável', showNotApplicable: 'Não Aplicável', control: 'Controle', description: 'Descrição', applicable: 'Aplicável', status: 'Status', justification: 'Justificativa', implemented: 'Implementado', planned: 'Planejado', notImplemented: 'Não Implementado', required: 'Obrigatório', autoSaved: 'Auto-salvo' }
+  }[language] || { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente', soaTitle: 'Declaración de Aplicabilidad (SOA)', soaApplicable: 'Aplica', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplica', showNotApplicable: 'No Aplica', control: 'Control', description: 'Descripción', applicable: 'Aplica', status: 'Estado', justification: 'Justificación', implemented: 'Implementado', planned: 'Planificado', notImplemented: 'No Implementado', required: 'Requerido', autoSaved: 'Auto-guardado' };
 
   // Estados principales
   const [activeMainTab, setActiveMainTab] = useState('assessment');
@@ -109,9 +109,10 @@ function GapAnalysisScreen({ onNavigate }) {
         id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
       })),
     })).filter((p) => p.questions.length > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbQuestions, language]);
 
-  // Resto de hooks de carga...
+  // Carga Controles ISO
   useEffect(() => {
     const loadISOControls = async () => {
       setIsLoading(true);
@@ -129,6 +130,7 @@ function GapAnalysisScreen({ onNavigate }) {
     loadISOControls();
   }, []);
 
+  // Carga Análisis Brechas
   useEffect(() => {
     const loadAnalysis = async () => {
       setIsLoadingAnalysis(true);
@@ -140,6 +142,7 @@ function GapAnalysisScreen({ onNavigate }) {
     loadAnalysis();
   }, []);
 
+  // Carga Docs IA
   useEffect(() => {
     const loadDocs = async () => {
       try {
@@ -181,6 +184,175 @@ function GapAnalysisScreen({ onNavigate }) {
     try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
   };
 
+
+  // ==========================================
+  // DEFINICIONES SOA Y RESULTADOS (Agregadas de vuelta)
+  // ==========================================
+  
+  const handleSort = (col) => {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+    setCurrentPage(1);
+  };
+
+  const toggleApplicable = (id) => setControls(prev => prev.map(c => c.id === id ? { ...c, applicable: !c.applicable } : c));
+  const updateStatus = (id, status) => setControls(prev => prev.map(c => c.id === id ? { ...c, status } : c));
+  const updateJustification = (id, justification) => { setControls(prev => prev.map(c => c.id === id ? { ...c, justification } : c)); setShowJustificationModal(null); };
+
+  const filteredControls = Array.isArray(controls) ? controls.filter(c => {
+    if (filterApplicable === 'applicable') return c.applicable;
+    if (filterApplicable === 'notApplicable') return !c.applicable;
+    return true;
+  }) : [];
+
+  const sortedFilteredControls = [...filteredControls].sort((a, b) => {
+    let cmp = 0;
+    if (sortBy === 'id') cmp = a.id.localeCompare(b.id, undefined, { numeric: true });
+    else if (sortBy === 'name') cmp = getControlName(a.id, language).localeCompare(getControlName(b.id, language));
+    else if (sortBy === 'applicable') cmp = (a.applicable === b.applicable) ? 0 : a.applicable ? -1 : 1;
+    else if (sortBy === 'audited') cmp = (!!a.justification === !!b.justification) ? 0 : a.justification ? -1 : 1;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+  
+  const totalPages = Math.ceil(sortedFilteredControls.length / pageSize) || 1;
+  const pagedControls = sortedFilteredControls.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const appliesCount = Array.isArray(controls) ? controls.filter(c => c.applicable).length : 0;
+  const implementedCount = Array.isArray(controls) ? controls.filter(c => c.applicable && c.status === 'implemented').length : 0;
+
+  const CustomCheckbox = ({ checked, onChange }) => (
+    <div role="checkbox" aria-checked={checked} onClick={onChange} style={{ width: '12px', height: '12px', borderRadius: '3px', flexShrink: 0, border: `1.5px solid ${checked ? '#8b5cf6' : t.textDim}`, background: checked ? '#8b5cf6' : 'transparent', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color 0.15s, background 0.15s' }}>
+      {checked && <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 3L3 5L7 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    </div>
+  );
+
+  const InteractiveSOA = () => (
+    <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', marginTop: '24px' }}>
+      <div style={{ padding: '20px 24px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{tText.soaTitle}</h3>
+          <p style={{ fontSize: '12px', color: t.textDim }}>{appliesCount} {tText.soaApplicable} • {implementedCount} {tText.soaImplemented}</p>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {[
+            { id: 'all', label: tText.showAll },
+            { id: 'applicable', label: tText.showApplicable },
+            { id: 'notApplicable', label: tText.showNotApplicable }
+          ].map((filter) => (
+            <button key={filter.id} onClick={() => { setFilterApplicable(filter.id); setCurrentPage(1); }} style={{ padding: '6px 14px', background: filterApplicable === filter.id ? '#10b98120' : 'transparent', border: `1px solid ${filterApplicable === filter.id ? '#10b981' : t.border}`, borderRadius: '20px', color: filterApplicable === filter.id ? '#10b981' : t.textMuted, fontSize: '12px', cursor: 'pointer' }}>
+              {filter.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      <div className="soa-table-scroll" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '520px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: t.inputBg }}>
+              <th style={{ padding: '12px 12px', width: '36px', textAlign: 'center' }}></th>
+              <th onClick={() => handleSort('id')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '62px', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.control} <span style={{ opacity: sortBy === 'id' ? 1 : 0.3 }}>{sortBy === 'id' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th onClick={() => handleSort('name')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.description} <span style={{ opacity: sortBy === 'name' ? 1 : 0.3 }}>{sortBy === 'name' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th onClick={() => handleSort('applicable')} style={{ padding: '12px 16px', textAlign: 'center', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '130px', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.applicable}? <span style={{ opacity: sortBy === 'applicable' ? 1 : 0.3 }}>{sortBy === 'applicable' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+              <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, width: '135px' }}>{tText.status}</th>
+              <th onClick={() => handleSort('audited')} style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: t.textDim, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                {tText.justification} <span style={{ opacity: sortBy === 'audited' ? 1 : 0.3 }}>{sortBy === 'audited' ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedControls.map((control) => (
+              <tr key={control.id} style={{ borderBottom: `1px solid ${t.border}`, background: selectedControls.has(control.id) ? `${t.inputBg}` : 'transparent' }}>
+                <td style={{ padding: '11px 12px', textAlign: 'center' }}>
+                  <CustomCheckbox checked={selectedControls.has(control.id)} onChange={() => { const newSel = new Set(selectedControls); selectedControls.has(control.id) ? newSel.delete(control.id) : newSel.add(control.id); setSelectedControls(newSel); }} />
+                </td>
+                <td style={{ padding: '11px 16px' }}><span style={{ fontSize: '13px', fontWeight: 700, color: '#8b5cf6' }}>{control.id}</span></td>
+                <td style={{ padding: '11px 16px' }}><div style={{ fontSize: '13px', color: t.text, lineHeight: 1.35 }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
+                <td style={{ padding: '11px 16px', textAlign: 'center' }}>
+                  <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
+                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
+                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 5px 5px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>No</button>
+                  </div>
+                </td>
+                <td style={{ padding: '11px 16px' }}>
+                  {control.applicable && (
+                    <select value={control.status} onChange={(e) => updateStatus(control.id, e.target.value)} style={{ padding: '5px 10px', background: 'transparent', borderRadius: '6px', color: t.text, fontSize: '12px', cursor: 'pointer', width: '100%' }}>
+                      <option value="implemented">{tText.implemented}</option>
+                      <option value="planned">{tText.planned}</option>
+                      <option value="notImplemented">{tText.notImplemented}</option>
+                    </select>
+                  )}
+                </td>
+                <td style={{ padding: '11px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ fontSize: '12px', color: control.justification ? t.textMuted : '#ef4444', fontStyle: control.justification ? 'normal' : 'italic' }}>{control.justification || tText.required}</span>
+                    <button onClick={() => setShowJustificationModal(control)} title="Editar manualmente" style={{ background: 'none', border: 'none', padding: '4px', cursor: 'pointer', color: t.textDim }}><Edit3 size={13} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
+        <CheckCircle2 size={14} /><span>{tText.autoSaved}</span>
+      </div>
+
+      {showJustificationModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '500px', maxWidth: '90%' }}>
+            <h3 style={{ marginBottom: '16px' }}>{tText.justification}</h3>
+            <textarea defaultValue={showJustificationModal.justification} rows={4} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '14px', marginBottom: '16px' }} id="justification-textarea" />
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowJustificationModal(null)} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={() => { const textarea = document.getElementById('justification-textarea'); updateJustification(showJustificationModal.id, textarea.value); }} style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Guardar</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const ResultadosView = () => {
+    const getScoreColor = (s) => s >= 85 ? '#10b981' : s >= 70 ? '#f59e0b' : '#ef4444';
+    if (isLoadingAnalysis) return <div style={{ padding: '80px', textAlign: 'center', color: t.textDim }}>Calculando análisis...</div>;
+    if (!overallScore && !fullAnalysis) return <div style={{ padding: '60px', textAlign: 'center', color: t.textDim }}>No se pudo cargar el análisis.</div>;
+
+    const score = overallScore?.overall_score ?? 0;
+    const gap = overallScore?.gap_to_certification ?? 0;
+    const clauses = fullAnalysis?.clause_gaps ?? [];
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ background: t.cardBg, border: `2px solid ${getScoreColor(score)}40`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: getScoreColor(score), lineHeight: 1 }}>{score}%</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Cumplimiento General</div>
+          </div>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>85%</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Meta ISO 27001</div>
+          </div>
+          <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
+            <div style={{ fontSize: '52px', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{gap}%</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Brecha restante</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const AnalizarDocView = () => (
+    <div style={{ padding: '40px', textAlign: 'center', color: t.textDim }}>
+      Vista de análisis de documentos.
+    </div>
+  );
+
   // ==========================================
   // PANEL ADMINISTRATIVO DE PREGUNTAS (CRUD)
   // ==========================================
@@ -205,28 +377,16 @@ function GapAnalysisScreen({ onNavigate }) {
       e.preventDefault();
       setIsSavingQ(true);
       try {
-        if (editingQ) {
-          await assessmentQuestionsAPI.update(editingQ, formData);
-        } else {
-          await assessmentQuestionsAPI.create(formData);
-        }
+        if (editingQ) await assessmentQuestionsAPI.update(editingQ, formData);
+        else await assessmentQuestionsAPI.create(formData);
         await loadQuestions();
         setShowModal(false);
-      } catch (err) {
-        alert("Error al guardar la pregunta: " + err.message);
-      } finally {
-        setIsSavingQ(false);
-      }
+      } catch (err) { alert("Error al guardar la pregunta: " + err.message); } finally { setIsSavingQ(false); }
     };
 
     const handleDeleteQuestion = async (id) => {
       if (!window.confirm("¿Seguro que deseas eliminar esta pregunta?")) return;
-      try {
-        await assessmentQuestionsAPI.delete(id);
-        await loadQuestions();
-      } catch (err) {
-        alert("Error al eliminar la pregunta");
-      }
+      try { await assessmentQuestionsAPI.delete(id); await loadQuestions(); } catch (err) { alert("Error al eliminar la pregunta"); }
     };
 
     return (
@@ -418,6 +578,12 @@ function GapAnalysisScreen({ onNavigate }) {
             </div>
           )}
         </>
+      ) : activeMainTab === 'soa' ? (
+        <InteractiveSOA />
+      ) : activeMainTab === 'resultados' ? (
+        <ResultadosView />
+      ) : activeMainTab === 'analyze' ? (
+        <AnalizarDocView />
       ) : activeMainTab === 'admin-questions' ? (
         <QuestionsAdminView />
       ) : (

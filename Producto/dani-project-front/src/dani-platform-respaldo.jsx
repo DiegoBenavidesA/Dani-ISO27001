@@ -47,8 +47,20 @@ export default function DaniPlatform() {
   const l = translations[language];
 
   // ESTADOS DE NAVEGACIÓN Y UI
-  const [activeScreen, setActiveScreen] = useState('dashboard');
+  // ESTADOS DE NAVEGACIÓN Y UI
+  const [activeScreen, setActiveScreen] = useState(() => {
+    return sessionStorage.getItem('dani_active_screen') || 'dashboard';
+  });
+  
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // ... (mantén los demás estados intactos)
+
+  const handleNavigate = (screen, params = null) => {
+    setActiveScreen(screen);
+    setNavParams(params);
+    sessionStorage.setItem('dani_active_screen', screen);
+  };
+
   const [chatOpen, setChatOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -75,10 +87,7 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
-  const handleNavigate = (screen, params = null) => {
-    setActiveScreen(screen);
-    setNavParams(params);
-  };
+ 
 
   return (
     <div style={{ minHeight: '100vh', background: t.bg, color: t.text, display: 'flex', position: 'relative', overflow: 'hidden' }}>
