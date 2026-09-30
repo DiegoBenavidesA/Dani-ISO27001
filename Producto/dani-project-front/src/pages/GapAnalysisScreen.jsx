@@ -184,9 +184,54 @@ function GapAnalysisScreen({ onNavigate }) {
     try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
   };
 
+  // ==========================================
+  // FUNCIONES DE EVALUACIÓN CON IA
+  // ==========================================
+
+  const veredictoToOption = (veredicto) => {
+    if (veredicto === 'cumple') return tText.yes;
+    if (veredicto === 'parcial') return tText.partially;
+    return tText.no; // no_cumple o sin_evidencia
+  };
+
+  const handleEvaluateWithAI = async (revalidate = false) => {
+    setEvalError(null);
+    setEvalInfo(null);
+    if (!uploadedFiles.length) {
+      setEvalError('Sube al menos un documento antes de evaluar.');
+      return;
+    }
+    let ids = [];
+    if (revalidate) {
+      phases.forEach((p) => p.questions.forEach((q) => {
+        if (answers[q.id] !== tText.yes) ids.push(q.id);
+      }));
+      if (ids.length === 0) {
+        setEvalInfo('No hay preguntas pendientes: todas están en "Sí".');
+        return;
+      }
+    }
+    setIsEvaluating(true);
+    try {
+      const resp = await assessmentQuestionsAPI.evaluate(uploadedFiles, ids);
+      const newAnswers = { ...answers };
+      const newAI = { ...aiResults };
+      (resp.results || []).forEach((r) => {
+        newAnswers[r.id] = veredictoToOption(r.veredicto);
+        newAI[r.id] = { veredicto: r.veredicto, confianza: r.confianza, justificacion: r.justificacion };
+      });
+      setAnswers(newAnswers);
+      setAiResults(newAI);
+      setEvalInfo(`✅ IA evaluó ${resp.total} pregunta(s)${revalidate ? ' (revalidación)' : ''}.`);
+    } catch (e) {
+      setEvalError(e.message || 'Error al evaluar con IA.');
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
 
   // ==========================================
-  // DEFINICIONES SOA Y RESULTADOS (Agregadas de vuelta)
+  // DEFINICIONES SOA Y RESULTADOS
   // ==========================================
   
   const handleSort = (col) => {
@@ -549,22 +594,92 @@ function GapAnalysisScreen({ onNavigate }) {
                 })}
               </div>
 
-              {currentQuestionData && (
-                <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px' }}>
-                  <div style={{ marginBottom: '16px' }}><span style={{ fontSize: '12px', color: t.textDim }}>Pregunta {currentQuestion + 1} de {currentPhaseData.questions.length}</span></div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: t.text }}>{currentQuestionData.title}</h3>
-                  <p style={{ fontSize: '16px', marginBottom: '32px', lineHeight: '1.5', color: t.text }}>{currentQuestionData.question}</p>
-                  <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
-                    {currentQuestionData.options.map(option => (
-                      <button key={option} onClick={() => handleAnswer(option)} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: answers[currentQuestionData.id] === option ? '2px solid #10b981' : `1px solid ${t.border}`, background: answers[currentQuestionData.id] === option ? 'rgba(16, 185, 129, 0.1)' : t.cardBg, color: answers[currentQuestionData.id] === option ? '#10b981' : t.text, cursor: 'pointer', fontWeight: 500 }}>{option}</button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
-                    <button onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', cursor: (currentPhase === 0 && currentQuestion === 0) ? 'not-allowed' : 'pointer', opacity: (currentPhase === 0 && currentQuestion === 0) ? 0.5 : 1 }}>Anterior</button>
-                    <button onClick={goToNext} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Continuar</button>
-                  </div>
+              <div>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '13px' }}>
+                    <FolderUp size={16} /> Agregar documentos
+                    <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
+                      const nuevos = Array.from(e.target.files || []);
+                      setUploadedFiles((prev) => {
+                        const combinado = [...prev];
+                        nuevos.forEach((nf) => {
+                          if (!combinado.some((f) => f.name === nf.name && f.size === nf.size)) combinado.push(nf);
+                        });
+                        return combinado;
+                      });
+                      e.target.value = ''; // permite volver a elegir el mismo archivo o agregar más
+                      setEvalError(null);
+                      setEvalInfo(null);
+                    }} />
+                  </label>
+                  <button onClick={() => handleEvaluateWithAI(false)} disabled={isEvaluating} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: isEvaluating ? 'not-allowed' : 'pointer', opacity: isEvaluating ? 0.6 : 1 }}>
+                    <Wand2 size={16} /> {isEvaluating ? 'Evaluando...' : 'Evaluar con IA'}
+                  </button>
+                  <button onClick={() => handleEvaluateWithAI(true)} disabled={isEvaluating} title="Reprocesa solo las preguntas que no están en 'Sí'" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontSize: '13px', cursor: isEvaluating ? 'not-allowed' : 'pointer', opacity: isEvaluating ? 0.6 : 1 }}>
+                    <Activity size={16} /> Revalidar con IA
+                  </button>
                 </div>
-              )}
+                {uploadedFiles.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', color: t.textMuted }}>📎 {uploadedFiles.length} documento(s) seleccionado(s)</span>
+                      <button onClick={() => { setUploadedFiles([]); setEvalInfo(null); setEvalError(null); }} style={{ fontSize: '11px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>Quitar todos</button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {uploadedFiles.map((f, idx) => (
+                        <span key={`${f.name}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: t.text, background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '4px 10px' }}>
+                          {f.name}
+                          <button onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))} title="Quitar" style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {isEvaluating && (
+                  <div style={{ marginBottom: '16px', fontSize: '12px', color: '#6366f1' }}>🤖 La IA está analizando los documentos... esto puede tardar un poco.</div>
+                )}
+                {evalError && (
+                  <div style={{ marginBottom: '16px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>⚠️ {evalError}</div>
+                )}
+                {evalInfo && (
+                  <div style={{ marginBottom: '16px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>{evalInfo}</div>
+                )}
+
+                {currentQuestionData && (
+                  <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px' }}>
+                    <div style={{ marginBottom: '16px' }}><span style={{ fontSize: '12px', color: t.textDim }}>Pregunta {currentQuestion + 1} de {currentPhaseData.questions.length}</span></div>
+                    <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '16px', color: t.text }}>{currentQuestionData.title}</h3>
+                    <p style={{ fontSize: '16px', marginBottom: '32px', lineHeight: '1.5', color: t.text }}>{currentQuestionData.question}</p>
+                    <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
+                      {currentQuestionData.options.map(option => (
+                        <button key={option} onClick={() => handleAnswer(option)} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: answers[currentQuestionData.id] === option ? '2px solid #10b981' : `1px solid ${t.border}`, background: answers[currentQuestionData.id] === option ? 'rgba(16, 185, 129, 0.1)' : t.cardBg, color: answers[currentQuestionData.id] === option ? '#10b981' : t.text, cursor: 'pointer', fontWeight: 500 }}>{option}</button>
+                      ))}
+                    </div>
+                    {aiResults[currentQuestionData.id] && (
+                      <div style={{ marginBottom: '16px', padding: '12px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                          <Wand2 size={14} color="#6366f1" />
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Respuesta de la IA:</span>
+                          {(() => {
+                            const v = aiResults[currentQuestionData.id].veredicto;
+                            const map = { cumple: ['Cumple', '#10b981'], parcial: ['Parcial', '#f59e0b'], no_cumple: ['No cumple', '#ef4444'], sin_evidencia: ['Sin evidencia', '#6b7280'] };
+                            const [label, color] = map[v] || ['—', t.textDim];
+                            return <span style={{ fontSize: '11px', fontWeight: 700, color, background: `${color}22`, padding: '2px 8px', borderRadius: '10px' }}>{label}</span>;
+                          })()}
+                          {typeof aiResults[currentQuestionData.id].confianza === 'number' && (
+                            <span style={{ fontSize: '11px', color: t.textDim }}>Confianza: {Math.round((aiResults[currentQuestionData.id].confianza || 0) * 100)}%</span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '12px', color: t.textMuted, lineHeight: '1.5' }}>{aiResults[currentQuestionData.id].justificacion}</div>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
+                      <button onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', cursor: (currentPhase === 0 && currentQuestion === 0) ? 'not-allowed' : 'pointer', opacity: (currentPhase === 0 && currentQuestion === 0) ? 0.5 : 1 }}>Anterior</button>
+                      <button onClick={goToNext} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Continuar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, height: 'fit-content' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}><Sparkles size={18} color="#10b981" /><h3 style={{ fontSize: '15px', fontWeight: 600 }}>Vista Previa</h3></div>
