@@ -138,9 +138,10 @@ async def invite_user_to_organization(
     )
     email_sent = await send_email_async(
         invited.email,
-        f"Invitación a {org.nombre} — DANI GRC",
+        f"Invitación a {org.nombre} — GRC",
         html,
         text,
+        from_name=org.nombre,  # remitente = nombre de la empresa
     )
 
     return InviteUserResponse(

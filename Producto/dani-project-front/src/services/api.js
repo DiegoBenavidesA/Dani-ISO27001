@@ -51,6 +51,19 @@ export const userAPI = {
   create: async (userData, token) => {
     return userAPI.createUser(userData, token);
   },
+
+  // Invitar usuario a MI empresa (owner/admin): crea inactivo y envía correo.
+  invite: async (data, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/users/invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
+    return body;
+  },
   
   updateUser: async (userId, userData, token) => {
     const activeToken = token || localStorage.getItem('token');
