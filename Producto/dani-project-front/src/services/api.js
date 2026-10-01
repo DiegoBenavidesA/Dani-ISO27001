@@ -1022,29 +1022,61 @@ export const getDomainScores = async () => {
 // ==========================================
 // CatÃ¡logo de preguntas de evaluaciÃ³n ISO 27001
 // ==========================================
+// ==========================================
+// Catálogo de preguntas de evaluación ISO 27001
+// ==========================================
 export const assessmentQuestionsAPI = {
-  // Listar preguntas (opcionalmente filtradas por categorÃ­a)
+  // Listar preguntas (opcionalmente filtradas por categoría)
   getAll: async (categoria = null, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const url = categoria
-      ? `${API_URL}/api/assessment-questions/?categoria=${encodeURIComponent(categoria)}`
-      : `${API_URL}/api/assessment-questions/`;
-    const response = await fetch(url, {
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
-    });
+    const url = categoria ? `${API_URL}/api/assessment-questions/?categoria=${encodeURIComponent(categoria)}` : `${API_URL}/api/assessment-questions/`;
+    const response = await fetch(url, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
+  
+  // NUEVAS RUTAS CRUD
+  create: async (data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al crear la pregunta');
+    return response.json();
+  },
+
+  update: async (id, data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al actualizar la pregunta');
+    return response.json();
+  },
+
+  delete: async (id, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/${id}`, {
+      method: 'DELETE',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('Error al eliminar la pregunta');
+    return response.json();
+  },
 
   // Evaluar con IA: sube documentos y la IA responde cada pregunta.
-  // questionIds = [] -> evalÃºa todas; con ids -> solo esas (revalidar).
+  // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
   evaluate: async (files, questionIds = [], token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const form = new FormData();
     (files || []).forEach((f) => form.append('files', f));
     form.append('question_ids', (questionIds || []).join(','));
-    // Timeout de seguridad: la evaluaciÃ³n con IA puede tardar, pero no debe
+    // Timeout de seguridad: la evaluación con IA puede tardar, pero no debe
     // colgarse indefinidamente. Cortamos a los 5 minutos.
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 300000);
@@ -1063,7 +1095,7 @@ export const assessmentQuestionsAPI = {
       return response.json();
     } catch (err) {
       if (err.name === 'AbortError') {
-        throw new Error('La evaluaciÃ³n con IA tardÃ³ demasiado (timeout). Intenta con menos preguntas o vuelve a intentar.');
+        throw new Error('La evaluación con IA tardó demasiado (timeout). Intenta con menos preguntas o vuelve a intentar.');
       }
       throw err;
     } finally {

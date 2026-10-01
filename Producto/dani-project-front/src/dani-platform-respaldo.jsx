@@ -51,8 +51,13 @@ export default function DaniPlatform() {
 
   // ESTADOS DE NAVEGACIÓN Y UI
   // Pantalla inicial según rol: superadmin -> Empresas; empleado -> su Portal;
-  // el resto (owner/admin/manager/auditor/dpo) -> Panel.
-  const initialScreen = platformMode ? 'organizations' : (user?.role === 'employee' ? 'employee-portal' : 'dashboard');
+  // el resto (owner/admin/manager/auditor/dpo) -> la última pantalla guardada
+  // (persistencia de main) o el Panel por defecto.
+  const initialScreen = platformMode
+    ? 'organizations'
+    : (user?.role === 'employee'
+        ? 'employee-portal'
+        : (sessionStorage.getItem('dani_active_screen') || 'dashboard'));
   const [activeScreen, setActiveScreen] = useState(initialScreen);
 
   // Al entrar/salir de una empresa (superadmin), cambiamos la pantalla activa:
@@ -62,7 +67,16 @@ export default function DaniPlatform() {
       setActiveScreen(impersonatedOrg ? 'dashboard' : 'organizations');
     }
   }, [impersonatedOrg, isSuperadmin]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // ... (mantén los demás estados intactos)
+
+  const handleNavigate = (screen, params = null) => {
+    setActiveScreen(screen);
+    setNavParams(params);
+    sessionStorage.setItem('dani_active_screen', screen);
+  };
+
   const [chatOpen, setChatOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -89,10 +103,7 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
-  const handleNavigate = (screen, params = null) => {
-    setActiveScreen(screen);
-    setNavParams(params);
-  };
+ 
 
   return (
     <div style={{ minHeight: '100vh', background: t.bg, color: t.text, display: 'flex', position: 'relative', overflow: 'hidden' }}>

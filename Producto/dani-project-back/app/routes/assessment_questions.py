@@ -15,7 +15,6 @@ from app.models.assessment_answer import AssessmentAnswer
 from app.services.ai_service import AIService
 from app.services.embedding_service import EmbeddingService
 
-
 router = APIRouter(
     prefix="/api/assessment-questions",
     tags=["Assessment Questions"]
@@ -27,7 +26,6 @@ ai_service = AIService()
 # Se instancia de forma perezosa para evitar cargar componentes
 # pesados al importar el módulo.
 _embedding_service = None
-
 
 def _get_embedding_service():
     global _embedding_service
@@ -54,6 +52,21 @@ class QuestionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class QuestionCreate(BaseModel):
+    codigo: str
+    categoria: str
+    nombre: str
+    pregunta: str
+    evidencia_esperada: Optional[str] = None
+    orden: int = 0
+
+class QuestionUpdate(BaseModel):
+    codigo: Optional[str] = None
+    categoria: Optional[str] = None
+    nombre: Optional[str] = None
+    pregunta: Optional[str] = None
+    evidencia_esperada: Optional[str] = None
+    orden: Optional[int] = None
 
 class AnswerResponse(BaseModel):
     id: str
@@ -71,7 +84,6 @@ class AnswerResponse(BaseModel):
 # PREGUNTAS
 # Catálogo GLOBAL: NO lleva organization_id.
 # =========================================================
-
 @router.get("/", response_model=List[QuestionResponse])
 async def get_questions(
     categoria: Optional[str] = None,
@@ -91,6 +103,54 @@ async def get_questions(
 
     return result.scalars().all()
 
+# =========================================================
+# CRUD ADMINISTRATIVO (Solo Admin)
+# =========================================================
+@router.post("/", response_model=QuestionResponse)
+async def create_question(
+    data: QuestionCreate,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    new_q = AssessmentQuestion(**data.model_dump(exclude_unset=True))
+    db.add(new_q)
+    await db.commit()
+    await db.refresh(new_q)
+    return new_q
+
+@router.put("/{q_id}", response_model=QuestionResponse)
+async def update_question(
+    q_id: str,
+    data: QuestionUpdate,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))
+    q = result.scalar_one_or_none()
+    if not q:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    for key, value in data.model_dump(exclude_unset=True).items():
+        setattr(q, key, value)
+        
+    await db.commit()
+    await db.refresh(q)
+    return q
+
+@router.delete("/{q_id}")
+async def delete_question(
+    q_id: str,
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))
+    q = result.scalar_one_or_none()
+    if not q:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+        
+    await db.delete(q)
+    await db.commit()
+    return {"message": "Pregunta eliminada exitosamente"}
 
 # =========================================================
 # RESPUESTAS
@@ -154,7 +214,6 @@ async def get_answer_by_question(
 # - Si una empresa revalida una pregunta, se actualiza su
 #   respuesta anterior en vez de crear un duplicado.
 # =========================================================
-
 @router.post("/evaluate")
 async def evaluate_with_ai(
     files: List[UploadFile] = File(...),
