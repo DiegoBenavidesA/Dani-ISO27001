@@ -14,7 +14,10 @@ import { getControlName } from '../translations/controls';
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
   const { user } = useAuth();
-  const isAdmin = user && ['admin', 'manager'].includes(user?.role);
+  // Administrar el catálogo de preguntas: owner/admin (y superadmin). Debe
+  // coincidir con el backend (create/update/delete exigen rol admin; owner y
+  // superadmin pasan por jerarquía). El manager NO administra el catálogo.
+  const isAdmin = user && ['superadmin', 'owner', 'admin'].includes(user?.role);
 
   // Traducciones básicas
   const tText = {
