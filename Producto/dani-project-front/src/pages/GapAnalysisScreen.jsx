@@ -103,6 +103,9 @@ function GapAnalysisScreen({ onNavigate }) {
     { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
     { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
     { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
+    // Sección de la Ley 21.719 (protección de datos). Las preguntas creadas con
+    // categoría "Privacidad" (o cualquier "Ley ...") caen aquí.
+    { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => q.categoria === 'Privacidad' || (q.categoria || '').toLowerCase().startsWith('ley') },
   ];
 
   const phases = useMemo(() => {
