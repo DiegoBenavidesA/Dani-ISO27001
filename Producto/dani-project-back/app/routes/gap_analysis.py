@@ -5,7 +5,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from sqlalchemy import select
-from app.dependencies.auth import get_current_user, get_current_org, RequireRole
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_READ, ELEVATED_WRITE, ELEVATED_NO_DPO
 from app.dependencies.database import get_db
 from app.services.gap_analyzer import GapAnalyzer
 from app.models.gap_analysis import GapAnalysis, RemediationAction, ControlImplementation, KPI
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api/gap-analysis", tags=["Gap Analysis"])
 
 @router.get("/full")
 async def get_full_gap_analysis(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ async def get_full_gap_analysis(
 async def get_control_gaps(
     priority: str = None,
     category: str = None,
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -50,7 +50,7 @@ async def get_control_gaps(
 
 @router.get("/maturity")
 async def get_maturity_matrix(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -61,7 +61,7 @@ async def get_maturity_matrix(
 
 @router.get("/remediation-plan")
 async def get_remediation_plan(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -72,7 +72,7 @@ async def get_remediation_plan(
 
 @router.get("/kpi-dashboard")
 async def get_kpi_dashboard(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -83,7 +83,7 @@ async def get_kpi_dashboard(
 
 @router.get("/score")
 async def get_compliance_score(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -94,7 +94,7 @@ async def get_compliance_score(
 
 @router.get("/domains")
 async def get_domain_scores(
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict:
@@ -127,7 +127,7 @@ async def get_domain_scores(
 async def create_remediation_action(
     gap_id: str,
     action_data: Dict[str, Any],
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     db = Depends(get_db)
 ):
     """Crear acción de remediación para una brecha"""
@@ -159,7 +159,7 @@ async def create_remediation_action(
 @router.post("/analyze-document")
 async def analyze_document(
     request: DocumentAnalysisRequest,
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     org_id: str = Depends(get_current_org),
     db = Depends(get_db)
 ) -> Dict[str, Any]:
@@ -185,7 +185,7 @@ async def analyze_document(
 async def update_kpi(
     kpi_id: str,
     current_value: float,
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     db = Depends(get_db)
 ):
     """Actualizar valor de un KPI"""

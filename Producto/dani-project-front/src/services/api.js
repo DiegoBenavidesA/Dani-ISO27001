@@ -334,6 +334,26 @@ export const authAPI = {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     return response.json();
+  },
+
+  // Trae los datos de la invitación (correo, nombre, empresa) a partir del token.
+  getActivationInfo: async (token) => {
+    const response = await fetch(`${API_URL}/api/auth/activate/${token}`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'El enlace de activación no es válido.');
+    return body;
+  },
+
+  // Activa la cuenta definiendo la contraseña propia.
+  activate: async (token, newPassword) => {
+    const response = await fetch(`${API_URL}/api/auth/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, new_password: newPassword })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo activar la cuenta.');
+    return body;
   }
 };
 
@@ -1077,6 +1097,38 @@ export const organizationsAPI = {
     });
     if (!response.ok) throw new Error('Error al actualizar empresa');
     return response.json();
+  },
+
+  // Crea una empresa (solo nombre/identificador). Solo superadmin.
+  create: async (data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al crear la empresa');
+    return body;
+  },
+
+  // Invita un usuario (correo + rol) a una empresa existente. Solo superadmin.
+  inviteUser: async (orgId, data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/${orgId}/invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
+    return body;
   }
 };
 // Recuerda exportarlo al final del archivo dentro de const api = { ... organizationsAPI ... }

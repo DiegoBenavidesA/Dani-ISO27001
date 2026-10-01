@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List, Optional
@@ -11,16 +11,57 @@ from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
+
+# --- Reglas de gestión de usuarios (multi-tenant + anti-escalada de roles) ---
+
+def puede_asignar_rol(actor_role: str, target_role: str) -> bool:
+    """¿El rol 'actor' puede asignar el rol 'target'?"""
+    if actor_role == "superadmin":
+        return True                      # superadmin puede asignar cualquier rol
+    if target_role == "superadmin":
+        return False                     # nadie más puede crear un superadmin
+    if target_role == "owner":
+        return actor_role == "owner"     # solo el owner (o superadmin) asigna owner
+    # owner y admin pueden asignar el resto (admin, manager, auditor, dpo, employee)
+    return actor_role in ("owner", "admin")
+
+
+def mismo_ambito(actor: dict, target_user: User) -> bool:
+    """superadmin ve todas las empresas; el resto solo la suya."""
+    if actor.get("role") == "superadmin":
+        return True
+    return target_user.organization_id == actor.get("organization_id")
+
+
 @router.get("")
 @router.get("/")
 async def get_all_users(
-    current_user: dict = Depends(get_current_user),
+    request: Request,
+    current_user: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
+    # Multi-tenant:
+    #  - owner/admin: solo los usuarios de su propia empresa.
+    #  - superadmin en el panel de plataforma (sin X-Org-Id): TODOS los usuarios.
+    #  - superadmin "dentro" de una empresa (envía X-Org-Id): solo los de esa empresa.
     query = select(User)
+    if current_user.get("role") != "superadmin":
+        query = query.where(User.organization_id == current_user.get("organization_id"))
+    else:
+        org_override = request.headers.get("X-Org-Id")
+        if org_override:
+            query = query.where(User.organization_id == org_override)
     result = await db.execute(query)
     users = result.scalars().all()
-    
+
+    # Nombre de la empresa de cada usuario (para la vista global del superadmin).
+    from app.models.organization import Organization
+    org_ids = {u.organization_id for u in users if u.organization_id}
+    orgs_map = {}
+    if org_ids:
+        ores = await db.execute(select(Organization).where(Organization.id.in_(org_ids)))
+        orgs_map = {o.id: o.nombre for o in ores.scalars().all()}
+
     return [
         {
             "id": user.id,
@@ -29,7 +70,9 @@ async def get_all_users(
             "role": user.role.value if hasattr(user.role, 'value') else str(user.role),
             "is_active": user.is_active,
             "last_login": user.last_login.isoformat() if user.last_login else None,
-            "department": "General" # Mapeo por defecto ya que no existe en BD
+            "department": "General",  # Mapeo por defecto ya que no existe en BD
+            "organization_id": user.organization_id,
+            "organization_name": orgs_map.get(user.organization_id) if user.organization_id else None,
         }
         for user in users
     ]
@@ -56,21 +99,31 @@ async def create_user(
     
     # Hash password
     hashed_pwd = AuthService.get_password_hash(user_data.password)
-    
+
     # Map string role to Enum
     try:
         role_enum = UserRole(user_data.role)
     except ValueError:
         role_enum = UserRole.EMPLOYEE
 
+    # Anti-escalada: no puedes crear un usuario con un rol superior al que
+    # tu propio rol permite asignar.
+    if not puede_asignar_rol(current_user.get("role"), role_enum.value):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"No tienes permisos para asignar el rol '{role_enum.value}'."
+        )
+
     new_user = User(
         full_name=user_data.full_name,
         email=user_data.email,
         hashed_password=hashed_pwd,
         role=role_enum,
-        is_active=True
+        is_active=True,
+        # Multi-tenant: el usuario nuevo pertenece a la empresa del creador.
+        organization_id=current_user.get("organization_id"),
     )
-    
+
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
@@ -124,16 +177,20 @@ async def update_my_preferences(
 @router.get("/{user_id}")
 async def get_user_by_id(
     user_id: str,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(require_admin),
     db: AsyncSession = Depends(get_db)
 ):
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
+
+    # Multi-tenant: no puedes ver usuarios de otra empresa.
+    if not mismo_ambito(current_user, user):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
     return {
         "id": user.id,
         "full_name": user.full_name,
@@ -161,10 +218,22 @@ async def update_user(
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
+
+    # Multi-tenant: no puedes tocar usuarios de otra empresa.
+    if not mismo_ambito(current_user, user):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Proteger al owner: solo el superadmin u otro owner puede modificar a un owner.
+    rol_objetivo_actual = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    if rol_objetivo_actual == "owner" and current_user.get("role") not in ("superadmin", "owner"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para modificar al owner de la empresa."
+        )
+
     if user_data.full_name is not None:
         user.full_name = user_data.full_name
     if user_data.email is not None:
@@ -177,9 +246,17 @@ async def update_user(
         user.email = user_data.email
     if user_data.role is not None:
         try:
-            user.role = UserRole(user_data.role)
+            nuevo_rol = UserRole(user_data.role)
         except ValueError:
-            pass
+            nuevo_rol = None
+        if nuevo_rol is not None:
+            # Anti-escalada: no puedes asignar un rol superior al permitido.
+            if not puede_asignar_rol(current_user.get("role"), nuevo_rol.value):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"No tienes permisos para asignar el rol '{nuevo_rol.value}'."
+                )
+            user.role = nuevo_rol
     if user_data.is_active is not None:
         user.is_active = user_data.is_active
         
@@ -206,11 +283,23 @@ async def delete_user(
     query = select(User).where(User.id == user_id)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-        
+
+    # Multi-tenant: no puedes eliminar usuarios de otra empresa.
+    if not mismo_ambito(current_user, user):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+    # Proteger al owner: solo el superadmin u otro owner puede eliminar a un owner.
+    rol_objetivo = user.role.value if hasattr(user.role, 'value') else str(user.role)
+    if rol_objetivo == "owner" and current_user.get("role") not in ("superadmin", "owner"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para eliminar al owner de la empresa."
+        )
+
     await db.delete(user)
     await db.commit()
-    
+
     return {"message": "Usuario eliminado exitosamente"}

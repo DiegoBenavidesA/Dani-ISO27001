@@ -13,7 +13,7 @@ const DashboardScreen = ({ onNavigate }) => {
   const { theme: t, language, translations, darkMode } = useContext(ThemeContext);
   const { user } = useAuth();
   const tr = (key) => translations[language]?.[key] || translations.en[key] || key;
-  const canAccessGapAnalysis = ['admin', 'manager', 'auditor'].includes(user?.role);
+  const canAccessGapAnalysis = ['superadmin', 'owner', 'admin', 'manager', 'auditor', 'dpo'].includes(user?.role);
 
   const [healthScore, setHealthScore] = useState(null);
   const [tripleScore, setTripleScore] = useState(null);

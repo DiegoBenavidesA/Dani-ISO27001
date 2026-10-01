@@ -16,7 +16,7 @@ const DocGeneratorScreen = ({ navParams }) => {
   const { theme: t, darkMode } = useContext(ThemeContext);
   const { user } = useAuth();
   
-  const canApprove = user && ['admin', 'manager', 'auditor'].includes(user?.role);
+  const canApprove = user && ['superadmin', 'owner', 'admin', 'manager', 'auditor'].includes(user?.role);
 
   const [selectedChapter, setSelectedChapter] = useState(null);
   const [generatedContent, setGeneratedContent] = useState({});

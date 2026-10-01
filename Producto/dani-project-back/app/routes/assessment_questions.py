@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user, get_current_org
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
 from app.models.assessment_question import AssessmentQuestion
 from app.models.assessment_answer import AssessmentAnswer
 from app.services.ai_service import AIService
@@ -159,7 +159,7 @@ async def get_answer_by_question(
 async def evaluate_with_ai(
     files: List[UploadFile] = File(...),
     question_ids: str = Form(""),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),  # escritura: auditor queda solo-lectura
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):

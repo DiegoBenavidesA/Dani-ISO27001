@@ -15,7 +15,35 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const login = useCallback(async (email, password, isRegistering, name) => {
+  // Empresa que el superadmin está viendo ("entrar" a una org). Se guarda en
+  // localStorage para sobrevivir recargas y para que el interceptor de fetch
+  // pueda inyectar la cabecera X-Org-Id en todas las llamadas.
+  const [impersonatedOrg, setImpersonatedOrg] = useState(() => {
+    try {
+      const s = localStorage.getItem('impersonatedOrg');
+      return s ? JSON.parse(s) : null;
+    } catch { return null; }
+  });
+
+  const enterOrg = useCallback((org) => {
+    // org: { id, slug, nombre }
+    const data = { id: org.id, slug: org.slug, nombre: org.nombre };
+    setImpersonatedOrg(data);
+    try {
+      localStorage.setItem('impersonatedOrg', JSON.stringify(data));
+      localStorage.setItem('impersonate_org_id', org.id); // lo lee el interceptor
+    } catch (_) {}
+  }, []);
+
+  const exitOrg = useCallback(() => {
+    setImpersonatedOrg(null);
+    try {
+      localStorage.removeItem('impersonatedOrg');
+      localStorage.removeItem('impersonate_org_id');
+    } catch (_) {}
+  }, []);
+
+  const login = useCallback(async (email, password, isRegistering, name, empresa) => {
     setIsLoading(true);
     setError(null);
 
@@ -24,7 +52,7 @@ export function AuthProvider({ children }) {
       : `${API_URL}/api/auth/login`;
 
     const payload = isRegistering
-      ? { name, email, password }
+      ? { name, email, password, empresa }
       : { email, password };
 
     try {
@@ -42,7 +70,11 @@ export function AuthProvider({ children }) {
             email: email,
             name: data.name || name,
             role: data.role || 'employee',
-            token: data.access_token
+            token: data.access_token,
+            // Multi-tenant: empresa del usuario (null para el superadmin).
+            organizationId: data.organization_id || null,
+            organizationSlug: data.organization_slug || null,
+            organizationName: data.organization_name || null,
           };
           setUser(userData);
           setToken(data.access_token);
@@ -65,8 +97,11 @@ export function AuthProvider({ children }) {
     setUser(null);
     setToken(null);
     setError(null);
+    setImpersonatedOrg(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('impersonatedOrg');
+    localStorage.removeItem('impersonate_org_id');
   }, []);
 
   // ==========================================================================
@@ -79,6 +114,17 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
+      // Superadmin "dentro" de una empresa: inyectamos X-Org-Id en las llamadas
+      // a nuestra API para que el backend scope los datos a esa empresa.
+      try {
+        const orgId = localStorage.getItem('impersonate_org_id');
+        if (orgId && args[0] && typeof args[0] === 'string' && args[0].includes('/api/')) {
+          const opts = args[1] ? { ...args[1] } : {};
+          opts.headers = { ...(opts.headers || {}), 'X-Org-Id': orgId };
+          args[1] = opts;
+        }
+      } catch (_) { /* nunca romper la petición */ }
+
       const response = await originalFetch(...args);
       try {
         if (response.status === 401 && localStorage.getItem('token')) {
@@ -97,6 +143,13 @@ export function AuthProvider({ children }) {
     return () => { window.fetch = originalFetch; };
   }, []);
 
+  // Slug de la empresa para la URL /:slug/... El superadmin de plataforma no
+  // pertenece a ninguna empresa, así que usa el prefijo neutro "admin"
+  // (reservado en el backend para que ninguna empresa pueda tomarlo).
+  const orgSlug = user
+    ? (user.role === 'superadmin' ? 'admin' : (user.organizationSlug || null))
+    : null;
+
   const value = {
     user,
     token,
@@ -104,6 +157,10 @@ export function AuthProvider({ children }) {
     error,
     login,
     logout,
+    orgSlug,
+    impersonatedOrg,
+    enterOrg,
+    exitOrg,
     isAuthenticated: !!user,
   };
 
