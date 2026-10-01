@@ -127,7 +127,6 @@ const VendorsScreen = () => {
       pais: formData.pais.trim() || null,
       estado_contrato: formData.estado_contrato,
       treatment_id: null,
-      organization_id: null
     };
 
     try {

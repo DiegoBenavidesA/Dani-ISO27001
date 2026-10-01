@@ -1,13 +1,13 @@
-// src/services/api.js - VERSIÓN COMPLETA CON userAPI
-// Configuración centralizada de la API
+﻿// src/services/api.js - VERSIÃ“N COMPLETA CON userAPI
+// ConfiguraciÃ³n centralizada de la API
 
 // ============================================
-// 🔥 URL BASE AUTOMÁTICA
+// ðŸ”¥ URL BASE AUTOMÃTICA
 // ============================================
-export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+export const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8001';
 
 // ============================================
-// 👤 USER API
+// ðŸ‘¤ USER API
 // ============================================
 export const userAPI = {
   getUsers: async (token) => {
@@ -51,6 +51,19 @@ export const userAPI = {
   create: async (userData, token) => {
     return userAPI.createUser(userData, token);
   },
+
+  // Invitar usuario a MI empresa (owner/admin): crea inactivo y envía correo.
+  invite: async (data, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/users/invite`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
+    return body;
+  },
   
   updateUser: async (userId, userData, token) => {
     const activeToken = token || localStorage.getItem('token');
@@ -84,7 +97,7 @@ export const userAPI = {
 };
 
 // ============================================
-// 📌 CHAT API
+// ðŸ“Œ CHAT API
 // ============================================
 export const chatAPI = {
   sendMessage: async (message, language = 'es', token = null, signal = null, history = []) => {
@@ -114,7 +127,7 @@ export const chatAPI = {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         if (response.status === 503) {
-            throw new Error(errorData.detail || "Servicio Analítico Degradado: El motor de IA no está disponible.");
+            throw new Error(errorData.detail || "Servicio AnalÃ­tico Degradado: El motor de IA no estÃ¡ disponible.");
         }
         throw new Error(errorData.detail || `Error HTTP: ${response.status}`);
       }
@@ -122,7 +135,7 @@ export const chatAPI = {
     } catch (error) {
       console.error('Chat API error:', error);
       if (error.name === 'AbortError') {
-        return { error: 'Tiempo de espera agotado (Timeout de 30s). DANI tardó demasiado en responder.' };
+        return { error: 'Tiempo de espera agotado (Timeout de 30s). DANI tardÃ³ demasiado en responder.' };
       }
       return { error: error.message };
     }
@@ -130,7 +143,7 @@ export const chatAPI = {
 };
 
 // ============================================
-// 📄 DOCUMENTOS API
+// ðŸ“„ DOCUMENTOS API
 // ============================================
 export const documentsAPI = {
   getAll: async (token = null) => {
@@ -219,11 +232,11 @@ export const documentsAPI = {
 };
 
 // ============================================
-// 📊 COMPLIANCE API
+// ðŸ“Š COMPLIANCE API
 // ============================================
 export const complianceAPI = {
   getControls: async (token, category = null) => {
-  const resolvedToken = token || localStorage.getItem('token'); // ✅ Agregar esto
+  const resolvedToken = token || localStorage.getItem('token'); // âœ… Agregar esto
   const url = category 
     ? `${API_URL}/api/compliance/controls?category=${category}`
     : `${API_URL}/api/compliance/controls`;
@@ -299,7 +312,7 @@ export const complianceAPI = {
 };
 
 // ============================================
-// 🔐 AUTHENTICATION API
+// ðŸ” AUTHENTICATION API
 // ============================================
 export const authAPI = {
   login: async (email, password) => {
@@ -334,11 +347,31 @@ export const authAPI = {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     return response.json();
+  },
+
+  // Trae los datos de la invitación (correo, nombre, empresa) a partir del token.
+  getActivationInfo: async (token) => {
+    const response = await fetch(`${API_URL}/api/auth/activate/${token}`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'El enlace de activación no es válido.');
+    return body;
+  },
+
+  // Activa la cuenta definiendo la contraseña propia.
+  activate: async (token, newPassword) => {
+    const response = await fetch(`${API_URL}/api/auth/activate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, new_password: newPassword })
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo activar la cuenta.');
+    return body;
   }
 };
 
 // ============================================
-// 📋 EVIDENCE API
+// ðŸ“‹ EVIDENCE API
 // ============================================
 export const evidenceAPI = {
   getAll: async (token) => {
@@ -391,7 +424,7 @@ export const evidenceAPI = {
 };
 
 // ============================================
-// 🎯 RISK API
+// ðŸŽ¯ RISK API
 // ============================================
 export const riskAPI = {
   getAll: async (token) => {
@@ -442,7 +475,7 @@ export const riskAPI = {
 };
 
 // ============================================
-// 🚨 CAPA API
+// ðŸš¨ CAPA API
 // ============================================
 export const capaAPI = {
   getAll: async () => {
@@ -487,11 +520,11 @@ export const capaAPI = {
 };
 
 // ============================================
-// 👤 SOLICITUDES DE TITULARES (ARCO+P) API — Ley 21.719 (O3)
-// Backend: routes/data_requests.py  →  /api/data-requests
+// ðŸ‘¤ SOLICITUDES DE TITULARES (ARCO+P) API â€” Ley 21.719 (O3)
+// Backend: routes/data_requests.py  â†’  /api/data-requests
 // ============================================
 export const dataRequestsAPI = {
-  // Listar todas las solicitudes (ordenadas por fecha límite ascendente)
+  // Listar todas las solicitudes (ordenadas por fecha lÃ­mite ascendente)
   getAll: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/data-requests`, {
@@ -512,7 +545,7 @@ export const dataRequestsAPI = {
     return response.json();
   },
 
-  // Crear una nueva solicitud (el backend calcula la fecha límite: +30 días hábiles)
+  // Crear una nueva solicitud (el backend calcula la fecha lÃ­mite: +30 dÃ­as hÃ¡biles)
   // requestData: { titular, tipo, descripcion, organization_id? }
   create: async (requestData, token = null) => {
     const activeToken = token || localStorage.getItem('token');
@@ -546,11 +579,11 @@ export const dataRequestsAPI = {
 };
 
 // ============================================
-// 🚨 GESTIÓN DE BRECHAS API — Ley 21.719 (O4)
-// Backend: routes/breaches.py  →  /api/breaches
+// ðŸš¨ GESTIÃ“N DE BRECHAS API â€” Ley 21.719 (O4)
+// Backend: routes/breaches.py  â†’  /api/breaches
 // ============================================
 export const breachesAPI = {
-  // Listar todas las brechas (el backend marca alerta_vencida si venció el plazo de 72h)
+  // Listar todas las brechas (el backend marca alerta_vencida si venciÃ³ el plazo de 72h)
   getAll: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/breaches`, {
@@ -577,7 +610,7 @@ export const breachesAPI = {
     return response.json();
   },
 
-  // Actualizar la investigación de la brecha
+  // Actualizar la investigaciÃ³n de la brecha
   // updateData: { estado?, medidas_tomadas?, responsable?, cantidad_afectados?, gravedad? }
   update: async (breachId, updateData, token = null) => {
     const activeToken = token || localStorage.getItem('token');
@@ -609,7 +642,7 @@ export const breachesAPI = {
 };
 
 // ============================================
-// 🔧 FUNCIONES HELPER
+// ðŸ”§ FUNCIONES HELPER
 // ============================================
 export const authFetch = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
@@ -635,7 +668,7 @@ export const authFetch = async (endpoint, options = {}) => {
 
 
 // ============================================
-// 🛡️ TREATMENTS API (Ley 21.719 - RoPA)
+// ðŸ›¡ï¸ TREATMENTS API (Ley 21.719 - RoPA)
 // ============================================
 export const treatmentsAPI = {
   getAll: async (token) => {
@@ -648,7 +681,7 @@ export const treatmentsAPI = {
       return await response.json();
     } catch (e) {
       console.warn("Usando datos de fallback para tratamientos");
-      return null; // El frontend manejará el fallback
+      return null; // El frontend manejarÃ¡ el fallback
     }
   },
 
@@ -684,7 +717,7 @@ export const treatmentsAPI = {
 };
 
 // ============================================
-// 🎯 IMPACT ASSESSMENT API (Ley 21.719 - DPIA)
+// ðŸŽ¯ IMPACT ASSESSMENT API (Ley 21.719 - DPIA)
 // ============================================
 export const impactAPI = {
   getAll: async (token) => {
@@ -701,7 +734,7 @@ export const impactAPI = {
   }
 };
 // ============================================
-// ✅ CONSENTS API
+// âœ… CONSENTS API
 // ============================================
 export const consentsAPI = {
   getAll: async (token = null) => {
@@ -806,7 +839,7 @@ export const consentsAPI = {
 };
 
 // ============================================
-// 🏢 VENDORS API
+// ðŸ¢ VENDORS API
 // ============================================
 export const vendorsAPI = {
   getAll: async (token = null) => {
@@ -911,7 +944,7 @@ export const vendorsAPI = {
 };
 
 // ============================================
-// 📍 ENDPOINTS (para referencia)
+// ðŸ“ ENDPOINTS (para referencia)
 // ============================================
 export const endpoints = {
   login: `${API_URL}/api/auth/login`,
@@ -931,7 +964,7 @@ export const endpoints = {
 };
 
 // ============================================
-// 🚪 EXPORT DEFAULT
+// ðŸšª EXPORT DEFAULT
 // ============================================
 const api = {
   API_URL,
@@ -954,7 +987,7 @@ const api = {
 
 // services/api.js - Agregar estas funciones
 
-// Obtener análisis completo
+// Obtener anÃ¡lisis completo
 export const getFullGapAnalysis = async () => {
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_URL}/api/gap-analysis/full`, {
@@ -963,7 +996,7 @@ export const getFullGapAnalysis = async () => {
   return response.json();
 };
 
-// Obtener plan de remediación
+// Obtener plan de remediaciÃ³n
 export const getRemediationPlan = async () => {
   const token = localStorage.getItem('token');
   const response = await fetch(`${API_URL}/api/gap-analysis/remediation-plan`, {
@@ -1000,21 +1033,53 @@ export const getDomainScores = async () => {
 };
 
 // ==========================================
+// CatÃ¡logo de preguntas de evaluaciÃ³n ISO 27001
+// ==========================================
+// ==========================================
 // Catálogo de preguntas de evaluación ISO 27001
 // ==========================================
 export const assessmentQuestionsAPI = {
   // Listar preguntas (opcionalmente filtradas por categoría)
   getAll: async (categoria = null, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const url = categoria
-      ? `${API_URL}/api/assessment-questions/?categoria=${encodeURIComponent(categoria)}`
-      : `${API_URL}/api/assessment-questions/`;
-    const response = await fetch(url, {
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
-    });
+    const url = categoria ? `${API_URL}/api/assessment-questions/?categoria=${encodeURIComponent(categoria)}` : `${API_URL}/api/assessment-questions/`;
+    const response = await fetch(url, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
     const data = await response.json();
     return Array.isArray(data) ? data : [];
+  },
+  
+  // NUEVAS RUTAS CRUD
+  create: async (data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al crear la pregunta');
+    return response.json();
+  },
+
+  update: async (id, data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Error al actualizar la pregunta');
+    return response.json();
+  },
+
+  delete: async (id, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/${id}`, {
+      method: 'DELETE',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('Error al eliminar la pregunta');
+    return response.json();
   },
 
   // Evaluar con IA: sube documentos y la IA responde cada pregunta.
@@ -1053,7 +1118,7 @@ export const assessmentQuestionsAPI = {
 };
 
 // ============================================
-// 🏢 ORGANIZATIONS API (Multi-Tenant)
+// ðŸ¢ ORGANIZATIONS API (Multi-Tenant)
 // ============================================
 export const organizationsAPI = {
   getAll: async (token = null) => {
@@ -1077,6 +1142,38 @@ export const organizationsAPI = {
     });
     if (!response.ok) throw new Error('Error al actualizar empresa');
     return response.json();
+  },
+
+  // Crea una empresa (solo nombre/identificador). Solo superadmin.
+  create: async (data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al crear la empresa');
+    return body;
+  },
+
+  // Invita un usuario (correo + rol) a una empresa existente. Solo superadmin.
+  inviteUser: async (orgId, data, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/${orgId}/invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
+    return body;
   }
 };
 // Recuerda exportarlo al final del archivo dentro de const api = { ... organizationsAPI ... }

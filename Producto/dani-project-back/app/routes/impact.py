@@ -1,14 +1,16 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_org
+from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.impact_assessment import ImpactAssessment
+from app.models.data_treatment import DataTreatment
 
 
 router = APIRouter(
@@ -28,7 +30,6 @@ class ImpactCreate(BaseModel):
     medidas_mitigacion: Optional[str] = None
     estado: Optional[str] = None
     responsable: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class ImpactUpdate(BaseModel):
@@ -38,7 +39,6 @@ class ImpactUpdate(BaseModel):
     medidas_mitigacion: Optional[str] = None
     estado: Optional[str] = None
     responsable: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class ImpactResponse(BaseModel):
@@ -59,17 +59,34 @@ class ImpactResponse(BaseModel):
 
 # =========================================================
 # CREATE
-# Crear una nueva evaluación de impacto (DPIA)
+# Crear una nueva evaluación de impacto
+# La empresa se obtiene desde el usuario autenticado.
 # =========================================================
 
 @router.post("/", response_model=ImpactResponse)
 async def create_impact(
     impact_data: ImpactCreate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
+    data = impact_data.model_dump(exclude_unset=True)
+
+    # Si se asocia un tratamiento, debe pertenecer
+    # a la misma organización.
+    treatment_id = data.get("treatment_id")
+
+    if treatment_id:
+        await get_scoped_or_404(
+            db,
+            DataTreatment,
+            treatment_id,
+            org_id,
+            detail="Tratamiento no encontrado"
+        )
+
     new_impact = ImpactAssessment(
-        **impact_data.model_dump(exclude_unset=True)
+        **data,
+        organization_id=org_id
     )
 
     db.add(new_impact)
@@ -81,82 +98,85 @@ async def create_impact(
 
 # =========================================================
 # READ
-# Obtener todas las evaluaciones de impacto
+# Obtener solo las evaluaciones de impacto de mi empresa.
 # =========================================================
 
 @router.get("/", response_model=List[ImpactResponse])
 async def get_impacts(
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(ImpactAssessment).order_by(
-            ImpactAssessment.created_at.desc()
-        )
+    stmt = scope_to_org(
+        select(ImpactAssessment),
+        ImpactAssessment,
+        org_id
     )
 
-    impacts = result.scalars().all()
+    stmt = stmt.order_by(
+        ImpactAssessment.created_at.desc()
+    )
 
-    return impacts
+    result = await db.execute(stmt)
+
+    return result.scalars().all()
 
 
 # =========================================================
 # READ
-# Obtener una evaluación de impacto por ID
+# Obtener una evaluación solo si pertenece a mi empresa.
 # =========================================================
 
 @router.get("/{impact_id}", response_model=ImpactResponse)
 async def get_impact_by_id(
     impact_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(ImpactAssessment).where(
-            ImpactAssessment.id == impact_id
-        )
+    return await get_scoped_or_404(
+        db,
+        ImpactAssessment,
+        impact_id,
+        org_id,
+        detail="Evaluación de impacto no encontrada"
     )
-
-    impact = result.scalar_one_or_none()
-
-    if not impact:
-        raise HTTPException(
-            status_code=404,
-            detail="Evaluación de impacto no encontrada"
-        )
-
-    return impact
 
 
 # =========================================================
 # UPDATE
-# Actualizar una evaluación de impacto
+# Actualizar solo si pertenece a mi empresa.
 # =========================================================
 
 @router.put("/{impact_id}", response_model=ImpactResponse)
 async def update_impact(
     impact_id: str,
     impact_data: ImpactUpdate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(ImpactAssessment).where(
-            ImpactAssessment.id == impact_id
-        )
+    impact = await get_scoped_or_404(
+        db,
+        ImpactAssessment,
+        impact_id,
+        org_id,
+        detail="Evaluación de impacto no encontrada"
     )
-
-    impact = result.scalar_one_or_none()
-
-    if not impact:
-        raise HTTPException(
-            status_code=404,
-            detail="Evaluación de impacto no encontrada"
-        )
 
     update_data = impact_data.model_dump(
         exclude_unset=True
     )
+
+    # Si se cambia el tratamiento, comprobamos
+    # que también pertenezca a la organización.
+    treatment_id = update_data.get("treatment_id")
+
+    if treatment_id:
+        await get_scoped_or_404(
+            db,
+            DataTreatment,
+            treatment_id,
+            org_id,
+            detail="Tratamiento no encontrado"
+        )
 
     for field, value in update_data.items():
         setattr(impact, field, value)
@@ -171,28 +191,22 @@ async def update_impact(
 
 # =========================================================
 # DELETE
-# Eliminar una evaluación de impacto
+# Eliminar solo si pertenece a mi empresa.
 # =========================================================
 
 @router.delete("/{impact_id}")
 async def delete_impact(
     impact_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(ImpactAssessment).where(
-            ImpactAssessment.id == impact_id
-        )
+    impact = await get_scoped_or_404(
+        db,
+        ImpactAssessment,
+        impact_id,
+        org_id,
+        detail="Evaluación de impacto no encontrada"
     )
-
-    impact = result.scalar_one_or_none()
-
-    if not impact:
-        raise HTTPException(
-            status_code=404,
-            detail="Evaluación de impacto no encontrada"
-        )
 
     await db.delete(impact)
     await db.commit()

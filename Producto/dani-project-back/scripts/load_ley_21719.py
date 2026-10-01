@@ -8,7 +8,7 @@ from pathlib import Path
 # Para que encuentre la carpeta "app"
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import delete
+from sqlalchemy import delete, text
 from app.dependencies.database import engine, AsyncSessionLocal, Base
 import app.models  # Registra todos los modelos en Base.metadata
 from app.models.law_obligation import LawObligation
@@ -29,8 +29,9 @@ async def load_ley_21719():
     with open(file_path, "r", encoding="utf-8") as f:
         obligations_data = json.load(f)
 
-    # Nos aseguramos de que la tabla exista
+    # Nos aseguramos de la extensión pgvector y de que las tablas existan
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
 
     # Insertamos las obligaciones

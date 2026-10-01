@@ -10,7 +10,7 @@ from datetime import datetime
 import uuid
 import os
 
-from app.dependencies.auth import get_current_user, get_current_org
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
@@ -95,7 +95,8 @@ async def upload_evidence(
     source: str = Form("Manual"),
     validityDays: int = Form(30),
     org_id: str = Depends(get_current_org),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),  # solo owner/admin/manager (auditor no sube)
 ):
     try:
         file_bytes = await file.read()

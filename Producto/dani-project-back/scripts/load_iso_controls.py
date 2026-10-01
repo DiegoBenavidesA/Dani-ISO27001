@@ -6,14 +6,21 @@ import json
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.dependencies.database import AsyncSessionLocal
+from sqlalchemy import text
+from app.dependencies.database import AsyncSessionLocal, engine, Base
+import app.models  # noqa  (registra todos los modelos para create_all)
 from app.services.iso_parser import ISOParser
 from app.models.iso_controls import ISOCControl
 
 async def load_iso_controls():
     """Cargar controles ISO 27001 en la base de datos"""
     print("📖 Cargando controles ISO 27001:2022...")
-    
+
+    # Base nueva: asegurar la extensión pgvector y que existan las tablas.
+    async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
+        await conn.run_sync(Base.metadata.create_all)
+
     parser = ISOParser()
     standard = parser.parse_standard()
     
