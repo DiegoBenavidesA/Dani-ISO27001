@@ -5,11 +5,17 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user, require_admin
+from app.dependencies.auth import get_current_user, require_admin, get_current_org
 from app.models.user import User, UserRole
+from app.models.organization import Organization
 from app.services.auth_service import AuthService
+from app.services.email_service import send_email_async, build_invitation_email
+from app.config import settings
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
+
+ROLES_ASIGNABLES = {"owner", "admin", "manager", "auditor", "dpo", "employee"}
+ROLE_LABELS = {"owner": "Owner (Dueño)", "admin": "Administrador", "manager": "Manager", "auditor": "Auditor", "dpo": "DPO", "employee": "Empleado"}
 
 
 # --- Reglas de gestión de usuarios (multi-tenant + anti-escalada de roles) ---
@@ -76,6 +82,77 @@ async def get_all_users(
         }
         for user in users
     ]
+
+class InviteUserRequest(BaseModel):
+    """Invitar un usuario a MI empresa (owner/admin)."""
+    name: Optional[str] = None
+    email: str
+    role: str = "employee"
+
+
+@router.post("/invite", status_code=status.HTTP_201_CREATED)
+async def invite_user(
+    data: InviteUserRequest,
+    current_user: dict = Depends(require_admin),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Invita un usuario (correo + rol) a la empresa del actor.
+
+    - owner/admin invitan a SU empresa (org del token).
+    - superadmin invita a la empresa que esté viendo (cabecera X-Org-Id).
+    El usuario se crea inactivo y define su contraseña al activar desde el correo.
+    """
+    if data.role not in ROLES_ASIGNABLES:
+        raise HTTPException(status_code=400, detail="Rol no válido para invitación.")
+
+    # Anti-escalada: un admin no puede crear un owner, etc.
+    if not puede_asignar_rol(current_user.get("role"), data.role):
+        raise HTTPException(status_code=403, detail=f"No tienes permisos para asignar el rol '{data.role}'.")
+
+    existing = await db.execute(select(User).where(User.email == data.email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="Ya existe un usuario con ese correo.")
+
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organización no encontrada.")
+
+    try:
+        import secrets
+        invited = User(
+            full_name=(data.name.strip() if data.name and data.name.strip() else data.email.split("@")[0]),
+            email=data.email,
+            hashed_password=AuthService.get_password_hash(secrets.token_urlsafe(32)),
+            role=UserRole(data.role),
+            organization_id=org.id,
+            is_active=False,
+        )
+        db.add(invited)
+        await db.commit()
+        await db.refresh(invited)
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al invitar usuario: {str(e)}")
+
+    token = AuthService.create_activation_token(invited.id)
+    activation_url = f"{settings.FRONTEND_BASE_URL}/activar/{token}"
+    html, text = build_invitation_email(
+        invited.full_name, org.nombre, activation_url, ROLE_LABELS.get(data.role, data.role)
+    )
+    email_sent = await send_email_async(
+        invited.email,
+        f"Invitación a {org.nombre} — GRC",
+        html,
+        text,
+        from_name=org.nombre,  # remitente = nombre de la empresa
+    )
+
+    return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent}
+
 
 class CreateUserRequest(BaseModel):
     full_name: str

@@ -26,8 +26,9 @@ const UserManagementScreen = () => {
 
   // Modal de Crear Usuario
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ full_name: '', email: '', password: '', role: 'employee', department: 'General' });
+  const [newUser, setNewUser] = useState({ full_name: '', email: '', role: 'employee' });
   const [isCreating, setIsCreating] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState(null);
 
   // Modal de Editar Usuario
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -79,14 +80,19 @@ const UserManagementScreen = () => {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setIsCreating(true);
+    setInviteMsg(null);
     try {
-      await userAPI.create(newUser);
-      setIsAddModalOpen(false);
-      setNewUser({ full_name: '', email: '', password: '', role: 'employee', department: 'General' });
-      await loadUsers(); // Refrescar tabla automáticamente
+      const res = await userAPI.invite({ name: newUser.full_name, email: newUser.email, role: newUser.role });
+      setInviteMsg(
+        res?.email_sent
+          ? `Invitación enviada a ${res.email}. Definirá su contraseña al activar la cuenta.`
+          : `⚠️ Usuario creado, pero el correo NO se pudo enviar (revisa la configuración SMTP).`
+      );
+      setNewUser({ full_name: '', email: '', role: 'employee' });
+      await loadUsers();
     } catch (error) {
-      console.error("Error creando usuario:", error);
-      alert("Error al crear usuario: " + error.message);
+      console.error("Error invitando usuario:", error);
+      alert("Error al invitar usuario: " + error.message);
     } finally {
       setIsCreating(false);
     }
@@ -197,10 +203,10 @@ const UserManagementScreen = () => {
         </div>
         {!isSuperadmin && (
           <button
-            onClick={() => setIsAddModalOpen(true)}
+            onClick={() => { setInviteMsg(null); setNewUser({ full_name: '', email: '', role: 'employee' }); setIsAddModalOpen(true); }}
             style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
           >
-            <UserPlus size={18} /> Agregar Usuario
+            <UserPlus size={18} /> Invitar usuario
           </button>
         )}
       </div>
@@ -520,28 +526,23 @@ const UserManagementScreen = () => {
       {/* MODAL CREAR USUARIO */}
       {isAddModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
-          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, width: '400px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', animation: 'fadeIn 0.2s ease' }}>
+          <div style={{ background: darkMode ? '#111827' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, width: '400px', padding: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.45)', animation: 'fadeIn 0.2s ease' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Crear Nuevo Usuario</h3>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Invitar usuario</h3>
               <button onClick={() => setIsAddModalOpen(false)} style={{ background: 'none', border: 'none', color: t.textDim, cursor: 'pointer' }}><XCircle size={20} /></button>
             </div>
-            
+
             <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Nombre Completo</label>
+                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Nombre del usuario</label>
                 <input required type="text" value={newUser.full_name} onChange={e => setNewUser({...newUser, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="Ej: Ana Martínez" />
               </div>
-              
+
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Correo Electrónico</label>
                 <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="ana@empresa.com" />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Contraseña</label>
-                <input required type="password" value={newUser.password} onChange={e => setNewUser({...newUser, password: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="••••••••" />
-              </div>
-              
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Rol en el Sistema</label>
                 <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
@@ -554,10 +555,16 @@ const UserManagementScreen = () => {
                 </select>
               </div>
 
+              <p style={{ fontSize: '12px', color: t.textDim, margin: 0 }}>
+                Se enviará una invitación por correo. El usuario definirá su propia contraseña al activar la cuenta.
+              </p>
+
+              {inviteMsg && <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', color: '#10b981', borderRadius: '10px', fontSize: '13px' }}>{inviteMsg}</div>}
+
               <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
-                <button type="button" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>
                 <button type="submit" disabled={isCreating} style={{ flex: 1, padding: '12px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>
-                  {isCreating ? 'Creando...' : 'Crear Usuario'}
+                  {isCreating ? 'Enviando...' : 'Enviar invitación'}
                 </button>
               </div>
             </form>

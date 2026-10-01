@@ -16,14 +16,19 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: str | None = None) -> bool:
-    """Envía un correo de forma síncrona. Devuelve True si se envió."""
+def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: str | None = None, from_name: str | None = None) -> bool:
+    """Envía un correo de forma síncrona. Devuelve True si se envió.
+
+    from_name: nombre visible del remitente (ej. el nombre de la empresa). Si no
+    se indica, usa settings.SMTP_FROM_NAME (ej. "GRC").
+    """
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         logger.warning("SMTP no configurado (SMTP_USER/SMTP_PASSWORD vacíos); se omite el envío.")
         return False
 
+    remitente = from_name or settings.SMTP_FROM_NAME
     msg = EmailMessage()
-    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["From"] = f"{remitente} <{settings.SMTP_USER}>"
     msg["To"] = to_email
     msg["Subject"] = subject
     msg.set_content(text_body or "Este correo requiere un cliente que soporte HTML.")
@@ -42,9 +47,9 @@ def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: str
         return False
 
 
-async def send_email_async(to_email: str, subject: str, html_body: str, text_body: str | None = None) -> bool:
+async def send_email_async(to_email: str, subject: str, html_body: str, text_body: str | None = None, from_name: str | None = None) -> bool:
     """Versión async: corre el envío bloqueante en un hilo aparte."""
-    return await asyncio.to_thread(_send_email_sync, to_email, subject, html_body, text_body)
+    return await asyncio.to_thread(_send_email_sync, to_email, subject, html_body, text_body, from_name)
 
 
 def build_invitation_email(owner_name: str, org_name: str, activation_url: str, role_label: str = "Owner") -> tuple[str, str]:
