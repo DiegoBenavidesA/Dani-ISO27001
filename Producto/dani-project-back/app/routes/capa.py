@@ -6,7 +6,7 @@ from typing import Optional
 import uuid
 
 # Importamos los helpers del núcleo multi-tenant
-from app.dependencies.auth import get_current_user, RequireRole, get_current_org
+from app.dependencies.auth import get_current_user, RequireRole, get_current_org, ELEVATED_READ, ELEVATED_WRITE, ELEVATED_NO_DPO
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db
 from app.models.capa import CAPA, CAPAStatus, CAPAPriority, CAPASource
@@ -56,7 +56,7 @@ async def _next_nc_code(db: AsyncSession, org_id: str) -> str:
 @router.get("/")
 async def get_all_capas(
     org_id: str = Depends(get_current_org),
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)),  # ISO: owner/admin/manager/auditor
     db: AsyncSession = Depends(get_db)
 ):
     stmt = scope_to_org(select(CAPA), CAPA, org_id).order_by(CAPA.created_at.desc())
@@ -68,7 +68,7 @@ async def get_all_capas(
 async def create_capa(
     data: CAPACreate,
     org_id: str = Depends(get_current_org),
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     db: AsyncSession = Depends(get_db)
 ):
     nc_code = await _next_nc_code(db, org_id)
@@ -102,7 +102,7 @@ async def update_capa_status(
     db_id: str,
     data: CAPAStatusUpdate,
     org_id: str = Depends(get_current_org),
-    current_user: dict = Depends(RequireRole(["admin", "manager", "auditor"])),
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     db: AsyncSession = Depends(get_db)
 ):
     capa = await get_scoped_or_404(db, CAPA, db_id, org_id)

@@ -24,3 +24,4 @@ venv311/
 __pycache__/
 *.pyc
 test_db.py
+run_local.py

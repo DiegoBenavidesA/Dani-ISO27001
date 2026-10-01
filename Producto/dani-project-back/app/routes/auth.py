@@ -10,8 +10,10 @@ from app.dependencies.auth import get_current_user
 from app.services.auth_service import AuthService
 from app.dependencies.database import get_db
 from app.models import User
+from app.models.user import UserRole
 
 from app.models.organization import Organization
+from app.utils.slug import slug_unico
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 security = HTTPBearer()
@@ -33,6 +35,11 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     role: str = "employee"
     name: str = ""
+    # Multi-tenant: identifican la empresa del usuario para la URL /:slug/...
+    # El superadmin de plataforma no tiene empresa, por eso son opcionales.
+    organization_id: str | None = None
+    organization_slug: str | None = None
+    organization_name: str | None = None
 
 # --- 2. RUTAS DE AUTENTICACIÓN ---
 
@@ -51,8 +58,9 @@ async def register(register_data: RegisterRequest, db: AsyncSession = Depends(ge
         
     try:
         # T6: CREACIÓN ATÓMICA DE EMPRESA + USUARIO
-        # 1. Crear la Organización
-        nueva_empresa = Organization(nombre=register_data.empresa)
+        # 1. Crear la Organización (con slug único para la URL multi-tenant)
+        slug = await slug_unico(db, register_data.empresa, Organization)
+        nueva_empresa = Organization(nombre=register_data.empresa, slug=slug)
         db.add(nueva_empresa)
         await db.flush() # flush asigna un ID a nueva_empresa sin comitear aún
 
@@ -63,7 +71,7 @@ async def register(register_data: RegisterRequest, db: AsyncSession = Depends(ge
             full_name=register_data.name,
             hashed_password=hashed_pwd,
             organization_id=nueva_empresa.id, # Vinculación
-            role="admin" # El primer usuario de una empresa nueva siempre es admin
+            role=UserRole.OWNER # El primer usuario de una empresa nueva es su OWNER (dueño)
         )
         
         db.add(new_user)
@@ -73,7 +81,9 @@ async def register(register_data: RegisterRequest, db: AsyncSession = Depends(ge
         return {
             "message": "Empresa y usuario creados exitosamente",
             "user_id": new_user.id,
-            "organization_id": nueva_empresa.id
+            "organization_id": nueva_empresa.id,
+            "organization_slug": nueva_empresa.slug,
+            "organization_name": nueva_empresa.nombre,
         }
         
     except Exception as e:
@@ -99,6 +109,15 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Usuario desactivado. Contacte al administrador."
         )
     
+    # Multi-tenant: buscamos la empresa del usuario (si tiene) para exponer su
+    # slug y nombre al frontend (arma la URL /:slug/...).
+    org = None
+    if user.organization_id:
+        org_res = await db.execute(
+            select(Organization).where(Organization.id == user.organization_id)
+        )
+        org = org_res.scalar_one_or_none()
+
     access_token = AuthService.create_access_token(
         data={
             "sub": user.email,
@@ -108,12 +127,60 @@ async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
             "organization_id": user.organization_id,
         }
     )
-    
+
     return TokenResponse(
         access_token=access_token,
         role=user.role.value if hasattr(user.role, 'value') else str(user.role),
-        name=user.full_name
+        name=user.full_name,
+        organization_id=user.organization_id,
+        organization_slug=org.slug if org else None,
+        organization_name=org.nombre if org else None,
     )
+
+class ActivateRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.get("/activate/{token}")
+async def get_activation_info(token: str, db: AsyncSession = Depends(get_db)):
+    """Devuelve los datos de la invitación para mostrarlos en la pantalla de activación."""
+    user_id = AuthService.verify_activation_token(token)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="La cuenta de esta invitación ya no existe.")
+
+    org_nombre = None
+    if user.organization_id:
+        org_res = await db.execute(select(Organization).where(Organization.id == user.organization_id))
+        org = org_res.scalar_one_or_none()
+        org_nombre = org.nombre if org else None
+
+    return {
+        "email": user.email,
+        "name": user.full_name,
+        "organization": org_nombre,
+    }
+
+
+@router.post("/activate")
+async def activate_account(data: ActivateRequest, db: AsyncSession = Depends(get_db)):
+    """Activa la cuenta invitada definiendo la contraseña propia del usuario."""
+    if len(data.new_password) < 8:
+        raise HTTPException(status_code=400, detail="La contraseña debe tener al menos 8 caracteres.")
+
+    user_id = AuthService.verify_activation_token(data.token)
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="La cuenta de esta invitación ya no existe.")
+
+    user.hashed_password = AuthService.get_password_hash(data.new_password)
+    user.is_active = True
+    await db.commit()
+    return {"message": "Cuenta activada. Ya puedes iniciar sesión."}
+
 
 @router.post("/verify")
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):

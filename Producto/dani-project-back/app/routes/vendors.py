@@ -1,14 +1,16 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import get_current_org
+from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.vendor import Vendor
+from app.models.data_treatment import DataTreatment
 
 
 router = APIRouter(
@@ -27,7 +29,6 @@ class VendorCreate(BaseModel):
     pais: Optional[str] = None
     estado_contrato: Optional[str] = None
     treatment_id: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class VendorUpdate(BaseModel):
@@ -36,7 +37,6 @@ class VendorUpdate(BaseModel):
     pais: Optional[str] = None
     estado_contrato: Optional[str] = None
     treatment_id: Optional[str] = None
-    organization_id: Optional[str] = None
 
 
 class VendorResponse(BaseModel):
@@ -55,17 +55,31 @@ class VendorResponse(BaseModel):
 
 
 # =========================================================
-# CREATE — Registrar un proveedor
+# CREATE — la empresa se asigna desde el token
 # =========================================================
 
 @router.post("/", response_model=VendorResponse)
 async def create_vendor(
     vendor_data: VendorCreate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
+    data = vendor_data.model_dump(exclude_unset=True)
+
+    # Si se asocia un tratamiento, debe pertenecer a la misma empresa.
+    treatment_id = data.get("treatment_id")
+    if treatment_id:
+        await get_scoped_or_404(
+            db,
+            DataTreatment,
+            treatment_id,
+            org_id,
+            detail="Tratamiento no encontrado"
+        )
+
     new_vendor = Vendor(
-        **vendor_data.model_dump(exclude_unset=True)
+        **data,
+        organization_id=org_id
     )
 
     db.add(new_vendor)
@@ -76,70 +90,77 @@ async def create_vendor(
 
 
 # =========================================================
-# READ — Todos los proveedores
+# READ — solo proveedores de mi empresa
 # =========================================================
 
 @router.get("/", response_model=List[VendorResponse])
 async def get_vendors(
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Vendor).order_by(Vendor.created_at.desc())
+    stmt = scope_to_org(
+        select(Vendor),
+        Vendor,
+        org_id
     )
+
+    stmt = stmt.order_by(Vendor.created_at.desc())
+
+    result = await db.execute(stmt)
 
     return result.scalars().all()
 
 
 # =========================================================
-# READ — Un proveedor por ID
+# READ — solo si el proveedor pertenece a mi empresa
 # =========================================================
 
 @router.get("/{vendor_id}", response_model=VendorResponse)
 async def get_vendor_by_id(
     vendor_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Vendor).where(Vendor.id == vendor_id)
+    return await get_scoped_or_404(
+        db,
+        Vendor,
+        vendor_id,
+        org_id,
+        detail="Proveedor no encontrado"
     )
-
-    vendor = result.scalar_one_or_none()
-
-    if not vendor:
-        raise HTTPException(
-            status_code=404,
-            detail="Proveedor no encontrado"
-        )
-
-    return vendor
 
 
 # =========================================================
-# UPDATE — Actualizar un proveedor
+# UPDATE — solo si pertenece a mi empresa
 # =========================================================
 
 @router.put("/{vendor_id}", response_model=VendorResponse)
 async def update_vendor(
     vendor_id: str,
     vendor_data: VendorUpdate,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Vendor).where(Vendor.id == vendor_id)
+    vendor = await get_scoped_or_404(
+        db,
+        Vendor,
+        vendor_id,
+        org_id,
+        detail="Proveedor no encontrado"
     )
 
-    vendor = result.scalar_one_or_none()
-
-    if not vendor:
-        raise HTTPException(
-            status_code=404,
-            detail="Proveedor no encontrado"
-        )
-
     update_data = vendor_data.model_dump(exclude_unset=True)
+
+    # Si se cambia el tratamiento, debe pertenecer a la misma empresa.
+    treatment_id = update_data.get("treatment_id")
+    if treatment_id:
+        await get_scoped_or_404(
+            db,
+            DataTreatment,
+            treatment_id,
+            org_id,
+            detail="Tratamiento no encontrado"
+        )
 
     for field, value in update_data.items():
         setattr(vendor, field, value)
@@ -153,26 +174,22 @@ async def update_vendor(
 
 
 # =========================================================
-# DELETE — Eliminar un proveedor
+# DELETE — solo si pertenece a mi empresa
 # =========================================================
 
 @router.delete("/{vendor_id}")
 async def delete_vendor(
     vendor_id: str,
-    current_user: dict = Depends(get_current_user),
+    org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(
-        select(Vendor).where(Vendor.id == vendor_id)
+    vendor = await get_scoped_or_404(
+        db,
+        Vendor,
+        vendor_id,
+        org_id,
+        detail="Proveedor no encontrado"
     )
-
-    vendor = result.scalar_one_or_none()
-
-    if not vendor:
-        raise HTTPException(
-            status_code=404,
-            detail="Proveedor no encontrado"
-        )
 
     await db.delete(vendor)
     await db.commit()

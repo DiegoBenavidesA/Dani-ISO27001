@@ -26,6 +26,8 @@ from app.routes import vendors
 from app.routes import assessment_questions
 
 from app.routes import auth, risk, evidence, organizations
+from fastapi import Depends
+from app.dependencies.auth import RequireRole, ELEVATED_READ, ELEVATED_NO_DPO, ELEVATED_WRITE, LEY_ROLES
 
 # --- Modelos base (se importan para que SQLAlchemy los registre) ---
 from app.models.organization import Organization   # Multi-tenant (N1)
@@ -75,7 +77,45 @@ async def lifespan(app: FastAPI):
 
         await conn.run_sync(Base.metadata.create_all)
 
+        # Multi-tenant (slug en URL): en BDs creadas antes de agregar la columna
+        # `slug`, create_all NO altera tablas existentes. La agregamos a mano de
+        # forma idempotente para no romper entornos ya existentes.
+        await conn.execute(
+            text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS slug VARCHAR(120);")
+        )
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_organizations_slug "
+                "ON organizations (slug);"
+            )
+        )
+
     logger.info("✅ Database tables created/verified")
+
+    # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
+    # con los valores antiguos. Agregar valores al enum de Python NO altera el
+    # tipo en la BD, así que hay que hacerlo con ALTER TYPE ... ADD VALUE.
+    # ADD VALUE no puede correr dentro de la misma transacción que lo usa, por
+    # eso usamos una conexión en AUTOCOMMIT.
+    async with engine.connect() as conn:
+        from sqlalchemy import text
+        conn = await conn.execution_options(isolation_level="AUTOCOMMIT")
+        for valor in ("SUPERADMIN", "OWNER"):
+            await conn.execute(
+                text(f"ALTER TYPE userrole ADD VALUE IF NOT EXISTS '{valor}';")
+            )
+    logger.info("✅ Enum userrole verificado (SUPERADMIN/OWNER)")
+
+    # Rellenar slugs faltantes (empresas creadas antes de esta feature).
+    from app.utils.slug import slug_unico
+    async with AsyncSessionLocal() as session:
+        from sqlalchemy import select as _select
+        sin_slug = await session.execute(
+            _select(Organization).where(Organization.slug.is_(None))
+        )
+        for org in sin_slug.scalars().all():
+            org.slug = await slug_unico(session, org.nombre, Organization)
+        await session.commit()
 
     from app.services.auth_service import AuthService
     from app.models.user import User, UserRole
@@ -83,42 +123,42 @@ async def lifespan(app: FastAPI):
     async with AsyncSessionLocal() as session:
         from sqlalchemy import select
 
-        result = await session.execute(
-            select(User).where(
-                User.email == "admin@dani27001.com"
-            )
-        )
+        # 1) Cuenta de plataforma DEDICADA (superadmin). Es cross-tenant, no
+        #    pertenece a ninguna empresa. Se puede configurar por variables de
+        #    entorno; por defecto usa estas credenciales.
+        super_email = os.environ.get("SUPERADMIN_EMAIL", "superadmin@dani27001.com")
+        super_pass = os.environ.get("SUPERADMIN_PASSWORD", "superadmin123")
 
-        admin = result.scalar_one_or_none()
+        res_super = await session.execute(select(User).where(User.email == super_email))
+        superadmin = res_super.scalar_one_or_none()
 
-        if not admin:
-            admin_email = os.environ.get(
-                "ADMIN_EMAIL",
-                "admin@dani27001.com"
-            )
-
-            admin_password = os.environ.get(
-                "ADMIN_PASSWORD",
-                "admin123"
-            )
-
-            admin_user = User(
+        if not superadmin:
+            superadmin = User(
                 id=str(uuid.uuid4()),
-                full_name="Admin User",
-                email=admin_email,
-                hashed_password=AuthService.get_password_hash(
-                    admin_password
-                ),
-                role=UserRole.ADMIN,
-                is_active=True
+                full_name="Super Admin",
+                email=super_email,
+                hashed_password=AuthService.get_password_hash(super_pass),
+                role=UserRole.SUPERADMIN,
+                organization_id=None,
+                is_active=True,
             )
-
-            session.add(admin_user)
+            session.add(superadmin)
             await session.commit()
+            logger.info(f"✅ Superadmin de plataforma creado: {super_email}")
+        elif superadmin.role != UserRole.SUPERADMIN or superadmin.organization_id is not None:
+            superadmin.role = UserRole.SUPERADMIN
+            superadmin.organization_id = None
+            await session.commit()
+            logger.info("✅ Superadmin de plataforma corregido")
 
-            logger.info(
-                f"✅ Admin user created: {admin_email}"
-            )
+        # 2) La cuenta antigua admin@dani27001.com pasa a ser OWNER de su empresa
+        #    (deja de ser superadmin). Solo si existe (BDs ya creadas).
+        res_admin = await session.execute(select(User).where(User.email == "admin@dani27001.com"))
+        admin = res_admin.scalar_one_or_none()
+        if admin and admin.role != UserRole.OWNER:
+            admin.role = UserRole.OWNER
+            await session.commit()
+            logger.info("✅ admin@dani27001.com ahora es OWNER de su empresa")
 
     logger.info("✅ Backend ready!")
 
@@ -162,7 +202,8 @@ app.add_middleware(
     ],
     allow_headers=[
         "Authorization",
-        "Content-Type"
+        "Content-Type",
+        "X-Org-Id",
     ],
 )
 
@@ -171,25 +212,27 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(risk.router)
-app.include_router(evidence.router)
-app.include_router(documents.router)
-app.include_router(compliance.router)
-app.include_router(chat.router)
-app.include_router(gap_analysis.router)
-app.include_router(capa.router)
-app.include_router(notifications.router)
-app.include_router(report.router)
+app.include_router(risk.router, dependencies=[Depends(RequireRole(ELEVATED_WRITE))])  # riesgos: owner/admin/manager (auditor y dpo no)
+app.include_router(evidence.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])  # ISO: owner/admin/manager/auditor
+app.include_router(documents.router)  # el portal del empleado usa este router (leer/aceptar políticas)
+app.include_router(compliance.router, dependencies=[Depends(RequireRole(ELEVATED_READ))])  # dashboard/cumplimiento: todo el equipo
+app.include_router(chat.router)  # el chat lo usan también los empleados (con su propio filtro)
+app.include_router(gap_analysis.router)  # ya tiene candado por endpoint
+app.include_router(capa.router)  # ya tiene candado por endpoint
+app.include_router(notifications.router)  # notificaciones por usuario
+app.include_router(report.router, dependencies=[Depends(RequireRole(ELEVATED_READ))])
 app.include_router(ai_routes.router)
 
-# --- Routers Ley N° 21.719 ---
-app.include_router(treatments.router)
-app.include_router(consents.router)
-app.include_router(data_requests.router)
-app.include_router(breaches.router)
-app.include_router(vendors.router)
-app.include_router(impact.router)
-app.include_router(assessment_questions.router)
+# --- Routers Ley N° 21.719 (owner/admin/dpo) ---
+_ley = [Depends(RequireRole(LEY_ROLES))]
+app.include_router(treatments.router, dependencies=_ley)
+app.include_router(consents.router, dependencies=_ley)
+app.include_router(data_requests.router, dependencies=_ley)
+app.include_router(breaches.router, dependencies=_ley)
+app.include_router(vendors.router, dependencies=_ley)
+app.include_router(impact.router, dependencies=_ley)
+# Evaluación ISO (no es Ley): owner/admin/manager/auditor.
+app.include_router(assessment_questions.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])
 
 app.include_router(organizations.router)  
 

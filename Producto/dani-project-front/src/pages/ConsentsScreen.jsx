@@ -28,8 +28,7 @@ const ConsentsScreen = () => {
     titular: '',
     treatment_id: '',
     medio: '',
-    comprobante_url: '',
-    organization_id: ''
+    comprobante_url: ''
   });
 
   // ============================================
@@ -80,8 +79,7 @@ const ConsentsScreen = () => {
       titular: '',
       treatment_id: '',
       medio: '',
-      comprobante_url: '',
-      organization_id: ''
+      comprobante_url: ''
     });
   };
 
@@ -136,13 +134,13 @@ const ConsentsScreen = () => {
       return;
     }
 
-    const payload = {
-      titular: formData.titular.trim(),
-      treatment_id: formData.treatment_id.trim(),
-      medio: formData.medio.trim(),
-      comprobante_url: formData.comprobante_url.trim() || null,
-      organization_id: formData.organization_id.trim() || null
-    };
+  const payload = {
+    nombre: formData.nombre.trim(),
+    datos_compartidos: formData.datos_compartidos.trim() || null,
+    pais: formData.pais.trim() || null,
+    estado_contrato: formData.estado_contrato,
+    treatment_id: null
+  };
 
     try {
       setSaving(true);
@@ -864,38 +862,6 @@ const ConsentsScreen = () => {
                   value={formData.comprobante_url}
                   onChange={handleChange}
                   placeholder="https://..."
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none'
-                  }}
-                />
-              </div>
-
-              {/* ORGANIZACION */}
-              <div style={{ marginBottom: '24px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  ID de organización
-                </label>
-
-                <input
-                  type="text"
-                  name="organization_id"
-                  value={formData.organization_id}
-                  onChange={handleChange}
-                  placeholder="Opcional"
                   style={{
                     width: '100%',
                     boxSizing: 'border-box',

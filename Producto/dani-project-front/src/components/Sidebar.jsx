@@ -85,29 +85,52 @@ import { useAuth } from '../contexts/AuthContext';
 
 const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen }) => {
   const { theme: t, language, translations } = useTheme();
-  const { user } = useAuth();
+  const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
-  const isAdmin = user && ['admin', 'manager', 'auditor'].includes(user?.role);
+  const role = user?.role;
+  const superadminEnOrg = role === 'superadmin' && !!impersonatedOrg;   // dentro de una empresa
+  const superadminPlataforma = role === 'superadmin' && !impersonatedOrg; // panel de plataforma
+  // --- Matriz de permisos por rol (debe coincidir con el backend) ---
+  // owner y admin ven TODO. Los demás roles ven su subconjunto.
+  const DASH      = ['superadmin', 'owner', 'admin', 'manager', 'auditor', 'dpo']; // panel + documentos (todo el equipo, no empleados)
+  const ISO_MANAGE = ['superadmin', 'owner', 'admin', 'manager'];                  // gestionar ISO (crear/editar)
+  const ISO_VIEW   = ['superadmin', 'owner', 'admin', 'manager', 'auditor'];       // ver ISO / auditoría (incluye auditor)
+  const LEY        = ['superadmin', 'owner', 'admin', 'dpo'];                       // módulos Ley 21.719 (dpo)
+  const MANAGE_USERS = ['superadmin', 'owner', 'admin'];                           // gestión de usuarios
+  const PLATFORM = ['superadmin'];                                                 // ver/administrar TODAS las empresas
+  // roles: null = visible para todos los roles (incl. empleado).
 
   const navItems = [
-    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, adminOnly: false },
-    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, adminOnly: true },
-    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, adminOnly: true },
-    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, adminOnly: true },
-    { id: 'evidence', label: l.evidenceCenter, icon: Database, adminOnly: true },
-    { id: 'documents', label: l.documents, icon: FileText, adminOnly: true },
-    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, adminOnly: true },
-    { id: 'user-management', label: l.userManagement, icon: Users, adminOnly: true },
-    { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, adminOnly: true },
-    { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, adminOnly: true },
-    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, adminOnly: true },
-    { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, adminOnly: true },
-    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, adminOnly: true },
-    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, adminOnly: true },
-    { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, adminOnly: true },
-    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, adminOnly: true },
-    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, adminOnly: false },
-  ].filter(item => !item.adminOnly || isAdmin);
+    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH },
+    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW },
+    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE },
+    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE },
+    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW },
+    { id: 'documents', label: l.documents, icon: FileText, roles: DASH },
+    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW },
+    { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS },
+    { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM },
+    { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, roles: LEY },
+    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW },
+    { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, roles: LEY },
+    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, roles: LEY },
+    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY },
+    { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, roles: LEY },
+    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, roles: LEY },
+    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null },
+  ].filter(item => {
+    // Superadmin en el panel de PLATAFORMA: solo empresas y usuarios.
+    if (superadminPlataforma) {
+      return ['organizations', 'user-management'].includes(item.id);
+    }
+    // Superadmin DENTRO de una empresa: ve todos los módulos de esa empresa,
+    // menos "Gestión de Empresas" (eso es de plataforma; vuelve con el botón).
+    if (superadminEnOrg) {
+      return item.id !== 'organizations';
+    }
+    // Resto de roles: según su lista `roles`.
+    return !item.roles || item.roles.includes(role);
+  });
 
   return (
     <aside style={{ width: sidebarCollapsed ? '80px' : '260px', background: t.sidebarBg, backdropFilter: 'blur(20px)', borderRight: `1px solid ${t.border}`, padding: '24px 16px', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', position: 'relative', zIndex: 10 }}>
@@ -129,6 +152,25 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
           <span style={{ flex: 1 }}>{language === 'es' ? 'Buscar...' : 'Search...'}</span>
           <kbd style={{ padding: '2px 6px', background: t.hoverBg || 'rgba(0,0,0,0.05)', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>⌘K</kbd>
         </button>
+      )}
+
+      {/* Superadmin dentro de una empresa: banner + botón para volver a plataforma */}
+      {superadminEnOrg && (
+        <div style={{ marginBottom: '16px' }}>
+          {!sidebarCollapsed && (
+            <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', padding: '0 4px' }}>
+              Viendo empresa: <strong style={{ color: t.text }}>{impersonatedOrg.nombre}</strong>
+            </div>
+          )}
+          <button
+            onClick={() => exitOrg()}
+            title="Volver al panel de plataforma"
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: sidebarCollapsed ? '12px' : '10px 14px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: '13px', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
+          >
+            <ChevronLeft size={18} />
+            {!sidebarCollapsed && <span>Volver a plataforma</span>}
+          </button>
+        </div>
       )}
 
       <nav style={{ flex: 1 }}>
@@ -155,7 +197,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
         })()}
       </nav>
 
-      <SidebarProgressRings theme={t} language={language} collapsed={sidebarCollapsed} />
 
       {/* Collapse Button */}
       <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ position: 'absolute', top: '50%', right: '-12px', width: '24px', height: '24px', borderRadius: '50%', background: t.cardBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.textDim }}>

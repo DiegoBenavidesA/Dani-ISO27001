@@ -36,7 +36,10 @@ import BreachesScreen from './pages/BreachesScreen';
 import AssessmentScreen from './pages/AssessmentScreen';
 
 export default function DaniPlatform() {
-  const { logout } = useAuth();
+  const { logout, user, impersonatedOrg } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
+  // El superadmin "dentro" de una empresa se comporta como un usuario del tenant.
+  const platformMode = isSuperadmin && !impersonatedOrg;
   
   // Extraemos todo del Contexto Global
   const { 
@@ -47,11 +50,24 @@ export default function DaniPlatform() {
   const l = translations[language];
 
   // ESTADOS DE NAVEGACIÓN Y UI
-  // ESTADOS DE NAVEGACIÓN Y UI
-  const [activeScreen, setActiveScreen] = useState(() => {
-    return sessionStorage.getItem('dani_active_screen') || 'dashboard';
-  });
-  
+  // Pantalla inicial según rol: superadmin -> Empresas; empleado -> su Portal;
+  // el resto (owner/admin/manager/auditor/dpo) -> la última pantalla guardada
+  // (persistencia de main) o el Panel por defecto.
+  const initialScreen = platformMode
+    ? 'organizations'
+    : (user?.role === 'employee'
+        ? 'employee-portal'
+        : (sessionStorage.getItem('dani_active_screen') || 'dashboard'));
+  const [activeScreen, setActiveScreen] = useState(initialScreen);
+
+  // Al entrar/salir de una empresa (superadmin), cambiamos la pantalla activa:
+  // entrar -> Panel de la empresa; salir -> volver a Gestión de Empresas.
+  useEffect(() => {
+    if (isSuperadmin) {
+      setActiveScreen(impersonatedOrg ? 'dashboard' : 'organizations');
+    }
+  }, [impersonatedOrg, isSuperadmin]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   // ... (mantén los demás estados intactos)
 

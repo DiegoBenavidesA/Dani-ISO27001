@@ -165,7 +165,7 @@ async def update_document_status(
         raise HTTPException(status_code=400, detail="Invalid status")
         
     if new_status in [DocumentStatus.APPROVED, DocumentStatus.PUBLISHED]:
-        if current_user.get("role", "") not in ["admin", "auditor", "manager"]:
+        if current_user.get("role", "") not in ["superadmin", "owner", "admin", "auditor", "manager"]:
             raise HTTPException(status_code=403, detail="Sin permisos")
             
     document.status = new_status
