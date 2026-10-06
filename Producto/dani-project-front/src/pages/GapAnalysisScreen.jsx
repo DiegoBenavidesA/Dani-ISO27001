@@ -14,19 +14,14 @@ import { getControlName } from '../translations/controls';
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
   const { user } = useAuth();
-  // Administrar el catálogo de preguntas: owner/admin (y superadmin). Debe
-  // coincidir con el backend (create/update/delete exigen rol admin; owner y
-  // superadmin pasan por jerarquía). El manager NO administra el catálogo.
   const isAdmin = user && ['superadmin', 'owner', 'admin'].includes(user?.role);
 
-  // Traducciones básicas
   const tText = {
     en: { gapAnalysis: 'Gap Analysis', completeAssessment: 'Complete the assessment to generate your SOA', question: 'Question', previous: 'Previous', continue: 'Continue', yes: 'Yes', no: 'No', partially: 'Partially', soaTitle: 'Statement of Applicability (SOA)', soaApplicable: 'Applicable', soaImplemented: 'Implemented', showAll: 'All', showApplicable: 'Applicable', showNotApplicable: 'Not Applicable', control: 'Control', description: 'Description', applicable: 'Applicable', status: 'Status', justification: 'Justification', implemented: 'Implemented', planned: 'Planned', notImplemented: 'Not Implemented', required: 'Required', autoSaved: 'Auto-saved' },
     es: { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente', soaTitle: 'Declaración de Aplicabilidad (SOA)', soaApplicable: 'Aplica', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplica', showNotApplicable: 'No Aplica', control: 'Control', description: 'Descripción', applicable: 'Aplica', status: 'Estado', justification: 'Justificación', implemented: 'Implementado', planned: 'Planificado', notImplemented: 'No Implementado', required: 'Requerido', autoSaved: 'Auto-guardado' },
     pt: { gapAnalysis: 'Análise de Lacunas', completeAssessment: 'Complete a avaliação para gerar sua Declaração de Aplicabilidade (SOA)', question: 'Pergunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sim', no: 'Não', partially: 'Parcialmente', soaTitle: 'Declaração de Aplicabilidade (SOA)', soaApplicable: 'Aplicável', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplicável', showNotApplicable: 'Não Aplicável', control: 'Controle', description: 'Descrição', applicable: 'Aplicável', status: 'Status', justification: 'Justificativa', implemented: 'Implementado', planned: 'Planejado', notImplemented: 'Não Implementado', required: 'Obrigatório', autoSaved: 'Auto-salvo' }
   }[language] || { gapAnalysis: 'Análisis de Brechas', completeAssessment: 'Completa la evaluación para generar tu Declaración de Aplicabilidad (SOA)', question: 'Pregunta', previous: 'Anterior', continue: 'Continuar', yes: 'Sí', no: 'No', partially: 'Parcialmente', soaTitle: 'Declaración de Aplicabilidad (SOA)', soaApplicable: 'Aplica', soaImplemented: 'Implementado', showAll: 'Todos', showApplicable: 'Aplica', showNotApplicable: 'No Aplica', control: 'Control', description: 'Descripción', applicable: 'Aplica', status: 'Estado', justification: 'Justificación', implemented: 'Implementado', planned: 'Planificado', notImplemented: 'No Implementado', required: 'Requerido', autoSaved: 'Auto-guardado' };
 
-  // Estados principales
   const [activeMainTab, setActiveMainTab] = useState('assessment');
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -53,19 +48,16 @@ function GapAnalysisScreen({ onNavigate }) {
   const [overallScore, setOverallScore] = useState(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
   
-  // Estado para LLM local
   const [docText, setDocText] = useState('');
   const [docName, setDocName] = useState('');
   const [docAnalysisResult, setDocAnalysisResult] = useState(null);
   const [isAnalyzingDoc, setIsAnalyzingDoc] = useState(false);
   const [docAnalysisError, setDocAnalysisError] = useState(null);
 
-  // Estados para BD de Preguntas
   const [dbQuestions, setDbQuestions] = useState([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
   const [questionsError, setQuestionsError] = useState(null);
   
-  // Estado para Evaluación IA
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalError, setEvalError] = useState(null);
@@ -75,25 +67,19 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { try { localStorage.setItem('dani_gap_answers', JSON.stringify(answers)); } catch {} }, [answers]);
   useEffect(() => { try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {} }, [aiResults]);
 
-  // Carga centralizada de preguntas
   const loadQuestions = async () => {
-    setQuestionsLoading(true);
-    setQuestionsError(null);
+    setQuestionsLoading(true); setQuestionsError(null);
     try {
       const data = await assessmentQuestionsAPI.getAll();
       setDbQuestions(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error al cargar las preguntas de evaluación', err);
+      console.error('Error al cargar preguntas', err);
       setQuestionsError('No se pudieron cargar las preguntas desde la base de datos.');
       setDbQuestions([]);
-    } finally {
-      setQuestionsLoading(false);
-    }
+    } finally { setQuestionsLoading(false); }
   };
-
   useEffect(() => { loadQuestions(); }, []);
 
-  // Inicialización de Fases
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
   const phaseDefs = [
     { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => q.categoria?.startsWith('Cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
@@ -103,8 +89,6 @@ function GapAnalysisScreen({ onNavigate }) {
     { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
     { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
     { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
-    // Sección de la Ley 21.719 (protección de datos). Las preguntas creadas con
-    // categoría "Privacidad" (o cualquier "Ley ...") caen aquí.
     { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => q.categoria === 'Privacidad' || (q.categoria || '').toLowerCase().startsWith('ley') },
   ];
 
@@ -112,43 +96,36 @@ function GapAnalysisScreen({ onNavigate }) {
     return phaseDefs.map((def) => ({
       id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
       questions: dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((q) => ({
-        id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
+        id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
       })),
     })).filter((p) => p.questions.length > 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dbQuestions, language]);
 
-  // Carga Controles ISO
-  useEffect(() => {
-    const loadISOControls = async () => {
-      setIsLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        const data = await complianceAPI.getControls(token);
-        if (data.controls) {
-          setControls(data.controls.map(c => ({
-            id: c.id, name: c.name, category: c.category || 'Organizational', applicable: c.applicable !== undefined ? c.applicable : true,
-            status: c.status === 'implemented' ? 'implemented' : (c.status === 'planned' ? 'planned' : 'notImplemented'), justification: c.justification || ''
-          })));
-        }
-      } catch (error) { setError(error.message); } finally { setIsLoading(false); }
-    };
-    loadISOControls();
-  }, []);
+  const loadISOControls = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const data = await complianceAPI.getControls(token);
+      if (data.controls) {
+        setControls(data.controls.map(c => ({
+          id: c.id, name: c.name, category: c.category || 'Organizational', applicable: c.applicable !== undefined ? c.applicable : true,
+          status: c.status === 'implemented' ? 'implemented' : (c.status === 'planned' ? 'planned' : 'notImplemented'), justification: c.justification || ''
+        })));
+      }
+    } catch (error) { setError(error.message); } finally { setIsLoading(false); }
+  };
+  
+  useEffect(() => { loadISOControls(); }, []);
 
-  // Carga Análisis Brechas
-  useEffect(() => {
-    const loadAnalysis = async () => {
-      setIsLoadingAnalysis(true);
-      try {
-        const [analysis, score] = await Promise.all([getFullGapAnalysis(), getComplianceScore()]);
-        setFullAnalysis(analysis); setOverallScore(score);
-      } catch (error) { console.error(error); } finally { setIsLoadingAnalysis(false); }
-    };
-    loadAnalysis();
-  }, []);
+  const loadAnalysis = async () => {
+    setIsLoadingAnalysis(true);
+    try {
+      const [analysis, score] = await Promise.all([getFullGapAnalysis(), getComplianceScore()]);
+      setFullAnalysis(analysis); setOverallScore(score);
+    } catch (error) { console.error(error); } finally { setIsLoadingAnalysis(false); }
+  };
+  useEffect(() => { loadAnalysis(); }, []);
 
-  // Carga Docs IA
   useEffect(() => {
     const loadDocs = async () => {
       try {
@@ -159,16 +136,17 @@ function GapAnalysisScreen({ onNavigate }) {
     loadDocs();
   }, []);
 
-  // Lógica de UI general...
+  const totalQuestions = phases.reduce((sum, p) => sum + p.questions.length, 0);
+  const answeredCount = phases.reduce((count, p) => count + p.questions.filter(q => answers[q.id]).length, 0);
+  const globalProgress = totalQuestions > 0 ? Math.min(100, Math.round((answeredCount / totalQuestions) * 100)) : 0;
+  
   const getPhaseProgress = (idx) => {
     const phase = phases[idx];
     if (!phase || phase.questions.length === 0) return 0;
     const answered = phase.questions.filter(q => answers[q.id]).length;
     return Math.round((answered / phase.questions.length) * 100);
   };
-  const totalQuestions = phases.reduce((sum, p) => sum + p.questions.length, 0);
-  const answeredQuestions = Object.keys(answers).length;
-  const globalProgress = totalQuestions > 0 ? Math.round((answeredQuestions / totalQuestions) * 100) : 0;
+  
   const currentPhaseData = phases[currentPhase];
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
 
@@ -185,41 +163,36 @@ function GapAnalysisScreen({ onNavigate }) {
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
     else if (currentPhase > 0) { setCurrentPhase(currentPhase - 1); setCurrentQuestion(phases[currentPhase - 1].questions.length - 1); }
   };
+  
   const handleSaveProgress = async () => {
     setIsSaving(true);
-    try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
+    try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); loadAnalysis(); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
   };
-
-  // ==========================================
-  // FUNCIONES DE EVALUACIÓN CON IA
-  // ==========================================
 
   const veredictoToOption = (veredicto) => {
     if (veredicto === 'cumple') return tText.yes;
     if (veredicto === 'parcial') return tText.partially;
-    return tText.no; // no_cumple o sin_evidencia
+    return tText.no;
   };
 
+  // ==========================================
+  // SUPER-EVALUADOR DE IA (ACTUALIZA SOA Y ROPA)
+  // ==========================================
   const handleEvaluateWithAI = async (revalidate = false) => {
-    setEvalError(null);
-    setEvalInfo(null);
-    if (!uploadedFiles.length) {
-      setEvalError('Sube al menos un documento antes de evaluar.');
-      return;
-    }
+    setEvalError(null); setEvalInfo(null);
+    if (!uploadedFiles.length) { setEvalError('Sube al menos un documento antes de evaluar.'); return; }
+    
     let ids = [];
     if (revalidate) {
-      phases.forEach((p) => p.questions.forEach((q) => {
-        if (answers[q.id] !== tText.yes) ids.push(q.id);
-      }));
-      if (ids.length === 0) {
-        setEvalInfo('No hay preguntas pendientes: todas están en "Sí".');
-        return;
-      }
+      phases.forEach((p) => p.questions.forEach((q) => { if (answers[q.id] !== tText.yes) ids.push(q.id); }));
+      if (ids.length === 0) { setEvalInfo('No hay preguntas pendientes.'); return; }
     }
+    
     setIsEvaluating(true);
     try {
       const resp = await assessmentQuestionsAPI.evaluate(uploadedFiles, ids);
+      
+      // 1. Mapeo de respuestas a la vista de preguntas
       const newAnswers = { ...answers };
       const newAI = { ...aiResults };
       (resp.results || []).forEach((r) => {
@@ -228,7 +201,69 @@ function GapAnalysisScreen({ onNavigate }) {
       });
       setAnswers(newAnswers);
       setAiResults(newAI);
-      setEvalInfo(`✅ IA evaluó ${resp.total} pregunta(s)${revalidate ? ' (revalidación)' : ''}.`);
+
+      // 2. Mapeo ultra-preciso hacia la SOA
+      const questionMap = {};
+      phases.forEach(p => p.questions.forEach(q => { questionMap[q.id] = q.codigo; }));
+      
+      const updatedControls = [...controls];
+      (resp.results || []).forEach(r => {
+        const ctrlCode = questionMap[r.id];
+        if (!ctrlCode) return;
+        
+        // Match exacto ignorando letras (ej. "A.5.1" -> "51", "5.1" -> "51")
+        const normCode = ctrlCode.replace(/[^0-9]/g, ''); 
+        
+        const cIdx = updatedControls.findIndex(c => {
+            const normCId = c.id.replace(/[^0-9]/g, '');
+            // Para evitar cruces, validamos si la pregunta trae una 'A' al principio (Anexo A)
+            const isAnnexQuestion = ctrlCode.toLowerCase().includes('a');
+            const isAnnexControl = c.id.toLowerCase().includes('a');
+            if (isAnnexQuestion !== isAnnexControl) return false;
+            
+            return normCId === normCode;
+        });
+
+        if (cIdx !== -1) {
+            let newStatus = 'notImplemented';
+            if (r.veredicto === 'cumple') newStatus = 'implemented';
+            else if (r.veredicto === 'parcial') newStatus = 'planned';
+            updatedControls[cIdx] = {
+                ...updatedControls[cIdx], 
+                applicable: true, 
+                status: newStatus, 
+                justification: r.justificacion || updatedControls[cIdx].justificacion
+            };
+        }
+      });
+      
+      // Activar cambios visuales en React
+      setControls(updatedControls);
+
+      // 3. Forzamos el guardado de la SOA y recalcular Resultados inmediatamente
+      try { await complianceAPI.fullAssessment({ controls: updatedControls, answers: newAnswers }); await loadAnalysis(); } catch(e) { console.warn("No se pudo autoguardar", e); }
+
+      // 4. Envío masivo automático al Registro RoPA
+      let tratamientosAgregados = 0;
+      if (resp.extracted_treatments && resp.extracted_treatments.length > 0) {
+        try {
+            const token = localStorage.getItem('token');
+            await fetch(`${API_URL}/api/treatments/bulk`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(resp.extracted_treatments)
+            });
+            tratamientosAgregados = resp.extracted_treatments.length;
+        } catch(e) { console.error("Error guardando RoPA", e); }
+      }
+
+      // 5. Informe final visual
+      let finalMsg = `✅ IA evaluó ${resp.total} preguntas y actualizó los controles de la SOA.\n\n`;
+      if (tratamientosAgregados > 0) finalMsg += `🎯 Extrajo ${tratamientosAgregados} tratamientos nuevos y los inyectó en tu registro RoPA!\n`;
+      
+      alert(finalMsg);
+      setEvalInfo(finalMsg);
+      
     } catch (e) {
       setEvalError(e.message || 'Error al evaluar con IA.');
     } finally {
@@ -236,10 +271,6 @@ function GapAnalysisScreen({ onNavigate }) {
     }
   };
 
-  // ==========================================
-  // DEFINICIONES SOA Y RESULTADOS
-  // ==========================================
-  
   const handleSort = (col) => {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('asc'); }
@@ -372,11 +403,9 @@ function GapAnalysisScreen({ onNavigate }) {
   const ResultadosView = () => {
     const getScoreColor = (s) => s >= 85 ? '#10b981' : s >= 70 ? '#f59e0b' : '#ef4444';
     if (isLoadingAnalysis) return <div style={{ padding: '80px', textAlign: 'center', color: t.textDim }}>Calculando análisis...</div>;
-    if (!overallScore && !fullAnalysis) return <div style={{ padding: '60px', textAlign: 'center', color: t.textDim }}>No se pudo cargar el análisis.</div>;
 
     const score = overallScore?.overall_score ?? 0;
-    const gap = overallScore?.gap_to_certification ?? 0;
-    const clauses = fullAnalysis?.clause_gaps ?? [];
+    const gap = overallScore?.gap_to_certification ?? 100;
     
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
@@ -404,9 +433,6 @@ function GapAnalysisScreen({ onNavigate }) {
     </div>
   );
 
-  // ==========================================
-  // PANEL ADMINISTRATIVO DE PREGUNTAS (CRUD)
-  // ==========================================
   const QuestionsAdminView = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingQ, setEditingQ] = useState(null);
@@ -473,8 +499,8 @@ function GapAnalysisScreen({ onNavigate }) {
                   </td>
                   <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => handleOpenModal(q)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14}/></button>
-                      <button onClick={() => handleDeleteQuestion(q.id)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14}/></button>
+                      <button onClick={() => handleOpenModal(q)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14} /></button>
+                      <button onClick={() => handleDeleteQuestion(q.id)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -604,7 +630,7 @@ function GapAnalysisScreen({ onNavigate }) {
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
                   <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '13px' }}>
                     <FolderUp size={16} /> Agregar documentos
-                    <input type="file" multiple style={{ display: 'none' }} onChange={(e) => {
+                    <input type="file" multiple accept=".pdf,.txt,.docx" style={{ display: 'none' }} onChange={(e) => {
                       const nuevos = Array.from(e.target.files || []);
                       setUploadedFiles((prev) => {
                         const combinado = [...prev];
@@ -613,7 +639,7 @@ function GapAnalysisScreen({ onNavigate }) {
                         });
                         return combinado;
                       });
-                      e.target.value = ''; // permite volver a elegir el mismo archivo o agregar más
+                      e.target.value = ''; 
                       setEvalError(null);
                       setEvalInfo(null);
                     }} />
@@ -642,13 +668,13 @@ function GapAnalysisScreen({ onNavigate }) {
                   </div>
                 )}
                 {isEvaluating && (
-                  <div style={{ marginBottom: '16px', fontSize: '12px', color: '#6366f1' }}>🤖 La IA está analizando los documentos... esto puede tardar un poco.</div>
+                  <div style={{ marginBottom: '16px', fontSize: '12px', color: '#6366f1' }}>🤖 La IA está leyendo y analizando los documentos... esto puede tardar un momento.</div>
                 )}
                 {evalError && (
                   <div style={{ marginBottom: '16px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>⚠️ {evalError}</div>
                 )}
                 {evalInfo && (
-                  <div style={{ marginBottom: '16px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>{evalInfo}</div>
+                  <div style={{ marginBottom: '16px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>
                 )}
 
                 {currentQuestionData && (
