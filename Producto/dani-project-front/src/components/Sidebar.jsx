@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDomainScores, getComplianceScore } from '../services/api';
 
@@ -87,6 +87,18 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
+  const [isoOpen, setIsoOpen] = useState(true);
+  const [leyOpen, setLeyOpen] = useState(true);
+
+  // IDs de cada grupo para auto-expand y filtrado
+  const ISO_IDS = ['doc-generator', 'risk-map', 'evidence', 'documents', 'audit-room', 'assessment'];
+  const LEY_IDS = ['treatments', 'consents', 'data-requests', 'breaches', 'vendors', 'impact'];
+
+  // Auto-expandir el grupo si el usuario navega a un ítem colapsado
+  useEffect(() => {
+    if (ISO_IDS.includes(activeScreen)) setIsoOpen(true);
+    if (LEY_IDS.includes(activeScreen)) setLeyOpen(true);
+  }, [activeScreen]);
   const role = user?.role;
   const superadminEnOrg = role === 'superadmin' && !!impersonatedOrg;   // dentro de una empresa
   const superadminPlataforma = role === 'superadmin' && !impersonatedOrg; // panel de plataforma
@@ -101,23 +113,23 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   // roles: null = visible para todos los roles (incl. empleado).
 
   const navItems = [
-    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH },
-    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW },
-    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE },
-    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE },
-    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW },
-    { id: 'documents', label: l.documents, icon: FileText, roles: DASH },
-    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW },
-    { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS },
-    { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM },
-    { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, roles: LEY },
-    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW },
-    { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, roles: LEY },
-    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, roles: LEY },
-    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY },
-    { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, roles: LEY },
-    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, roles: LEY },
-    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null },
+    { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
+    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'general' },
+    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'iso' },
+    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'iso' },
+    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'iso' },
+    { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'iso' },
+    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
+    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW, group: 'iso' },
+    { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, roles: LEY, group: 'ley' },
+    { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, roles: LEY, group: 'ley' },
+    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, roles: LEY, group: 'ley' },
+    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
+    { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, roles: LEY, group: 'ley' },
+    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, roles: LEY, group: 'ley' },
+    { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
+    { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
+    { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null, group: 'general' },
   ].filter(item => {
     // Superadmin en el panel de PLATAFORMA: solo empresas y usuarios.
     if (superadminPlataforma) {
@@ -173,26 +185,83 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
         </div>
       )}
 
-      <nav style={{ flex: 1 }}>
-        {navItems.filter(i => i.id !== 'employee-portal').map((item) => {
-          const isActive = activeScreen === item.id;
-          return (
-            <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-              <item.icon size={20} />
-              {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+      <nav style={{ flex: 1, overflowY: 'auto' }}>
+        {/* --- Helper para renderizar un nav button --- */}
+        {(() => {
+          const renderNavButton = (item, extraStyle = {}) => {
+            const isActive = activeScreen === item.id;
+            return (
+              <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', ...extraStyle }}>
+                <item.icon size={20} />
+                {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+              </button>
+            );
+          };
+
+          const renderGroupHeader = (label, isOpen, toggle) => (
+            <button
+              onClick={toggle}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', marginBottom: '4px', marginTop: '12px', background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.2s ease' }}
+            >
+              <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} />
+              <span>{label}</span>
             </button>
           );
-        })}
 
-        {/* Employee Portal Link con estilo especial (dashed) */}
-        {navItems.find(i => i.id === 'employee-portal') && (() => {
-          const item = navItems.find(i => i.id === 'employee-portal');
-          const isActive = activeScreen === item.id;
+          // Ítems filtrados por grupo
+          const generalTop = navItems.filter(i => i.group === 'general' && ['dashboard', 'gap-analysis'].includes(i.id));
+          const isoItems   = navItems.filter(i => i.group === 'iso');
+          const leyItems   = navItems.filter(i => i.group === 'ley');
+          const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'gap-analysis', 'employee-portal'].includes(i.id));
+          const employeePortal = navItems.find(i => i.id === 'employee-portal');
+
           return (
-            <button onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#10b981' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-              <item.icon size={20} />
-              {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
-            </button>
+            <>
+              {/* Ítems generales superiores: Panel, Análisis de Brechas */}
+              {generalTop.map(item => renderNavButton(item))}
+
+              {/* Grupo ISO 27001 */}
+              {isoItems.length > 0 && (
+                <>
+                  {!sidebarCollapsed && renderGroupHeader('ISO 27001', isoOpen, () => setIsoOpen(!isoOpen))}
+                  <div style={{
+                    maxHeight: sidebarCollapsed || isoOpen ? `${isoItems.length * 52}px` : '0',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease',
+                  }}>
+                    {isoItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
+                  </div>
+                </>
+              )}
+
+              {/* Grupo Ley 21.719 */}
+              {leyItems.length > 0 && (
+                <>
+                  {!sidebarCollapsed && renderGroupHeader('Ley 21.719', leyOpen, () => setLeyOpen(!leyOpen))}
+                  <div style={{
+                    maxHeight: sidebarCollapsed || leyOpen ? `${leyItems.length * 52}px` : '0',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease',
+                  }}>
+                    {leyItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
+                  </div>
+                </>
+              )}
+
+              {/* Ítems generales inferiores: Gestión de Usuarios, Gestión de Empresas */}
+              {generalBottom.map(item => renderNavButton(item))}
+
+              {/* Employee Portal Link con estilo especial (dashed) */}
+              {employeePortal && (() => {
+                const isActive = activeScreen === employeePortal.id;
+                return (
+                  <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#10b981' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+                    <employeePortal.icon size={20} />
+                    {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
+                  </button>
+                );
+              })()}
+            </>
           );
         })()}
       </nav>
