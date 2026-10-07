@@ -122,17 +122,19 @@ export default function OrganizationsScreen() {
           </thead>
           <tbody>
             {filtered.map(org => (
-              <tr key={org.id} onClick={() => enterOrg(org)} title="Entrar al panel de esta empresa" style={{ borderBottom: `1px solid ${t.border}`, cursor: 'pointer' }}>
+              <tr key={org.id} title="Entrar al panel de esta empresa" style={{ borderBottom: `1px solid ${t.border}` }}>
                 <td style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ width: '36px', height: '36px', background: '#3b82f620', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Building2 size={16} color="#3b82f6" /></div>
+                  <button onClick={() => enterOrg(org)} title={`Entrar a ${org.nombre}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', textAlign: 'left' }}>
+                    <div style={{ width: '36px', height: '36px', background: '#3b82f620', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Building2 size={16} color="#3b82f6" /></div>
                   <span style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{org.nombre}</span>
+                  </button>
                 </td>
                 <td style={{ padding: '16px 20px', fontSize: '13px', color: t.textMuted, fontFamily: 'monospace' }}>/{org.slug || '—'}</td>
                 <td style={{ padding: '16px 20px' }}>
                   <span style={{ padding: '4px 10px', background: org.activo ? '#10b98120' : '#ef444420', color: org.activo ? '#10b981' : '#ef4444', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>{org.activo ? 'Activa' : 'Suspendida'}</span>
                 </td>
                 <td style={{ padding: '16px 20px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
-                  <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <div style={{ display: 'inline-block' }}>
                     <button
                       onClick={() => setMenuOpenId(menuOpenId === org.id ? null : org.id)}
                       title="Acciones"
@@ -144,7 +146,7 @@ export default function OrganizationsScreen() {
                     {menuOpenId === org.id && (
                       <>
                         <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                        <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '4px', minWidth: '190px', background: darkMode ? '#111827' : '#ffffff', border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 12px 30px rgba(0,0,0,0.35)', zIndex: 50, overflow: 'hidden', textAlign: 'left' }}>
+                        <div style={{ position: 'fixed', top: '50%', right: '24px', transform: 'translateY(-50%)', minWidth: '190px', background: darkMode ? '#111827' : '#ffffff', border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 12px 30px rgba(0,0,0,0.35)', zIndex: 50, overflow: 'hidden', textAlign: 'left' }}>
                           <button
                             onClick={() => { openInvite(org); setMenuOpenId(null); }}
                             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#10b981', fontSize: '13px', fontWeight: 500 }}
