@@ -6,7 +6,7 @@ import {
   Clock, Key, Building2, ShieldCheck, Ban, UserCheck
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
-import { userAPI } from '../services/api';
+import { userAPI, organizationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 const UserManagementScreen = () => {
@@ -26,9 +26,12 @@ const UserManagementScreen = () => {
 
   // Modal de Crear Usuario
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newUser, setNewUser] = useState({ full_name: '', email: '', role: 'employee' });
+  const [newUser, setNewUser] = useState({ full_name: '', email: '', role: 'employee', orgId: '' });
   const [isCreating, setIsCreating] = useState(false);
   const [inviteMsg, setInviteMsg] = useState(null);
+
+  // Lista de organizaciones (superadmin)
+  const [allOrgs, setAllOrgs] = useState([]);
 
   // Modal de Editar Usuario
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -77,22 +80,51 @@ const UserManagementScreen = () => {
     loadUsers();
   }, []);
 
+  useEffect(() => {
+    if (!isSuperadmin) {
+      setAllOrgs([]);
+      return;
+    }
+
+    let cancelled = false;
+    organizationsAPI.getAll()
+      .then(data => {
+        if (!cancelled && Array.isArray(data)) setAllOrgs(data);
+      })
+      .catch(error => {
+        if (!cancelled) {
+          console.error('Error cargando empresas para invitar usuarios:', error);
+          setAllOrgs([]);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [isSuperadmin]);
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setIsCreating(true);
     setInviteMsg(null);
     try {
-      const res = await userAPI.invite({ name: newUser.full_name, email: newUser.email, role: newUser.role });
+      let res;
+      if (isSuperadmin) {
+        if (!newUser.orgId) throw new Error('Selecciona una empresa para continuar.');
+        // Superadmin invita a una empresa específica
+        res = await organizationsAPI.inviteUser(newUser.orgId, { name: newUser.full_name, email: newUser.email, role: newUser.role });
+      } else {
+        // Admin/Owner invita a su propia empresa
+        res = await userAPI.invite({ name: newUser.full_name, email: newUser.email, role: newUser.role });
+      }
       setInviteMsg(
         res?.email_sent
           ? `Invitación enviada a ${res.email}. Definirá su contraseña al activar la cuenta.`
-          : `⚠️ Usuario creado, pero el correo NO se pudo enviar (revisa la configuración SMTP).`
+          : `Usuario creado, pero el correo no se pudo enviar. Revisa la configuración SMTP.`
       );
-      setNewUser({ full_name: '', email: '', role: 'employee' });
+      setNewUser({ full_name: '', email: '', role: 'employee', orgId: '' });
       await loadUsers();
     } catch (error) {
       console.error("Error invitando usuario:", error);
-      alert("Error al invitar usuario: " + error.message);
+      setInviteMsg(`Error al invitar usuario: ${error.message}`);
     } finally {
       setIsCreating(false);
     }
@@ -201,14 +233,12 @@ const UserManagementScreen = () => {
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Gestión de Usuarios</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Administra accesos y asigna roles para cumplimiento ISO 27001</p>
         </div>
-        {!isSuperadmin && (
-          <button
-            onClick={() => { setInviteMsg(null); setNewUser({ full_name: '', email: '', role: 'employee' }); setIsAddModalOpen(true); }}
-            style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
-          >
-            <UserPlus size={18} /> Invitar usuario
-          </button>
-        )}
+        <button
+          onClick={() => { setInviteMsg(null); setNewUser({ full_name: '', email: '', role: 'employee', orgId: '' }); setIsAddModalOpen(true); }}
+          style={{ padding: '10px 20px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)' }}
+        >
+          <UserPlus size={18} /> Invitar usuario
+        </button>
       </div>
 
       {/* TARJETAS DE ESTADÍSTICAS */}
@@ -533,15 +563,29 @@ const UserManagementScreen = () => {
             </div>
 
             <form onSubmit={handleCreateUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
+              {!isSuperadmin && <div>
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Nombre del usuario</label>
                 <input required type="text" value={newUser.full_name} onChange={e => setNewUser({...newUser, full_name: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="Ej: Ana Martínez" />
-              </div>
+              </div>}
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Correo Electrónico</label>
                 <input required type="email" value={newUser.email} onChange={e => setNewUser({...newUser, email: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }} placeholder="ana@empresa.com" />
               </div>
+
+              {/* Selector de Empresa (solo superadmin) */}
+              {isSuperadmin && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Empresa</label>
+                  <select required value={newUser.orgId} onChange={e => setNewUser({...newUser, orgId: e.target.value})} style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
+                    <option value="" disabled>Seleccionar empresa…</option>
+                    {allOrgs.map(org => (
+                      <option key={org.id} value={org.id}>{org.nombre}</option>
+                    ))}
+                  </select>
+                  {allOrgs.length === 0 && <p style={{ fontSize: '11px', color: '#ef4444', margin: '6px 0 0' }}>No se pudieron cargar empresas. Recarga la página e inténtalo de nuevo.</p>}
+                </div>
+              )}
 
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 600 }}>Rol en el Sistema</label>
@@ -559,11 +603,11 @@ const UserManagementScreen = () => {
                 Se enviará una invitación por correo. El usuario definirá su propia contraseña al activar la cuenta.
               </p>
 
-              {inviteMsg && <div style={{ padding: '10px 14px', background: 'rgba(16,185,129,0.15)', color: '#10b981', borderRadius: '10px', fontSize: '13px' }}>{inviteMsg}</div>}
+              {inviteMsg && <div role="status" aria-live="polite" style={{ padding: '10px 14px', background: inviteMsg.startsWith('Error') ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: inviteMsg.startsWith('Error') ? '#ef4444' : '#10b981', borderRadius: '10px', fontSize: '13px' }}>{inviteMsg}</div>}
 
               <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>
-                <button type="submit" disabled={isCreating} style={{ flex: 1, padding: '12px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>
+                <button type="submit" disabled={isCreating || (isSuperadmin && allOrgs.length === 0)} style={{ flex: 1, padding: '12px', background: '#3b82f6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>
                   {isCreating ? 'Enviando...' : 'Enviar invitación'}
                 </button>
               </div>

@@ -23,7 +23,11 @@ def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: str
     se indica, usa settings.SMTP_FROM_NAME (ej. "GRC").
     """
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        logger.warning("SMTP no configurado (SMTP_USER/SMTP_PASSWORD vacíos); se omite el envío.")
+        logger.warning(
+            "SMTP no configurado (SMTP_USER presente=%s, SMTP_PASSWORD presente=%s); se omite el envío.",
+            bool(settings.SMTP_USER),
+            bool(settings.SMTP_PASSWORD),
+        )
         return False
 
     remitente = from_name or settings.SMTP_FROM_NAME
@@ -42,8 +46,13 @@ def _send_email_sync(to_email: str, subject: str, html_body: str, text_body: str
             server.send_message(msg)
         logger.info(f"✉️  Correo enviado a {to_email}")
         return True
-    except Exception as e:
-        logger.error(f"Error enviando correo a {to_email}: {e}")
+    except Exception:
+        logger.exception(
+            "Error enviando correo SMTP (host=%s, port=%s, recipient=%s).",
+            settings.SMTP_HOST,
+            settings.SMTP_PORT,
+            to_email,
+        )
         return False
 
 

@@ -33,12 +33,12 @@ class Settings(BaseSettings):
     # Estos dos valores van en el archivo .env (que está en .gitignore).
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = os.getenv("SMTP_USER", "")
-    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
     # Nombre visible del remitente en el correo.
-    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "DANI GRC")
+    SMTP_FROM_NAME: str = "DANI GRC"
     # URL base del frontend, para armar el enlace de invitación/activación.
-    FRONTEND_BASE_URL: str = os.getenv("FRONTEND_BASE_URL", "http://localhost:3000")
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
 
     # Google Cloud (for Storage & Pub/Sub)
     # CAMBIO: estos 3 campos eran obligatorios (sin default) en pydantic-settings,
