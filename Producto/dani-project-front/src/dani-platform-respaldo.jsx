@@ -117,7 +117,7 @@ export default function DaniPlatform() {
         setCommandPaletteOpen={setCommandPaletteOpen}
       />
 
-        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
         
         {/* Header Global */}
         <header style={{ padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}`, zIndex: 10 }}>
@@ -180,7 +180,7 @@ export default function DaniPlatform() {
         </header>
 
         {/* Contenido Dinámico de Pantallas */}
-        <div style={{ flex: 1, minWidth: 0, padding: '32px 40px', overflow: 'visible' }}>
+        <div style={{ flex: '1 0 auto', minWidth: 0, padding: '32px 40px', overflow: 'visible', minHeight: 'calc(100vh - 78px)', boxSizing: 'border-box' }}>
           {activeScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {activeScreen === 'gap-analysis' && <GapAnalysisScreen onNavigate={handleNavigate} />}
           {activeScreen === 'doc-generator' && <DocGeneratorScreen navParams={navParams} />}
