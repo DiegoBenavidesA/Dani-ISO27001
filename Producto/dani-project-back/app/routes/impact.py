@@ -12,12 +12,16 @@ from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.impact_assessment import ImpactAssessment
 from app.models.data_treatment import DataTreatment
 
+# Importación del servicio de IA
+from app.services.ai_service import AIService
 
 router = APIRouter(
     prefix="/api/impact",
     tags=["Impact Assessments"]
 )
 
+# Instancia del servicio de IA
+ai_service = AIService()
 
 # =========================================================
 # MODELOS DE ENTRADA Y SALIDA
@@ -213,4 +217,77 @@ async def delete_impact(
 
     return {
         "message": "Evaluación de impacto eliminada exitosamente"
+    }
+
+# =========================================================
+# NUEVO: ANALIZAR TODOS LOS TRATAMIENTOS CON IA
+# Recorre el RoPA, evalúa el riesgo y guarda el impacto (pendiente)
+# =========================================================
+
+@router.post("/analyze-all")
+async def analyze_all_treatments(
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    # 1. Obtener todos los tratamientos de la empresa
+    stmt_treatments = scope_to_org(select(DataTreatment), DataTreatment, org_id)
+    result_treatments = await db.execute(stmt_treatments)
+    treatments = result_treatments.scalars().all()
+
+    if not treatments:
+        return {"message": "No hay tratamientos registrados para evaluar.", "evaluations": []}
+
+    # 2. Obtener las evaluaciones de impacto existentes para actualizar en vez de duplicar
+    stmt_impacts = scope_to_org(select(ImpactAssessment), ImpactAssessment, org_id)
+    result_impacts = await db.execute(stmt_impacts)
+    existing_impacts = {imp.treatment_id: imp for imp in result_impacts.scalars().all() if imp.treatment_id}
+
+    evaluations = []
+
+    # 3. Recorrer cada tratamiento y evaluar con IA
+    for treatment in treatments:
+        # Armar la descripción del tratamiento
+        descripcion_tratamiento = f"Nombre: {treatment.nombre}. Finalidad: {treatment.finalidad}. Categorías de datos: {treatment.categorias_datos or 'No especificadas'}. Destinatarios: {treatment.destinatarios or 'No especificados'}."
+
+        try:
+            # Llamar a la IA
+            riesgo = await ai_service.assess_treatment_risk(descripcion_tratamiento)
+
+            # Verificar si ya existe una evaluación para este tratamiento
+            impact = existing_impacts.get(treatment.id)
+
+            if impact:
+                # Actualizar (upsert)
+                impact.nivel_riesgo = riesgo.get("nivel_riesgo", "medio").lower()
+                impact.descripcion_riesgo = riesgo.get("descripcion_riesgo", "")
+                impact.medidas_mitigacion = riesgo.get("medidas_mitigacion", "")
+                impact.estado = "pendiente" # SIEMPRE PENDIENTE para revisión humana
+                impact.updated_at = datetime.utcnow()
+            else:
+                # Crear nueva evaluación
+                impact = ImpactAssessment(
+                    treatment_id=treatment.id,
+                    nivel_riesgo=riesgo.get("nivel_riesgo", "medio").lower(),
+                    descripcion_riesgo=riesgo.get("descripcion_riesgo", ""),
+                    medidas_mitigacion=riesgo.get("medidas_mitigacion", ""),
+                    estado="pendiente", # SIEMPRE PENDIENTE para revisión humana
+                    organization_id=org_id
+                )
+                db.add(impact)
+
+            evaluations.append({
+                "treatment_id": treatment.id,
+                "treatment_name": treatment.nombre,
+                "nivel_riesgo": impact.nivel_riesgo
+            })
+
+        except Exception as e:
+            print(f"Error evaluando el tratamiento {treatment.id}: {e}")
+
+    # 4. Guardar cambios en la base de datos
+    await db.commit()
+
+    return {
+        "message": f"Se analizaron {len(evaluations)} tratamientos exitosamente.",
+        "evaluations": evaluations
     }
