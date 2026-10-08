@@ -438,6 +438,30 @@ function GapAnalysisScreen({ onNavigate }) {
     const [editingQ, setEditingQ] = useState(null);
     const [formData, setFormData] = useState({ codigo: '', categoria: 'Organizacional', nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
     const [isSavingQ, setIsSavingQ] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+
+    const handleImportExcel = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImport(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
+    const handleDownloadTemplate = async () => {
+      try { await assessmentQuestionsAPI.downloadTemplate(); }
+      catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
+    };
 
     const handleOpenModal = (q = null) => {
       if (q) {
@@ -473,10 +497,36 @@ function GapAnalysisScreen({ onNavigate }) {
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>Configuración del Cuestionario</h2>
             <p style={{ fontSize: '13px', color: t.textDim }}>Agrega, edita o elimina preguntas de la base de evaluación ISO 27001 y Ley 21.719.</p>
           </div>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <Download size={16} /> Plantilla
+          </button>
+          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #10b981`, borderRadius: '8px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
+            <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
+          </label>
           <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Plus size={16} /> Nueva Pregunta
           </button>
+          </div>
         </div>
+
+        {importResult && (
+          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#10b981'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
+            {importResult.error ? (
+              <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span><strong style={{ color: '#10b981' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos} filas con datos).</span>
+                {importResult.columnas_detectadas && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>

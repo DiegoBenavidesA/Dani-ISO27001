@@ -1,8 +1,10 @@
 import asyncio
+import io
 import os
 import tempfile
 import json
 import re
+import unicodedata
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
@@ -91,6 +93,199 @@ async def delete_question(q_id: str, current_user: dict = Depends(RequireRole(["
     await db.delete(q)
     await db.commit()
     return {"message": "Eliminada"}
+
+
+# =========================================================
+# CARGA MASIVA DE PREGUNTAS DESDE EXCEL (.xlsx)
+# Mapea columnas de forma flexible: acepta otros nombres y columnas de más.
+# Solo 'pregunta' es obligatoria; el resto usa valores por defecto.
+# =========================================================
+_COLUMN_SYNONYMS = {
+    "pregunta": ["pregunta", "question", "cuestion", "enunciado", "consulta", "textopregunta", "detalle", "item"],
+    "categoria": ["categoria", "category", "dominio", "domain", "seccion", "section", "grupo", "area", "marco", "norma", "anexo", "tipo"],
+    "codigo": ["codigo", "code", "controlid", "idcontrol", "codigocontrol", "clausula", "referencia", "ref", "numerocontrol", "numero", "nro", "id", "control"],
+    "nombre": ["nombre", "name", "titulo", "title", "nombrecontrol", "nombredelcontrol", "nombrecorto", "descripcioncorta"],
+    "evidencia_esperada": ["evidenciaesperada", "evidencia", "evidence", "evidenciarequerida", "expectedevidence", "pruebaesperada"],
+    "orden": ["orden", "order", "posicion", "position", "secuencia", "indice", "nroorden"],
+}
+
+
+def _normalizar(texto) -> str:
+    if texto is None:
+        return ""
+    s = str(texto).strip().lower()
+    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]", "", s)
+
+
+def _mapear_columnas(headers: list) -> dict:
+    norm = [_normalizar(h) for h in headers]
+    usados = set()
+    mapeo = {}
+    for campo, sinonimos in _COLUMN_SYNONYMS.items():
+        for syn in sinonimos:
+            for i, h in enumerate(norm):
+                if i in usados or not h:
+                    continue
+                if h == syn:
+                    mapeo[campo] = i
+                    usados.add(i)
+                    break
+            if campo in mapeo:
+                break
+    for campo, sinonimos in _COLUMN_SYNONYMS.items():
+        if campo in mapeo:
+            continue
+        for syn in sinonimos:
+            for i, h in enumerate(norm):
+                if i in usados or not h:
+                    continue
+                if syn in h:
+                    mapeo[campo] = i
+                    usados.add(i)
+                    break
+            if campo in mapeo:
+                break
+    return mapeo
+
+
+@router.post("/bulk-import")
+async def bulk_import_questions(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Carga masiva de preguntas desde un Excel (.xlsx). Tolerante a nombres de columna distintos."""
+    nombre_archivo = (file.filename or "").lower()
+    if not nombre_archivo.endswith((".xlsx", ".xlsm")):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx).")
+
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Falta la dependencia 'openpyxl' en el servidor.")
+
+    contenido = await file.read()
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
+    except Exception:
+        raise HTTPException(status_code=400, detail="No se pudo leer el Excel. ¿Está dañado o no es un .xlsx válido?")
+
+    ws = wb.active
+    filas = ws.iter_rows(values_only=True)
+
+    headers = None
+    for fila in filas:
+        if fila and any(c is not None and str(c).strip() != "" for c in fila):
+            headers = list(fila)
+            break
+    if not headers:
+        raise HTTPException(status_code=400, detail="El Excel está vacío.")
+
+    mapeo = _mapear_columnas(headers)
+    if "pregunta" not in mapeo:
+        raise HTTPException(
+            status_code=400,
+            detail="No se encontró la columna de preguntas. Agrega una columna llamada 'pregunta' (o similar).",
+        )
+
+    def val(fila, campo):
+        idx = mapeo.get(campo)
+        if idx is None or idx >= len(fila):
+            return None
+        v = fila[idx]
+        if v is None:
+            return None
+        v = str(v).strip()
+        return v or None
+
+    existentes = set()
+    res_prev = await db.execute(select(AssessmentQuestion.codigo, AssessmentQuestion.pregunta))
+    for cod, preg in res_prev.all():
+        existentes.add((_normalizar(cod), _normalizar(preg)))
+
+    creadas = 0
+    omitidas = 0
+    detalles_omitidas = []
+    nuevas_en_lote = set()
+    numero_fila = 1
+
+    for fila in filas:
+        numero_fila += 1
+        if not fila or all(c is None or str(c).strip() == "" for c in fila):
+            continue
+        pregunta = val(fila, "pregunta")
+        if not pregunta:
+            omitidas += 1
+            detalles_omitidas.append({"fila": numero_fila, "motivo": "sin pregunta"})
+            continue
+        codigo = (val(fila, "codigo") or "S/C")[:50]
+        categoria = (val(fila, "categoria") or "General")[:100]
+        nombre = (val(fila, "nombre") or pregunta[:60])[:255]
+        evidencia = val(fila, "evidencia_esperada")
+        orden_raw = val(fila, "orden")
+        try:
+            orden = int(float(orden_raw)) if orden_raw else 0
+        except (ValueError, TypeError):
+            orden = 0
+
+        clave = (_normalizar(codigo), _normalizar(pregunta))
+        if clave in existentes or clave in nuevas_en_lote:
+            omitidas += 1
+            detalles_omitidas.append({"fila": numero_fila, "motivo": "duplicada"})
+            continue
+
+        db.add(AssessmentQuestion(
+            codigo=codigo, categoria=categoria, nombre=nombre,
+            pregunta=pregunta, evidencia_esperada=evidencia, orden=orden,
+        ))
+        nuevas_en_lote.add(clave)
+        creadas += 1
+
+    if creadas:
+        await db.commit()
+
+    columnas_detectadas = {campo: headers[idx] for campo, idx in mapeo.items() if idx < len(headers)}
+    return {
+        "creadas": creadas,
+        "omitidas": omitidas,
+        "total_filas_datos": creadas + omitidas,
+        "columnas_detectadas": columnas_detectadas,
+        "detalles_omitidas": detalles_omitidas[:50],
+    }
+
+
+@router.get("/bulk-template")
+async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
+    """Descarga una plantilla .xlsx con las columnas esperadas y 2 ejemplos."""
+    try:
+        import openpyxl
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Falta la dependencia 'openpyxl' en el servidor.")
+    from fastapi.responses import StreamingResponse
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Preguntas"
+    ws.append(["codigo", "categoria", "nombre", "pregunta", "evidencia_esperada", "orden"])
+    ws.append([
+        "A.5.1", "Organizacional", "Políticas de seguridad",
+        "¿La organización tiene políticas de seguridad aprobadas?",
+        "Documento de política firmado por la dirección", 1,
+    ])
+    ws.append([
+        "O1", "Privacidad", "Registro de tratamientos (RoPA)",
+        "¿Existe un registro de actividades de tratamiento de datos personales?",
+        "Inventario RoPA actualizado", 2,
+    ])
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=plantilla_preguntas.xlsx"},
+    )
 
 @router.get("/answers", response_model=List[AnswerResponse])
 async def get_answers(org_id: str = Depends(get_current_org), db: AsyncSession = Depends(get_db)):

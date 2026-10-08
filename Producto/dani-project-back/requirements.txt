@@ -30,3 +30,4 @@ redis==5.0.3
 # CAMBIO: httpx agregado — lo usa app/services/storage_service.py para
 # hablar con la API REST de Supabase Storage.
 httpx==0.26.0
+openpyxl==3.1.5
