@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import DaniPlatform from './dani-platform-respaldo';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import GapAnalysis from './pages/GapAnalysisScreen'; // o el nombre correcto de tu componente
+import PublicConsentScreen from './pages/PublicConsentScreen';
 
 // Componente para manejar las rutas protegidas (Definido una sola vez aquí)
 function AppRoutes() {
@@ -22,6 +23,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+      <Route path="/consent/:token" element={<PublicConsentScreen />} />
       <Route path="/" element={<ProtectedRoute><DaniPlatform /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
 

@@ -768,7 +768,7 @@ export const consentsAPI = {
     const resolvedToken = token || localStorage.getItem('token');
 
     const response = await fetch(`${API_URL}/api/consents/${id}/revoke`, {
-      method: 'PATCH',
+      method: 'POST',
       headers: {
         ...(resolvedToken && {
           Authorization: `Bearer ${resolvedToken}`
