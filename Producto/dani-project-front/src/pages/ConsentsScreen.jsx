@@ -26,7 +26,10 @@ const ConsentsScreen = () => {
 
   const [formData, setFormData] = useState({
     titular: '',
+    titular_email: "",
     treatment_id: '',
+    finalidades_consentidas: '',
+    fecha_expiracion: '',
     medio: '',
     comprobante_url: ''
   });
@@ -77,7 +80,10 @@ const ConsentsScreen = () => {
   const resetForm = () => {
     setFormData({
       titular: '',
+      titular_email: '',
       treatment_id: '',
+      finalidades_consentidas: '',
+      fecha_expiracion: '',
       medio: '',
       comprobante_url: ''
     });
@@ -124,6 +130,17 @@ const ConsentsScreen = () => {
       return;
     }
 
+    if (!formData.titular_email.trim()) {
+      alert('Debes ingresar el email del titular.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.titular_email.trim())) {
+        alert('Debes ingresar un email válido.');
+      return;
+    }
+
     if (!formData.treatment_id.trim()) {
       alert('Debes seleccionar un tratamiento.');
       return;
@@ -135,11 +152,15 @@ const ConsentsScreen = () => {
     }
 
   const payload = {
-    nombre: formData.nombre.trim(),
-    datos_compartidos: formData.datos_compartidos.trim() || null,
-    pais: formData.pais.trim() || null,
-    estado_contrato: formData.estado_contrato,
-    treatment_id: null
+      titular: formData.titular.trim(),
+      titular_email: formData.titular_email.trim(),
+      treatment_id: formData.treatment_id,
+      finalidades_consentidas: formData.finalidades_consentidas.trim() || null,
+      fecha_expiracion: formData.fecha_expiracion
+        ? new Date(`${formData.fecha_expiracion}T12:00:00`).toISOString()
+        : null,
+      medio: formData.medio.trim(),
+      comprobante_url: formData.comprobante_url.trim() || null
   };
 
     try {
@@ -161,6 +182,10 @@ const ConsentsScreen = () => {
   // REVOCAR
   // ============================================
   const handleRevokeConsent = async (consent) => {
+     if (String(consent.estado || '').toLowerCase() !== 'otorgado') {
+      window.alert('Solo se pueden revocar consentimientos otorgados.');
+      return;
+    }
     const confirmed = window.confirm(
       `¿Seguro que deseas revocar el consentimiento de "${consent.titular}"?`
     );
@@ -233,6 +258,13 @@ const ConsentsScreen = () => {
       return {
         background: 'rgba(239, 68, 68, 0.15)',
         color: '#ef4444'
+      };
+    }
+
+    if (String(status || '').toLowerCase() === 'pendiente') {
+      return {
+        background: 'rgba(245, 158, 11, 0.15)',
+        color: '#f59e0b'
       };
     }
 
@@ -521,9 +553,11 @@ const ConsentsScreen = () => {
                   {[
                     'TITULAR',
                     'TRATAMIENTO',
+                    'FINALIDAD',
                     'MEDIO',
                     'ESTADO',
                     'FECHA OTORGADO',
+                    'VENCIMIENTO',
                     'ACCIONES'
                   ].map((title) => (
                     <th
@@ -574,7 +608,19 @@ const ConsentsScreen = () => {
                             fontWeight: 600
                           }}
                         >
-                          {consent.titular}
+                      <div>
+                        <div>{consent.titular}</div>
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            fontWeight: 400,
+                            color: t.textDim,
+                            marginTop: '4px'
+                          }}
+                        >
+                          {consent.titular_email || 'Sin correo'}
+                        </div>
+                      </div>
                         </td>
 
                         <td style={{ padding: '16px' }}>
@@ -589,6 +635,12 @@ const ConsentsScreen = () => {
                             }}
                           >
                             {treatmentName(consent.treatment_id)}
+                          </span>
+                        </td>
+
+                        <td style={{ padding: '16px', maxWidth: '220px' }}>
+                          <span title={consent.finalidades_consentidas || ''}>
+                            {consent.finalidades_consentidas || 'No especificada'}
                           </span>
                         </td>
 
@@ -616,13 +668,17 @@ const ConsentsScreen = () => {
                         </td>
 
                         <td style={{ padding: '16px' }}>
+                          {formatDate(consent.fecha_expiracion)}
+                        </td>
+
+                        <td style={{ padding: '16px' }}>
                           <div
                             style={{
                               display: 'flex',
                               gap: '8px'
                             }}
                           >
-                            {!revoked && (
+                            {String(consent.estado || '').toLowerCase() === 'otorgado' && (
                               <button
                                 title="Revocar"
                                 onClick={() =>
@@ -768,6 +824,39 @@ const ConsentsScreen = () => {
                 />
               </div>
 
+                {/* EMAIL DEL TITULAR */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                    style={{
+                    display: 'block',
+                    marginBottom: '7px',
+                    fontSize: '13px',
+                    fontWeight: 600
+                    }}
+                  >
+                    Email del titular *
+                  </label>
+
+                  <input
+                    type="email"
+                    name="titular_email"
+                    value={formData.titular_email}
+                    onChange={handleChange}
+                    placeholder="Ej: juan@correo.cl"
+                    required
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      padding: '11px 12px',
+                      borderRadius: '9px',
+                      border: `1px solid ${t.border}`,
+                      background: t.inputBg,
+                      color: t.text,
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+
               {/* TRATAMIENTO */}
               <div style={{ marginBottom: '16px' }}>
                 <label
@@ -808,6 +897,71 @@ const ConsentsScreen = () => {
                     </option>
                   ))}
                 </select>
+              </div>
+
+                {/* FINALIDAD CONSENTIDA */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '7px',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  Finalidad consentida *
+                </label>
+
+                <textarea
+                  name="finalidades_consentidas"
+                  value={formData.finalidades_consentidas}
+                  onChange={handleChange}
+                  placeholder="Ej: Gestión de clientes y envío de comunicaciones relacionadas con el servicio"
+                  required
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '11px 12px',
+                    borderRadius: '9px',
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text,
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
+                />
+              </div>
+
+              {/* FECHA DE VENCIMIENTO */}
+              <div style={{ marginBottom: '16px' }}>
+                <label
+                  style={{
+                    display: 'block',
+                    marginBottom: '7px',
+                    fontSize: '13px',
+                    fontWeight: 600
+                  }}
+                >
+                  Fecha de vencimiento
+                </label>
+
+                <input
+                  type="date"
+                  name="fecha_expiracion"
+                  value={formData.fecha_expiracion}
+                  onChange={handleChange}
+                  min={new Date().toLocaleDateString('en-CA')}
+                  style={{
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    padding: '11px 12px',
+                    borderRadius: '9px',
+                    border: `1px solid ${t.border}`,
+                    background: t.inputBg,
+                    color: t.text
+                  }}
+                />
               </div>
 
               {/* MEDIO */}

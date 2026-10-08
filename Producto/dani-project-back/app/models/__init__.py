@@ -14,6 +14,7 @@ from app.models.document import Document, DocumentStatus
 # --- Modelos Ley N° 21.719 (protección de datos personales) ---
 from app.models.data_treatment import DataTreatment                       # Tarea 1.1
 from app.models.consent import Consent, ConsentState                     # Tarea 1.2
+from app.models.consent_history import ConsentHistory
 from app.models.data_subject_request import DataSubjectRequest, RequestType, RequestState  # Tarea 1.3
 from app.models.data_breach import DataBreach, SeverityLevel, BreachState  # Tarea 1.4
 from app.models.vendor import Vendor, ContractStatus                     # Tarea 1.5
@@ -37,6 +38,7 @@ __all__ = [
     # Ley 21.719
     "DataTreatment",
     "Consent", "ConsentState",
+    "ConsentHistory",
     "DataSubjectRequest", "RequestType", "RequestState",
     "DataBreach", "SeverityLevel", "BreachState",
     "Vendor", "ContractStatus",

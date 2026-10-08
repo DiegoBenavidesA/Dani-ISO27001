@@ -27,19 +27,19 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
 
-    # --- Correo (SMTP) para invitaciones ---
-    # Se puede usar Gmail gratis: SMTP_USER = tu correo, SMTP_PASSWORD = la
-    # "Contraseña de aplicación" de 16 caracteres (NO tu contraseña normal).
-    # Estos dos valores van en el archivo .env (que está en .gitignore).
+    # Email / SMTP
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # Correo (SMTP) para invitaciones y consentimientos
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    # Nombre visible del remitente en el correo.
     SMTP_FROM_NAME: str = "DANI GRC"
-    # URL base del frontend, para armar el enlace de invitación/activación.
-    FRONTEND_BASE_URL: str = "http://localhost:3000"
+    EMAIL_FROM: str = ""
 
+    # URL base del frontend para invitaciones/activación
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
     # Google Cloud (for Storage & Pub/Sub)
     # CAMBIO: estos 3 campos eran obligatorios (sin default) en pydantic-settings,
     # lo que significa que SI no defines GOOGLE_CLOUD_PROJECT, GOOGLE_APPLICATION_CREDENTIALS
