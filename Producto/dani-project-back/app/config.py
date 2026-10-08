@@ -29,13 +29,17 @@ class Settings(BaseSettings):
 
     # Email / SMTP
     FRONTEND_URL: str = "http://localhost:3000"
+
+    # Correo (SMTP) para invitaciones y consentimientos
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM_NAME: str = "GRC"
+    SMTP_FROM_NAME: str = "DANI GRC"
     EMAIL_FROM: str = ""
 
+    # URL base del frontend para invitaciones/activación
+    FRONTEND_BASE_URL: str = "http://localhost:3000"
     # Google Cloud (for Storage & Pub/Sub)
     # CAMBIO: estos 3 campos eran obligatorios (sin default) en pydantic-settings,
     # lo que significa que SI no defines GOOGLE_CLOUD_PROJECT, GOOGLE_APPLICATION_CREDENTIALS

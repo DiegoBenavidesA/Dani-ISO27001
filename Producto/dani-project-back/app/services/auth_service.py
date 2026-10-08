@@ -39,3 +39,23 @@ class AuthService:
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+    # --- Tokens de activación de cuenta (invitación por correo) ---
+    @staticmethod
+    def create_activation_token(user_id: str, days_valid: int = 7) -> str:
+        """Token firmado de un solo propósito para activar/definir contraseña."""
+        return AuthService.create_access_token(
+            data={"sub": user_id, "purpose": "activation"},
+            expires_delta=timedelta(days=days_valid),
+        )
+
+    @staticmethod
+    def verify_activation_token(token: str) -> str:
+        """Valida un token de activación y devuelve el user_id. Lanza 400 si no sirve."""
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        except JWTError:
+            raise HTTPException(status_code=400, detail="El enlace de activación es inválido o expiró.")
+        if payload.get("purpose") != "activation" or not payload.get("sub"):
+            raise HTTPException(status_code=400, detail="El enlace de activación no es válido.")
+        return payload["sub"]

@@ -19,6 +19,9 @@ class Organization(Base):
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
 
     nombre = Column(String(255), nullable=False)
+    # Slug único para la URL multi-tenant (ej: "acme-corp" -> /acme-corp/...).
+    # Se genera a partir del nombre al registrar la empresa.
+    slug = Column(String(120), nullable=True, unique=True, index=True)
     # Identificador tributario/legal de la empresa (ej: RUT en Chile). Opcional.
     identificador = Column(String(100), nullable=True)
 

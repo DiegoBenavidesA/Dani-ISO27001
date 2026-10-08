@@ -51,6 +51,7 @@ async def main():
         print("Tablas operativas de la Ley eliminadas.")
 
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
         print("Tablas recreadas desde los modelos actuales.")
 

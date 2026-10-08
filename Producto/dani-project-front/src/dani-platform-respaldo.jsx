@@ -36,7 +36,10 @@ import BreachesScreen from './pages/BreachesScreen';
 import AssessmentScreen from './pages/AssessmentScreen';
 
 export default function DaniPlatform() {
-  const { logout } = useAuth();
+  const { logout, user, impersonatedOrg } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
+  // El superadmin "dentro" de una empresa se comporta como un usuario del tenant.
+  const platformMode = isSuperadmin && !impersonatedOrg;
   
   // Extraemos todo del Contexto Global
   const { 
@@ -47,8 +50,33 @@ export default function DaniPlatform() {
   const l = translations[language];
 
   // ESTADOS DE NAVEGACIÓN Y UI
-  const [activeScreen, setActiveScreen] = useState('dashboard');
+  // Pantalla inicial según rol: superadmin -> Empresas; empleado -> su Portal;
+  // el resto (owner/admin/manager/auditor/dpo) -> la última pantalla guardada
+  // (persistencia de main) o el Panel por defecto.
+  const initialScreen = platformMode
+    ? 'organizations'
+    : (user?.role === 'employee'
+        ? 'employee-portal'
+        : (sessionStorage.getItem('dani_active_screen') || 'dashboard'));
+  const [activeScreen, setActiveScreen] = useState(initialScreen);
+
+  // Al entrar/salir de una empresa (superadmin), cambiamos la pantalla activa:
+  // entrar -> Panel de la empresa; salir -> volver a Gestión de Empresas.
+  useEffect(() => {
+    if (isSuperadmin) {
+      setActiveScreen(impersonatedOrg ? 'dashboard' : 'organizations');
+    }
+  }, [impersonatedOrg, isSuperadmin]);
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // ... (mantén los demás estados intactos)
+
+  const handleNavigate = (screen, params = null) => {
+    setActiveScreen(screen);
+    setNavParams(params);
+    sessionStorage.setItem('dani_active_screen', screen);
+  };
+
   const [chatOpen, setChatOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -75,13 +103,10 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
-  const handleNavigate = (screen, params = null) => {
-    setActiveScreen(screen);
-    setNavParams(params);
-  };
+ 
 
   return (
-    <div style={{ minHeight: '100vh', background: t.bg, color: t.text, display: 'flex', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: t.bg, color: t.text, display: 'flex', position: 'relative' }}>
       
       {/* Sidebar - Se encarga de la navegación lateral */}
       <Sidebar 
@@ -92,7 +117,7 @@ export default function DaniPlatform() {
         setCommandPaletteOpen={setCommandPaletteOpen}
       />
 
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
         
         {/* Header Global */}
         <header style={{ padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}`, zIndex: 10 }}>
@@ -155,7 +180,7 @@ export default function DaniPlatform() {
         </header>
 
         {/* Contenido Dinámico de Pantallas */}
-        <div style={{ flex: 1, padding: '32px 40px', overflow: 'auto' }}>
+        <div style={{ flex: '1 0 auto', minWidth: 0, padding: '32px 40px', overflow: 'visible', minHeight: 'calc(100vh - 78px)', boxSizing: 'border-box' }}>
           {activeScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {activeScreen === 'gap-analysis' && <GapAnalysisScreen onNavigate={handleNavigate} />}
           {activeScreen === 'doc-generator' && <DocGeneratorScreen navParams={navParams} />}

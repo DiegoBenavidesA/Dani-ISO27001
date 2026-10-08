@@ -30,8 +30,9 @@ DEFAULT_ORG_NAME = "Empresa Demo"
 
 
 async def main():
-    # Asegura que existan todas las tablas (incluida organizations)
+    # Asegura la extensión pgvector y que existan todas las tablas
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
 
     async with engine.begin() as conn:

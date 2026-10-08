@@ -17,7 +17,7 @@ from pathlib import Path
 # Para que encuentre la carpeta "app" al correr el script directamente
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, text
 
 from app.dependencies.database import AsyncSessionLocal, engine, Base
 import app.models  # noqa  (registra todos los modelos)
@@ -52,8 +52,9 @@ async def main(limit=None):
     if limit:
         filas = filas[:limit]
 
-    # Asegura que la tabla exista
+    # Asegura la extensión pgvector y que las tablas existan (base nueva)
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
 
     async with AsyncSessionLocal() as db:

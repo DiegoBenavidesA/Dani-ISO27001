@@ -14,8 +14,11 @@ from app.models.evidence import Evidence
 class GapAnalyzer:
     """Analizador de brechas ISO 27001"""
 
-    def __init__(self, db_session: AsyncSession):
+    def __init__(self, db_session: AsyncSession, org_id: str = None):
         self.db = db_session
+        # El refactor multi-tenant hace que las rutas instancien GapAnalyzer(db, org_id).
+        # Se acepta y se guarda para poder filtrar por empresa cuando corresponda.
+        self.org_id = org_id
     
     async def generate_complete_gap_analysis(self) -> Dict[str, Any]:
         """Generar análisis de brecha completo"""

@@ -6,10 +6,14 @@ from datetime import datetime
 from app.dependencies.database import Base
 
 class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    AUDITOR = "auditor"
-    EMPLOYEE = "employee"
+    # --- Niveles de acceso (jerarquía multi-tenant) ---
+    SUPERADMIN = "superadmin"   # Plataforma: administra TODAS las empresas
+    OWNER = "owner"             # Dueño de la empresa (quien la registró)
+    ADMIN = "admin"             # Administrador dentro de la empresa
+    EMPLOYEE = "employee"       # Usuario normal de la empresa
+    # --- Roles funcionales ISO 27001 (asignables por owner/admin) ---
     MANAGER = "manager"
+    AUDITOR = "auditor"
     DPO = "dpo"
 
 class User(Base):
