@@ -18,6 +18,7 @@ class EvidenceChunk(Base):
     __tablename__ = "evidence_chunks"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
+    organization_id = Column(String(36), index=True, nullable=True)  # Multi-tenant
     evidence_id = Column(String(36), ForeignKey("evidences.id", ondelete="CASCADE"), nullable=False)
     content = Column(Text, nullable=False)
     embedding = Column(SafeVector(384), nullable=True)  # Usamos SafeVector en lugar de Vector directo

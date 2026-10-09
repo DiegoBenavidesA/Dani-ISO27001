@@ -119,6 +119,12 @@ async def lifespan(app: FastAPI):
             text("ALTER TABLE data_subject_requests ADD COLUMN IF NOT EXISTS origen VARCHAR(20) DEFAULT 'interno';")
         )
 
+        # Evidencias multi-tenant: la columna organization_id faltaba.
+        await conn.execute(text("ALTER TABLE evidences ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evidences_organization_id ON evidences (organization_id);"))
+        await conn.execute(text("ALTER TABLE evidence_chunks ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evidence_chunks_organization_id ON evidence_chunks (organization_id);"))
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
