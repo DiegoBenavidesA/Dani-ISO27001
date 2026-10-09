@@ -26,7 +26,10 @@ class Evidence(Base):
     mime_type = Column(String(100), nullable=False)
     
     # 🔴 SOLUCIÓN: Cambiamos "metadata" por "evidence_metadata" para evitar conflictos
-    evidence_metadata = Column(JSON, default={})  
+    evidence_metadata = Column(JSON, default={})
+    # Texto extraído del documento al subirlo (para IA/evaluación sin depender
+    # del almacenamiento externo ni del indexado en segundo plano).
+    extracted_text = Column(Text, nullable=True)
     
     indexing_status = Column(String(20), default="pending")  # pending | indexing | done | error
     created_at = Column(DateTime, default=func.now())
