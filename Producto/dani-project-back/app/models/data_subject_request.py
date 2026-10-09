@@ -21,6 +21,9 @@ class DataSubjectRequest(Base):
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
     titular = Column(String(255), nullable=False, index=True)
+    titular_email = Column(String(255), nullable=True, index=True)  # para responderle al titular
+    # Canal de origen: "interno" (lo registró la empresa) o "publico" (lo envió el titular)
+    origen = Column(String(20), default="interno", nullable=False)
     tipo = Column(SQLEnum(RequestType), nullable=False)
     descripcion = Column(Text, nullable=False)
     

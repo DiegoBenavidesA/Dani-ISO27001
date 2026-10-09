@@ -27,6 +27,13 @@ router = APIRouter(
     tags=["Consents"]
 )
 
+# Router SIN candado de rol, para las páginas públicas del titular (sin login):
+# ver / aceptar / revocar / comprobante mediante token. Se incluye aparte en main.py.
+public_router = APIRouter(
+    prefix="/api/consents",
+    tags=["Consents (public)"]
+)
+
 
 # =========================================================
 # MODELOS DE ENTRADA Y SALIDA
@@ -372,7 +379,7 @@ async def delete_consent(
     # PUBLIC — consultar consentimiento mediante token
     # =========================================================
 
-@router.get("/public/{token}", response_model=PublicConsentResponse)
+@public_router.get("/public/{token}", response_model=PublicConsentResponse)
 async def get_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -399,7 +406,7 @@ async def get_public_consent(
 # PUBLIC - aceptar consentimiento mediante token
 # =========================================================
 
-@router.post("/public/{token}/accept", response_model=PublicConsentResponse)
+@public_router.post("/public/{token}/accept", response_model=PublicConsentResponse)
 async def accept_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -449,7 +456,7 @@ async def accept_public_consent(
     # PUBLIC - revocar consentimiento mediante token
     # =========================================================
 
-@router.post("/public/{token}/revoke", response_model=PublicConsentResponse)
+@public_router.post("/public/{token}/revoke", response_model=PublicConsentResponse)
 async def revoke_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -498,7 +505,7 @@ async def revoke_public_consent(
 # PUBLIC - comprobante del consentimiento
 # =========================================================
 
-@router.get("/public/{token}/receipt")
+@public_router.get("/public/{token}/receipt")
 async def get_consent_receipt(
     token: str,
     db: AsyncSession = Depends(get_db)

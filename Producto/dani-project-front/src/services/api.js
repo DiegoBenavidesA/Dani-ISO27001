@@ -575,6 +575,24 @@ export const dataRequestsAPI = {
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
+  },
+
+  // --- Canal público (sin login): el titular envía su solicitud ---
+  getPublicOrgInfo: async (orgSlug) => {
+    const response = await fetch(`${API_URL}/api/data-requests/public/${encodeURIComponent(orgSlug)}/info`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Empresa no encontrada.');
+    return body;
+  },
+  submitPublic: async (orgSlug, data) => {
+    const response = await fetch(`${API_URL}/api/data-requests/public/${encodeURIComponent(orgSlug)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo enviar la solicitud.');
+    return body;
   }
 };
 

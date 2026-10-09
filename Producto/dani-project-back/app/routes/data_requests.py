@@ -6,15 +6,25 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi import HTTPException
+
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_org
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
-from app.models.data_subject_request import DataSubjectRequest
+from app.models.data_subject_request import DataSubjectRequest, RequestType
+from app.models.organization import Organization
 
 
 router = APIRouter(
     prefix="/api/data-requests",
     tags=["Data Subject Requests"]
+)
+
+# Router SIN candado de rol, para el canal público del titular (sin login).
+# Se incluye aparte en main.py (sin dependencias de autenticación).
+public_router = APIRouter(
+    prefix="/api/data-requests",
+    tags=["Data Subject Requests (public)"]
 )
 
 
@@ -62,6 +72,8 @@ class RequestUpdate(BaseModel):
 class RequestResponse(BaseModel):
     id: str
     titular: str
+    titular_email: Optional[str] = None
+    origen: Optional[str] = None
     tipo: str
     descripcion: str
     fecha_solicitud: Optional[datetime] = None
@@ -202,3 +214,64 @@ async def delete_request(
     await db.commit()
 
     return {"message": "Solicitud eliminada exitosamente"}
+
+
+# =========================================================
+# CANAL PÚBLICO — el titular envía su solicitud sin login.
+# Se accede por el slug de la empresa: /solicitud/:orgSlug (frontend).
+# =========================================================
+
+class PublicRequestCreate(BaseModel):
+    titular: str
+    titular_email: Optional[str] = None
+    tipo: str
+    descripcion: str
+
+
+@public_router.get("/public/{org_slug}/info")
+async def get_public_org_info(org_slug: str, db: AsyncSession = Depends(get_db)):
+    """Datos mínimos de la empresa para mostrar en el formulario público."""
+    res = await db.execute(select(Organization).where(Organization.slug == org_slug))
+    org = res.scalar_one_or_none()
+    if not org or not org.activo:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada.")
+    return {"nombre": org.nombre, "slug": org.slug}
+
+
+@public_router.post("/public/{org_slug}")
+async def create_public_request(
+    org_slug: str,
+    data: PublicRequestCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    """Crea una solicitud de titular desde el canal público (sin login)."""
+    res = await db.execute(select(Organization).where(Organization.slug == org_slug))
+    org = res.scalar_one_or_none()
+    if not org or not org.activo:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada.")
+
+    # Validar el tipo contra el enum.
+    try:
+        tipo_enum = RequestType(data.tipo)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Tipo de solicitud no válido.")
+
+    if not data.titular.strip() or not data.descripcion.strip():
+        raise HTTPException(status_code=400, detail="Nombre y descripción son obligatorios.")
+
+    ahora = datetime.utcnow()
+    nueva = DataSubjectRequest(
+        titular=data.titular.strip(),
+        titular_email=(data.titular_email.strip() if data.titular_email else None),
+        tipo=tipo_enum,
+        descripcion=data.descripcion.strip(),
+        fecha_solicitud=ahora,
+        fecha_limite=add_business_days(ahora, 30),
+        origen="publico",
+        organization_id=org.id,
+    )
+    db.add(nueva)
+    await db.commit()
+
+    # Respuesta mínima (no exponemos datos internos al público).
+    return {"message": "Tu solicitud fue registrada. La empresa la atenderá dentro del plazo legal."}
