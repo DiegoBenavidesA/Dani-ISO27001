@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Database, Plus, Search, Eye, ShieldAlert, ArrowRight, X } from 'lucide-react';
+import { Database, Plus, Search, Eye, ShieldAlert, ArrowRight, X, Trash2 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { treatmentsAPI } from '../services/api';
 
@@ -33,6 +33,16 @@ export default function TreatmentsScreen({ onNavigate }) {
   const loadData = async () => {
     const data = await treatmentsAPI.getAll();
     setTreatments(Array.isArray(data) && data.length > 0 ? data : demoTreatments);
+  };
+
+  const handleDelete = async (tr) => {
+    if (!window.confirm(`¿Eliminar el tratamiento "${tr.nombre}"?`)) return;
+    try {
+      await treatmentsAPI.delete(tr.id);
+      await loadData();
+    } catch (e) {
+      alert('Error al eliminar el tratamiento: ' + (e.message || e));
+    }
   };
 
   useEffect(() => {
@@ -118,9 +128,14 @@ export default function TreatmentsScreen({ onNavigate }) {
                 <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', color: t.text }}>{tr.categorias_datos}</div></td>
                 <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                   {/* Este botón enlaza la Tarea 3.1 con la 3.6 pasándole el ID del tratamiento */}
-                  <button onClick={() => onNavigate('impact', { treatmentId: tr.id, name: tr.nombre, risk: tr.nivel_riesgo })} style={{ padding: '6px 12px', background: tr.nivel_riesgo === 'Alto' ? '#ef444420' : t.inputBg, border: `1px solid ${tr.nivel_riesgo === 'Alto' ? '#ef444440' : t.border}`, borderRadius: '6px', color: tr.nivel_riesgo === 'Alto' ? '#ef4444' : t.textMuted, fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    {tr.nivel_riesgo === 'Alto' ? <ShieldAlert size={12} /> : <Eye size={12} />} Evaluar Impacto <ArrowRight size={12} />
-                  </button>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                    <button onClick={() => onNavigate('impact', { treatmentId: tr.id, name: tr.nombre, risk: tr.nivel_riesgo })} style={{ padding: '6px 12px', background: tr.nivel_riesgo === 'Alto' ? '#ef444420' : t.inputBg, border: `1px solid ${tr.nivel_riesgo === 'Alto' ? '#ef444440' : t.border}`, borderRadius: '6px', color: tr.nivel_riesgo === 'Alto' ? '#ef4444' : t.textMuted, fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tr.nivel_riesgo === 'Alto' ? <ShieldAlert size={12} /> : <Eye size={12} />} Evaluar Impacto <ArrowRight size={12} />
+                    </button>
+                    <button onClick={() => handleDelete(tr)} title="Eliminar tratamiento" style={{ padding: '6px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

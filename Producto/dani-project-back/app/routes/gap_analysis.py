@@ -56,10 +56,13 @@ async def get_kpi_dashboard(current_user: dict = Depends(RequireRole(ELEVATED_NO
 
 @router.get("/score")
 async def get_compliance_score(current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)), org_id: str = Depends(get_current_org), db = Depends(get_db)) -> Dict:
-    controls = (await db.execute(select(ControlImplementation).where(ControlImplementation.organization_id == org_id))).scalars().all()
-    applies = [c for c in controls if c.applicable]
+    # Leemos el estado REAL de los controles (control_status, el que usa el SOA),
+    # no la tabla control_implementation (que quedó sin uso/vacía).
+    from app.models.control_status import ControlStatus
+    controls = (await db.execute(select(ControlStatus).where(ControlStatus.organization_id == org_id))).scalars().all()
+    applies = [c for c in controls if c.applies]
     if not applies: return {"overall_score": 0, "gap_to_certification": 100, "trend": "down"}
-    implemented = sum(1 for c in applies if c.status == 'implemented')
+    implemented = sum(1 for c in applies if c.status == "Implementado")
     score = int((implemented / len(applies)) * 100)
     return {"overall_score": score, "gap_to_certification": max(0, 85 - score), "trend": "up" if score > 50 else "down"}
 

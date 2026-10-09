@@ -59,9 +59,19 @@ async def create_treatment(treatment_data: TreatmentCreate, org_id: str = Depend
 
 @router.post("/bulk", response_model=List[TreatmentResponse])
 async def create_treatments_bulk(treatments_data: List[dict], org_id: str = Depends(get_current_org), db: AsyncSession = Depends(get_db)):
+    # Deduplicación: evita que la IA vuelva a insertar tratamientos ya existentes.
+    # Se comparan por nombre (sin distinguir mayúsculas/espacios) contra los que
+    # ya tiene la empresa y contra los del propio lote.
+    existentes = (await db.execute(scope_to_org(select(DataTreatment), DataTreatment, org_id))).scalars().all()
+    vistos = {(t.nombre or "").strip().lower() for t in existentes}
+
     created = []
     for t_dict in treatments_data:
-        nombre = t_dict.get("nombre", "Tratamiento detectado por IA")
+        nombre = (t_dict.get("nombre") or "Tratamiento detectado por IA").strip()
+        clave = nombre.lower()
+        if clave in vistos:
+            continue  # ya existe: no duplicar
+        vistos.add(clave)
         new_t = DataTreatment(
             nombre=nombre,
             finalidad=t_dict.get("finalidad", "No especificada"),
@@ -72,7 +82,7 @@ async def create_treatments_bulk(treatments_data: List[dict], org_id: str = Depe
         )
         db.add(new_t)
         created.append(new_t)
-            
+
     await db.commit()
     for c in created: await db.refresh(c)
     return created
@@ -94,6 +104,13 @@ async def update_treatment(treatment_id: str, treatment_data: TreatmentUpdate, o
     await db.commit()
     await db.refresh(treatment)
     return treatment
+
+@router.delete("/{treatment_id}")
+async def delete_treatment(treatment_id: str, org_id: str = Depends(get_current_org), db: AsyncSession = Depends(get_db)):
+    treatment = await get_scoped_or_404(db, DataTreatment, treatment_id, org_id, detail="Tratamiento no encontrado")
+    await db.delete(treatment)
+    await db.commit()
+    return {"message": "Tratamiento eliminado exitosamente"}
 
 @router.delete("/{treatment_id}")
 async def delete_treatment(treatment_id: str, org_id: str = Depends(get_current_org), db: AsyncSession = Depends(get_db)):
