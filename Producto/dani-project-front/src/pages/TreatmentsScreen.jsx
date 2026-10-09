@@ -23,16 +23,13 @@ export default function TreatmentsScreen({ onNavigate }) {
     categorias_datos: '', responsable: '', plazo_conservacion: ''
   });
 
-  // Fallback demo para la UI si el backend aún no tiene datos
-  const demoTreatments = [
-    { id: 't1', nombre: 'Gestión de Nómina', finalidad: 'Pago de remuneraciones y cotizaciones', base_licitud: 'Contrato', categorias_datos: 'Datos identificativos, financieros', nivel_riesgo: 'Medio' },
-    { id: 't2', nombre: 'Marketing y Newsletters', finalidad: 'Envío de promociones', base_licitud: 'Consentimiento', categorias_datos: 'Correo, nombre', nivel_riesgo: 'Bajo' },
-    { id: 't3', nombre: 'Biometría Control Acceso', finalidad: 'Seguridad física', base_licitud: 'Interés Legítimo', categorias_datos: 'Huella dactilar, rostro (Sensibles)', nivel_riesgo: 'Alto' }
-  ];
-
   const loadData = async () => {
+    // Mostramos SIEMPRE los datos reales de la empresa (aunque esté vacío).
+    // Antes había un "fallback demo" que inventaba 3 tratamientos cuando la API
+    // devolvía vacío: confundía (no se podían borrar -> 404, ni aparecían en
+    // DPIA/Consentimientos, que sí leen los reales).
     const data = await treatmentsAPI.getAll();
-    setTreatments(Array.isArray(data) && data.length > 0 ? data : demoTreatments);
+    setTreatments(Array.isArray(data) ? data : []);
   };
 
   const handleDelete = async (tr) => {

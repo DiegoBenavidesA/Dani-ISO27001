@@ -1152,11 +1152,12 @@ export const assessmentQuestionsAPI = {
 
   // Evaluar con IA: sube documentos y la IA responde cada pregunta.
   // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
-  evaluate: async (files, questionIds = [], token = null) => {
+  evaluate: async (files, questionIds = [], evidenceIds = [], token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const form = new FormData();
     (files || []).forEach((f) => form.append('files', f));
     form.append('question_ids', (questionIds || []).join(','));
+    form.append('evidence_ids', (evidenceIds || []).join(','));
     // Timeout de seguridad: la evaluación con IA puede tardar, pero no debe
     // colgarse indefinidamente. Cortamos a los 5 minutos.
     const controller = new AbortController();

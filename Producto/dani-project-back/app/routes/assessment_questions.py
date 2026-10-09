@@ -337,14 +337,36 @@ def extract_json_from_text(text: str):
 # EVALUACIÓN EXHAUSTIVA DE IA Y RoPA AUTOMÁTICA
 @router.post("/evaluate")
 async def evaluate_with_ai(
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(default=None),
     question_ids: str = Form(""),
+    evidence_ids: str = Form(""),  # documentos ya guardados en el Centro de Evidencias
     current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
     contexto = ""
-    for f in files:
+
+    # Documentos GUARDADOS: usamos el texto ya indexado (EvidenceChunk) de las
+    # evidencias seleccionadas, sin necesidad de volver a subir el archivo.
+    ev_ids = [x.strip() for x in evidence_ids.split(",") if x.strip()]
+    if ev_ids:
+        from app.models.evidence import Evidence
+        from app.models.evidence_chunk import EvidenceChunk
+        ev_rows = (await db.execute(
+            select(Evidence).where(Evidence.id.in_(ev_ids), Evidence.organization_id == org_id)
+        )).scalars().all()
+        for ev in ev_rows:
+            chunks = (await db.execute(
+                select(EvidenceChunk).where(
+                    EvidenceChunk.evidence_id == ev.id,
+                    EvidenceChunk.organization_id == org_id,
+                ).order_by(EvidenceChunk.chunk_index)
+            )).scalars().all()
+            texto_ev = "\n".join(c.content for c in chunks if c.content)
+            if texto_ev.strip():
+                contexto += f"\n\n### Documento: {ev.title}\n{texto_ev}"
+
+    for f in (files or []):
         data = await f.read()
         texto = ""
         filename = f.filename.lower() if f.filename else ""
