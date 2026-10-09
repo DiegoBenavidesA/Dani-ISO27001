@@ -352,17 +352,41 @@ async def evaluate_with_ai(
     if ev_ids:
         from app.models.evidence import Evidence
         from app.models.evidence_chunk import EvidenceChunk
+        from app.services.storage_service import storage_service
         ev_rows = (await db.execute(
             select(Evidence).where(Evidence.id.in_(ev_ids), Evidence.organization_id == org_id)
         )).scalars().all()
         for ev in ev_rows:
-            chunks = (await db.execute(
-                select(EvidenceChunk).where(
-                    EvidenceChunk.evidence_id == ev.id,
-                    EvidenceChunk.organization_id == org_id,
-                ).order_by(EvidenceChunk.chunk_index)
-            )).scalars().all()
-            texto_ev = "\n".join(c.content for c in chunks if c.content)
+            texto_ev = ""
+            # 1) Preferir descargar el archivo guardado y extraer el texto ahora
+            #    (determinista, no depende del indexado en segundo plano).
+            try:
+                data = await storage_service.download(ev.file_url)
+                fn = (ev.file_name or ev.title or "").lower()
+                if fn.endswith(".pdf") and PdfReader:
+                    pdf = PdfReader(io.BytesIO(data))
+                    for page in pdf.pages:
+                        t = page.extract_text()
+                        if t:
+                            texto_ev += t + "\n"
+                else:
+                    try:
+                        texto_ev = data.decode("utf-8")
+                    except Exception:
+                        texto_ev = data.decode("latin-1", errors="ignore")
+            except Exception as e:
+                print(f"No se pudo descargar la evidencia {ev.id}, uso el índice: {e}")
+
+            # 2) Fallback: texto ya indexado (EvidenceChunk) si no se pudo descargar.
+            if not texto_ev.strip():
+                chunks = (await db.execute(
+                    select(EvidenceChunk).where(
+                        EvidenceChunk.evidence_id == ev.id,
+                        EvidenceChunk.organization_id == org_id,
+                    ).order_by(EvidenceChunk.chunk_index)
+                )).scalars().all()
+                texto_ev = "\n".join(c.content for c in chunks if c.content)
+
             if texto_ev.strip():
                 contexto += f"\n\n### Documento: {ev.title}\n{texto_ev}"
 
