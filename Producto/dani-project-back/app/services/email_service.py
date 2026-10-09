@@ -180,10 +180,12 @@ def send_consent_email(
     recipient_email: str,
     recipient_name: str,
     consent_url: str,
+    requests_url: str | None = None,
 ) -> None:
     """
     Envía al titular el enlace público para revisar y aceptar
-    una solicitud de consentimiento.
+    una solicitud de consentimiento. Si se pasa `requests_url`, incluye
+    además el canal para ejercer derechos (revocar, acceso, etc.).
     """
 
     if not settings.SMTP_HOST:
@@ -197,6 +199,14 @@ def send_consent_email(
 
     sender_email = settings.EMAIL_FROM or settings.SMTP_USER
     sender_name = settings.SMTP_FROM_NAME or "DANI GRC"
+
+    bloque_derechos = ""
+    if requests_url:
+        bloque_derechos = (
+            "\n¿Quieres revocar tu consentimiento o ejercer otros derechos "
+            "sobre tus datos (acceso, rectificación, eliminación)?\n"
+            f"Puedes hacerlo aquí en cualquier momento:\n\n{requests_url}\n"
+        )
 
     message = EmailMessage()
     message["Subject"] = "Solicitud de consentimiento - DANI"
@@ -212,7 +222,7 @@ Para revisar la información del tratamiento y registrar tu decisión,
 ingresa al siguiente enlace:
 
 {consent_url}
-
+{bloque_derechos}
 Si no esperabas esta solicitud, puedes ignorar este mensaje.
 
 Saludos,

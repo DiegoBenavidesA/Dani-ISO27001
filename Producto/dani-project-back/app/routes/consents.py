@@ -18,6 +18,7 @@ from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.consent import Consent, ConsentState
 from app.models.consent_history import ConsentHistory
 from app.models.data_treatment import DataTreatment
+from app.models.organization import Organization
 from app.services.email_service import send_consent_email
 from app.config import settings
 
@@ -155,9 +156,13 @@ async def create_consent(
     await db.commit()
     await db.refresh(new_consent)
 
-    consent_url = (
-        f"{settings.FRONTEND_BASE_URL.rstrip('/')}/consent/{raw_token}"
-    )
+    base = settings.FRONTEND_BASE_URL.rstrip("/")
+    consent_url = f"{base}/consent/{raw_token}"
+
+    # Enlace al canal público de solicitudes de titular (revocar / acceso / etc.).
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    requests_url = f"{base}/solicitud/{org.slug}" if org and org.slug else None
 
     # El correo NO debe tumbar la creación: el consentimiento ya quedó guardado.
     # Lo enviamos en un hilo aparte (SMTP es bloqueante) y atrapamos errores.
@@ -168,6 +173,7 @@ async def create_consent(
             new_consent.titular_email,
             new_consent.titular,
             consent_url,
+            requests_url,
         )
         email_sent = True
     except Exception as e:
