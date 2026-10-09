@@ -39,6 +39,7 @@ class CAPA(Base):
     status = Column(Enum(CAPAStatus), default=CAPAStatus.OPEN, nullable=False)
     source = Column(Enum(CAPASource), default=CAPASource.INTERNAL_AUDIT, nullable=False)
     progress = Column(Integer, default=0)
+    organization_id = Column(String(36), index=True, nullable=True)  # Multi-tenant
     due_date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
