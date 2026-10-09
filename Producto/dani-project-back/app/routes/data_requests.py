@@ -165,6 +165,7 @@ async def get_request_by_id(
 # =========================================================
 
 @router.put("/{request_id}", response_model=RequestResponse)
+@router.patch("/{request_id}", response_model=RequestResponse)
 async def update_request(
     request_id: str,
     request_data: RequestUpdate,
