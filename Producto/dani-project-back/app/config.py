@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_NAME: str = "DANI GRC"
     EMAIL_FROM: str = ""
+    # Envío por API HTTPS (Brevo) — necesario donde el SMTP saliente está
+    # bloqueado (ej. Render free). Si BREVO_API_KEY existe se usa Brevo; si no,
+    # se cae a SMTP (útil en local). El remitente (EMAIL_FROM o SMTP_USER) debe
+    # estar verificado en Brevo. La key va SIEMPRE por variable de entorno.
+    BREVO_API_KEY: str = os.getenv("BREVO_API_KEY", "")
 
     # URL base del frontend para invitaciones/activación
     FRONTEND_BASE_URL: str = "http://localhost:3000"
