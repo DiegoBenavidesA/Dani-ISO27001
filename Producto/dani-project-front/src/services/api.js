@@ -575,6 +575,24 @@ export const dataRequestsAPI = {
     });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
+  },
+
+  // --- Canal público (sin login): el titular envía su solicitud ---
+  getPublicOrgInfo: async (orgSlug) => {
+    const response = await fetch(`${API_URL}/api/data-requests/public/${encodeURIComponent(orgSlug)}/info`);
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'Empresa no encontrada.');
+    return body;
+  },
+  submitPublic: async (orgSlug, data) => {
+    const response = await fetch(`${API_URL}/api/data-requests/public/${encodeURIComponent(orgSlug)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo enviar la solicitud.');
+    return body;
   }
 };
 
@@ -1094,6 +1112,42 @@ export const assessmentQuestionsAPI = {
     });
     if (!response.ok) throw new Error('Error al eliminar la pregunta');
     return response.json();
+  },
+
+  // Carga masiva desde Excel (.xlsx). Devuelve { creadas, omitidas, columnas_detectadas, ... }
+  bulkImport: async (file, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
+  // Descarga la plantilla Excel con las columnas esperadas.
+  downloadTemplate: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-template`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('No se pudo descargar la plantilla');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_preguntas.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   },
 
   // Evaluar con IA: sube documentos y la IA responde cada pregunta.

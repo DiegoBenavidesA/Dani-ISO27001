@@ -8,6 +8,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import GapAnalysis from './pages/GapAnalysisScreen';
 import PublicConsentScreen from './pages/PublicConsentScreen';
 import ActivateScreen from './pages/ActivateScreen';
+import PublicDataRequestScreen from './pages/PublicDataRequestScreen';
 
 // Componente para manejar las rutas
 function AppRoutes() {
@@ -35,6 +36,7 @@ function AppRoutes() {
       {/* Rutas públicas */}
       <Route path="/activar/:token" element={<ActivateScreen />} />
       <Route path="/consent/:token" element={<PublicConsentScreen />} />
+      <Route path="/solicitud/:orgSlug" element={<PublicDataRequestScreen />} />
 
       {/* Login */}
       <Route

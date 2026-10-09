@@ -90,6 +90,35 @@ async def lifespan(app: FastAPI):
             )
         )
 
+        # Consentimientos: columnas nuevas (trazabilidad, aviso versionado, token).
+        # create_all no altera tablas existentes, así que las agregamos idempotentes.
+        _consent_cols = [
+            "ADD COLUMN IF NOT EXISTS titular_email VARCHAR(255)",
+            "ADD COLUMN IF NOT EXISTS acceptance_token_hash VARCHAR(64)",
+            "ADD COLUMN IF NOT EXISTS notice_version VARCHAR(50)",
+            "ADD COLUMN IF NOT EXISTS notice_text TEXT",
+            "ADD COLUMN IF NOT EXISTS finalidades_consentidas TEXT",
+            "ADD COLUMN IF NOT EXISTS fecha_expiracion TIMESTAMP",
+            "ADD COLUMN IF NOT EXISTS fecha_renovacion TIMESTAMP",
+            "ADD COLUMN IF NOT EXISTS comprobante_url VARCHAR(500)",
+        ]
+        for _col in _consent_cols:
+            await conn.execute(text(f"ALTER TABLE consents {_col};"))
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_consents_acceptance_token_hash "
+                "ON consents (acceptance_token_hash);"
+            )
+        )
+
+        # Solicitudes de titulares: columnas del canal público.
+        await conn.execute(
+            text("ALTER TABLE data_subject_requests ADD COLUMN IF NOT EXISTS titular_email VARCHAR(255);")
+        )
+        await conn.execute(
+            text("ALTER TABLE data_subject_requests ADD COLUMN IF NOT EXISTS origen VARCHAR(20) DEFAULT 'interno';")
+        )
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
@@ -227,7 +256,9 @@ app.include_router(ai_routes.router)
 _ley = [Depends(RequireRole(LEY_ROLES))]
 app.include_router(treatments.router, dependencies=_ley)
 app.include_router(consents.router, dependencies=_ley)
+app.include_router(consents.public_router)  # páginas públicas del titular (sin login)
 app.include_router(data_requests.router, dependencies=_ley)
+app.include_router(data_requests.public_router)  # canal público del titular (sin login)
 app.include_router(breaches.router, dependencies=_ley)
 app.include_router(vendors.router, dependencies=_ley)
 app.include_router(impact.router, dependencies=_ley)

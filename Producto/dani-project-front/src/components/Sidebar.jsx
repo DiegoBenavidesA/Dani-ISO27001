@@ -87,11 +87,12 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
+  const [comunOpen, setComunOpen] = useState(true);
   const [isoOpen, setIsoOpen] = useState(true);
   const [leyOpen, setLeyOpen] = useState(true);
 
   // IDs de cada grupo para auto-expand y filtrado
-  const ISO_IDS = ['doc-generator', 'risk-map', 'evidence', 'documents', 'audit-room', 'assessment'];
+  const ISO_IDS = ['audit-room', 'assessment'];
   const LEY_IDS = ['treatments', 'consents', 'data-requests', 'breaches', 'vendors', 'impact'];
 
   // Auto-expandir el grupo si el usuario navega a un ítem colapsado
@@ -115,10 +116,10 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const navItems = [
     { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
     { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'general' },
-    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'iso' },
-    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'iso' },
-    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'iso' },
-    { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'iso' },
+    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'comun' },
+    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'comun' },
+    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'comun' },
+    { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
     { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW, group: 'iso' },
     { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, roles: LEY, group: 'ley' },
@@ -210,6 +211,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
           // Ítems filtrados por grupo
           const generalTop = navItems.filter(i => i.group === 'general' && ['dashboard', 'gap-analysis'].includes(i.id));
+          const comunItems = navItems.filter(i => i.group === 'comun');
           const isoItems   = navItems.filter(i => i.group === 'iso');
           const leyItems   = navItems.filter(i => i.group === 'ley');
           const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'gap-analysis', 'employee-portal'].includes(i.id));
@@ -219,6 +221,20 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
             <>
               {/* Ítems generales superiores: Panel, Análisis de Brechas */}
               {generalTop.map(item => renderNavButton(item))}
+
+              {/* Grupo General / Transversal (sirve a ISO y Ley) */}
+              {comunItems.length > 0 && (
+                <>
+                  {!sidebarCollapsed && renderGroupHeader('General', comunOpen, () => setComunOpen(!comunOpen))}
+                  <div style={{
+                    maxHeight: sidebarCollapsed || comunOpen ? `${comunItems.length * 52}px` : '0',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.3s ease',
+                  }}>
+                    {comunItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
+                  </div>
+                </>
+              )}
 
               {/* Grupo ISO 27001 */}
               {isoItems.length > 0 && (

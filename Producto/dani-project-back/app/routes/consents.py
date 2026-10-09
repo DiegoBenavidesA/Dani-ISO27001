@@ -2,6 +2,10 @@ from datetime import datetime
 from typing import List, Optional
 import hashlib
 import secrets
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
@@ -14,6 +18,7 @@ from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.consent import Consent, ConsentState
 from app.models.consent_history import ConsentHistory
 from app.models.data_treatment import DataTreatment
+from app.models.organization import Organization
 from app.services.email_service import send_consent_email
 from app.config import settings
 
@@ -21,6 +26,13 @@ from app.config import settings
 router = APIRouter(
     prefix="/api/consents",
     tags=["Consents"]
+)
+
+# Router SIN candado de rol, para las páginas públicas del titular (sin login):
+# ver / aceptar / revocar / comprobante mediante token. Se incluye aparte en main.py.
+public_router = APIRouter(
+    prefix="/api/consents",
+    tags=["Consents (public)"]
 )
 
 
@@ -83,6 +95,11 @@ class PublicConsentResponse(BaseModel):
 
 class ConsentCreateResponse(ConsentResponse):
     acceptance_token: str
+    email_sent: bool = False
+
+
+class ConsentRenew(BaseModel):
+    fecha_expiracion: datetime
 
 # =========================================================
 # CREATE — la empresa se asigna desde el token
@@ -102,12 +119,6 @@ async def create_consent(
         org_id,
         detail="El tratamiento indicado no existe"
     )
-
-    if not treatment:
-        raise HTTPException(
-            status_code=400,
-            detail="El tratamiento indicado no existe"
-        )
 
     raw_token = secrets.token_urlsafe(32)
     token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -145,22 +156,33 @@ async def create_consent(
     await db.commit()
     await db.refresh(new_consent)
 
-    consent_url = (
-        f"{settings.FRONTEND_URL.rstrip('/')}/consent/{raw_token}"
-    )
+    base = settings.FRONTEND_BASE_URL.rstrip("/")
+    consent_url = f"{base}/consent/{raw_token}"
 
-    print(
-    f"📧 Enviando consentimiento por email a: {new_consent.titular_email}"
-    )
-    send_consent_email(
-        recipient_email=new_consent.titular_email,
-        recipient_name=new_consent.titular,
-        consent_url=consent_url,
-    )
+    # Enlace al canal público de solicitudes de titular (revocar / acceso / etc.).
+    org_res = await db.execute(select(Organization).where(Organization.id == org_id))
+    org = org_res.scalar_one_or_none()
+    requests_url = f"{base}/solicitud/{org.slug}" if org and org.slug else None
+
+    # El correo NO debe tumbar la creación: el consentimiento ya quedó guardado.
+    # Lo enviamos en un hilo aparte (SMTP es bloqueante) y atrapamos errores.
+    email_sent = False
+    try:
+        await asyncio.to_thread(
+            send_consent_email,
+            new_consent.titular_email,
+            new_consent.titular,
+            consent_url,
+            requests_url,
+        )
+        email_sent = True
+    except Exception as e:
+        logger.warning(f"No se pudo enviar el correo de consentimiento a {new_consent.titular_email}: {e}")
 
     return {
         **ConsentResponse.model_validate(new_consent).model_dump(),
-        "acceptance_token": raw_token
+        "acceptance_token": raw_token,
+        "email_sent": email_sent,
     }
 
 
@@ -274,7 +296,7 @@ async def revoke_consent(
             detail="Solo se pueden revocar consentimientos otorgados"
         )
 
-    consent.estado = "revocado"
+    consent.estado = ConsentState.REVOCADO
     consent.fecha_revocado = datetime.utcnow()
 
     history_entry = ConsentHistory(
@@ -299,7 +321,7 @@ async def revoke_consent(
 @router.post("/{consent_id}/renew", response_model=ConsentResponse)
 async def renew_consent(
     consent_id: str,
-    fecha_expiracion: datetime,
+    datos: ConsentRenew,
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
@@ -318,7 +340,7 @@ async def renew_consent(
         )
 
     consent.fecha_renovacion = datetime.utcnow()
-    consent.fecha_expiracion = fecha_expiracion
+    consent.fecha_expiracion = datos.fecha_expiracion
 
     history_entry = ConsentHistory(
         consent_id=consent.id,
@@ -363,7 +385,7 @@ async def delete_consent(
     # PUBLIC — consultar consentimiento mediante token
     # =========================================================
 
-@router.get("/public/{token}", response_model=PublicConsentResponse)
+@public_router.get("/public/{token}", response_model=PublicConsentResponse)
 async def get_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -390,7 +412,7 @@ async def get_public_consent(
 # PUBLIC - aceptar consentimiento mediante token
 # =========================================================
 
-@router.post("/public/{token}/accept", response_model=PublicConsentResponse)
+@public_router.post("/public/{token}/accept", response_model=PublicConsentResponse)
 async def accept_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -440,7 +462,7 @@ async def accept_public_consent(
     # PUBLIC - revocar consentimiento mediante token
     # =========================================================
 
-@router.post("/public/{token}/revoke", response_model=PublicConsentResponse)
+@public_router.post("/public/{token}/revoke", response_model=PublicConsentResponse)
 async def revoke_public_consent(
     token: str,
     db: AsyncSession = Depends(get_db)
@@ -489,7 +511,7 @@ async def revoke_public_consent(
 # PUBLIC - comprobante del consentimiento
 # =========================================================
 
-@router.get("/public/{token}/receipt")
+@public_router.get("/public/{token}/receipt")
 async def get_consent_receipt(
     token: str,
     db: AsyncSession = Depends(get_db)
