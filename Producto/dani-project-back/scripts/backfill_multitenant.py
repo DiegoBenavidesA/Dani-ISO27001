@@ -66,10 +66,19 @@ async def main():
 
         print("\nBackfill por tabla (filas actualizadas):")
         for (tabla,) in tablas:
-            res = await conn.execute(
-                text(f'UPDATE "{tabla}" SET organization_id = :org WHERE organization_id IS NULL'),
-                {"org": org_id}
-            )
+            # El superadmin de plataforma NO pertenece a ninguna empresa: lo
+            # excluimos del backfill de usuarios.
+            if tabla == "users":
+                res = await conn.execute(
+                    text('UPDATE "users" SET organization_id = :org '
+                         "WHERE organization_id IS NULL AND role <> 'SUPERADMIN'"),
+                    {"org": org_id}
+                )
+            else:
+                res = await conn.execute(
+                    text(f'UPDATE "{tabla}" SET organization_id = :org WHERE organization_id IS NULL'),
+                    {"org": org_id}
+                )
             print(f"  {tabla}: {res.rowcount}")
 
         # 4) N6: copiar el estado actual de iso_controls a control_status
