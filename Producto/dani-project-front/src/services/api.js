@@ -772,7 +772,7 @@ export const consentsAPI = {
   getAll: async (token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
 
-    const response = await fetch(`${API_URL}/api/consents`, {
+    const response = await fetch(`${API_URL}/api/consents/`, {
       headers: {
         ...(resolvedToken && {
           Authorization: `Bearer ${resolvedToken}`
