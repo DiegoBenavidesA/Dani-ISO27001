@@ -15,6 +15,11 @@ import asyncio
 import sys
 from pathlib import Path
 
+# En Windows, asyncpg (driver de Postgres) falla con el event loop por defecto
+# durante la negociación SSL (ej. contra Neon). El SelectorEventLoop lo resuelve.
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 # Para que encuentre la carpeta "app" al correr el script directamente
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -23,6 +28,7 @@ from sqlalchemy import select, func, delete, text
 from app.dependencies.database import AsyncSessionLocal, engine, Base
 import app.models  # noqa: F401  (registra todos los modelos)
 from app.models.assessment_question import AssessmentQuestion
+from app.models.assessment_answer import AssessmentAnswer
 
 
 # 5 preguntas claras y respondibles por la IA. Mezcla ISO 27001 + Ley 21.719
@@ -79,6 +85,9 @@ async def main():
 
     async with AsyncSessionLocal() as db:
         # Idempotente: dejar la tabla con EXACTAMENTE estas 5 preguntas.
+        # Primero borramos las respuestas (FK a assessment_questions); si no,
+        # el delete de preguntas falla cuando ya hubo evaluaciones.
+        await db.execute(delete(AssessmentAnswer))
         await db.execute(delete(AssessmentQuestion))
         for fila in PREGUNTAS:
             db.add(AssessmentQuestion(**fila))
