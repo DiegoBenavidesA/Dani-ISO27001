@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_URL } from '../services/api';
 
 function PublicConsentScreen() {
   const { token } = useParams();
@@ -9,8 +10,6 @@ function PublicConsentScreen() {
   const [accepting, setAccepting] = useState(false);
   const [revoking, setRevoking] = useState(false);
   const [error, setError] = useState('');
-
-  const API_URL = 'http://localhost:8001';
 
   useEffect(() => {
     const loadConsent = async () => {
