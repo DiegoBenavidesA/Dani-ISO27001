@@ -810,7 +810,7 @@ export const consentsAPI = {
   create: async (consentData, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
 
-    const response = await fetch(`${API_URL}/api/consents`, {
+    const response = await fetch(`${API_URL}/api/consents/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
