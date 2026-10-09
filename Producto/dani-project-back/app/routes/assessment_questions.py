@@ -16,6 +16,20 @@ from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
 from app.models.assessment_question import AssessmentQuestion
 from app.models.assessment_answer import AssessmentAnswer
+from app.models.control_status import ControlStatus
+
+
+def _codigo_a_control_id(codigo: str) -> str:
+    """Convierte el código de una pregunta al control_id ISO.
+
+    Las preguntas usan "A.5.1" (Anexo A) y los controles ISO usan "5.1".
+    """
+    c = (codigo or "").strip().upper()
+    if c.startswith("A."):
+        c = c[2:]
+    elif c.startswith("A") and len(c) > 1 and c[1].isdigit():
+        c = c[1:]
+    return c.strip(". ")
 from app.services.ai_service import AIService
 
 try:
@@ -419,6 +433,44 @@ async def evaluate_with_ai(
                 existing.justificacion = item.get("justificacion")
             else:
                 db.add(AssessmentAnswer(question_id=qid, organization_id=org_id, veredicto=veredicto, confianza=confianza, justificacion=item.get("justificacion")))
+        await db.commit()
+
+        # --- Puente hacia el SOA: actualizar el estado de los controles ISO ---
+        # El veredicto de la IA se refleja en ControlStatus para que el SOA y
+        # Resultados cambien. Mapeo por código: pregunta "A.5.1" -> control "5.1".
+        q_by_id = {q.id: q for q in preguntas}
+        estado_por_veredicto = {
+            "cumple": ("Implementado", 100),
+            "parcial": ("Planificado", 50),
+            "no_cumple": ("No Implementado", 0),
+            "sin_evidencia": ("No Implementado", 0),
+        }
+        for item in resultados:
+            qid = str(item.get("id") or "").strip()
+            q = q_by_id.get(qid)
+            if not q:
+                continue
+            control_id = _codigo_a_control_id(q.codigo)
+            veredicto = item.get("veredicto", "sin_evidencia")
+            nuevo_estado, score = estado_por_veredicto.get(veredicto, ("No Implementado", 0))
+            # Solo tocamos controles que existan para esta empresa.
+            cs_res = await db.execute(
+                select(ControlStatus).where(
+                    ControlStatus.control_id == control_id,
+                    ControlStatus.organization_id == org_id,
+                )
+            )
+            cs = cs_res.scalar_one_or_none()
+            if not cs:
+                continue
+            # No degradamos un control ya Implementado por un "sin_evidencia".
+            if veredicto in ("sin_evidencia", "no_cumple") and cs.status == "Implementado":
+                continue
+            cs.applies = True
+            cs.status = nuevo_estado
+            cs.score = score
+            if item.get("justificacion"):
+                cs.justification = item.get("justificacion")
         await db.commit()
 
     # EXTRAER TRATAMIENTOS RoPA AUTOMÁTICAMENTE
