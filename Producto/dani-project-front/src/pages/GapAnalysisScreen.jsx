@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI } from '../services/api';
+import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceAPI } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
@@ -59,6 +59,11 @@ function GapAnalysisScreen({ onNavigate }) {
   const [questionsError, setQuestionsError] = useState(null);
   
   const [uploadedFiles, setUploadedFiles] = useState([]);
+  // Documentos GUARDADOS en el Centro de Evidencias (persisten por empresa) y
+  // selección de cuáles usar para la evaluación con IA.
+  const [savedDocs, setSavedDocs] = useState([]);
+  const [selectedEvidenceIds, setSelectedEvidenceIds] = useState([]);
+  const [uploadingDocs, setUploadingDocs] = useState(false);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [evalError, setEvalError] = useState(null);
   const [evalInfo, setEvalInfo] = useState(null);
@@ -175,22 +180,58 @@ function GapAnalysisScreen({ onNavigate }) {
     return tText.no;
   };
 
+  // Documentos guardados (Centro de Evidencias) para evaluar desde ahí.
+  const loadSavedDocs = async () => {
+    try {
+      const data = await evidenceAPI.getAll();
+      setSavedDocs(Array.isArray(data) ? data : []);
+    } catch (e) { console.warn('No se pudieron cargar los documentos guardados', e); }
+  };
+  useEffect(() => { loadSavedDocs(); }, []);
+
+  // Subir documentos: se GUARDAN en el Centro de Evidencias (persisten por
+  // empresa, los ve todo el equipo y la IA los indexa). Luego quedan listos
+  // para seleccionarlos y evaluar.
+  const handleUploadDocs = async (fileList) => {
+    const nuevos = Array.from(fileList || []);
+    if (!nuevos.length) return;
+    setUploadingDocs(true); setEvalError(null); setEvalInfo(null);
+    try {
+      for (const file of nuevos) {
+        const fd = new FormData();
+        fd.append('file', file);
+        fd.append('source', 'Evaluación IA');
+        await evidenceAPI.upload(fd);
+      }
+      await loadSavedDocs();
+      setEvalInfo(`${nuevos.length} documento(s) guardado(s) en el Centro de Evidencias. Ya puedes seleccionarlos y evaluar.`);
+    } catch (e) {
+      setEvalError('Error al guardar el documento: ' + (e.message || e));
+    } finally {
+      setUploadingDocs(false);
+    }
+  };
+
+  const toggleEvidence = (id) => {
+    setSelectedEvidenceIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   // ==========================================
   // SUPER-EVALUADOR DE IA (ACTUALIZA SOA Y ROPA)
   // ==========================================
   const handleEvaluateWithAI = async (revalidate = false) => {
     setEvalError(null); setEvalInfo(null);
-    if (!uploadedFiles.length) { setEvalError('Sube al menos un documento antes de evaluar.'); return; }
-    
+    if (!selectedEvidenceIds.length) { setEvalError('Selecciona al menos un documento guardado antes de evaluar.'); return; }
+
     let ids = [];
     if (revalidate) {
       phases.forEach((p) => p.questions.forEach((q) => { if (answers[q.id] !== tText.yes) ids.push(q.id); }));
       if (ids.length === 0) { setEvalInfo('No hay preguntas pendientes.'); return; }
     }
-    
+
     setIsEvaluating(true);
     try {
-      const resp = await assessmentQuestionsAPI.evaluate(uploadedFiles, ids);
+      const resp = await assessmentQuestionsAPI.evaluate([], ids, selectedEvidenceIds);
       
       // 1. Mapeo de respuestas a la vista de preguntas
       const newAnswers = { ...answers };
@@ -678,21 +719,9 @@ function GapAnalysisScreen({ onNavigate }) {
 
               <div>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', marginBottom: '16px' }}>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: 'pointer', fontSize: '13px' }}>
-                    <FolderUp size={16} /> Agregar documentos
-                    <input type="file" multiple accept=".pdf,.txt,.docx" style={{ display: 'none' }} onChange={(e) => {
-                      const nuevos = Array.from(e.target.files || []);
-                      setUploadedFiles((prev) => {
-                        const combinado = [...prev];
-                        nuevos.forEach((nf) => {
-                          if (!combinado.some((f) => f.name === nf.name && f.size === nf.size)) combinado.push(nf);
-                        });
-                        return combinado;
-                      });
-                      e.target.value = ''; 
-                      setEvalError(null);
-                      setEvalInfo(null);
-                    }} />
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, cursor: uploadingDocs ? 'wait' : 'pointer', fontSize: '13px', opacity: uploadingDocs ? 0.6 : 1 }}>
+                    <FolderUp size={16} /> {uploadingDocs ? 'Guardando...' : 'Agregar documentos'}
+                    <input type="file" multiple accept=".pdf,.txt,.docx" disabled={uploadingDocs} style={{ display: 'none' }} onChange={(e) => { handleUploadDocs(e.target.files); e.target.value = ''; }} />
                   </label>
                   <button onClick={() => handleEvaluateWithAI(false)} disabled={isEvaluating} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '9px 16px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: isEvaluating ? 'not-allowed' : 'pointer', opacity: isEvaluating ? 0.6 : 1 }}>
                     <Wand2 size={16} /> {isEvaluating ? 'Evaluando...' : 'Evaluar con IA'}
@@ -701,22 +730,32 @@ function GapAnalysisScreen({ onNavigate }) {
                     <Activity size={16} /> Revalidar con IA
                   </button>
                 </div>
-                {uploadedFiles.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', color: t.textMuted }}>📎 {uploadedFiles.length} documento(s) seleccionado(s)</span>
-                      <button onClick={() => { setUploadedFiles([]); setEvalInfo(null); setEvalError(null); }} style={{ fontSize: '11px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>Quitar todos</button>
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {uploadedFiles.map((f, idx) => (
-                        <span key={`${f.name}-${idx}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: t.text, background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '4px 10px' }}>
-                          {f.name}
-                          <button onClick={() => setUploadedFiles((prev) => prev.filter((_, i) => i !== idx))} title="Quitar" style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: 0 }}>×</button>
-                        </span>
-                      ))}
-                    </div>
+                {/* Documentos guardados de la empresa: se eligen cuáles evaluar */}
+                <div style={{ marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: t.textMuted }}>📁 Documentos guardados ({savedDocs.length}) — selecciona los que quieres evaluar</span>
+                    {selectedEvidenceIds.length > 0 && (
+                      <button onClick={() => setSelectedEvidenceIds([])} style={{ fontSize: '11px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer' }}>Deseleccionar todos</button>
+                    )}
                   </div>
-                )}
+                  {savedDocs.length === 0 ? (
+                    <div style={{ fontSize: '12px', color: t.textDim, padding: '10px', border: `1px dashed ${t.border}`, borderRadius: '8px' }}>
+                      Aún no hay documentos. Usa "Agregar documentos" para subirlos; quedarán guardados aquí y en el Centro de Evidencias.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
+                      {savedDocs.map((d) => {
+                        const checked = selectedEvidenceIds.includes(d.id);
+                        return (
+                          <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', background: checked ? 'rgba(99,102,241,0.12)' : t.inputBg, border: `1px solid ${checked ? '#6366f1' : t.border}`, borderRadius: '8px', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={checked} onChange={() => toggleEvidence(d.id)} />
+                            <span style={{ fontSize: '13px', color: t.text }}>{d.name || d.title || 'Documento'}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
                 {isEvaluating && (
                   <div style={{ marginBottom: '16px', fontSize: '12px', color: '#6366f1' }}>🤖 La IA está leyendo y analizando los documentos... esto puede tardar un momento.</div>
                 )}
