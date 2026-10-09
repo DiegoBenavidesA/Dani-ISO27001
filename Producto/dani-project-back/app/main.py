@@ -90,6 +90,27 @@ async def lifespan(app: FastAPI):
             )
         )
 
+        # Consentimientos: columnas nuevas (trazabilidad, aviso versionado, token).
+        # create_all no altera tablas existentes, así que las agregamos idempotentes.
+        _consent_cols = [
+            "ADD COLUMN IF NOT EXISTS titular_email VARCHAR(255)",
+            "ADD COLUMN IF NOT EXISTS acceptance_token_hash VARCHAR(64)",
+            "ADD COLUMN IF NOT EXISTS notice_version VARCHAR(50)",
+            "ADD COLUMN IF NOT EXISTS notice_text TEXT",
+            "ADD COLUMN IF NOT EXISTS finalidades_consentidas TEXT",
+            "ADD COLUMN IF NOT EXISTS fecha_expiracion TIMESTAMP",
+            "ADD COLUMN IF NOT EXISTS fecha_renovacion TIMESTAMP",
+            "ADD COLUMN IF NOT EXISTS comprobante_url VARCHAR(500)",
+        ]
+        for _col in _consent_cols:
+            await conn.execute(text(f"ALTER TABLE consents {_col};"))
+        await conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_consents_acceptance_token_hash "
+                "ON consents (acceptance_token_hash);"
+            )
+        )
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
