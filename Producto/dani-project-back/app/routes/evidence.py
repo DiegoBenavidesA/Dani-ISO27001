@@ -119,6 +119,29 @@ async def upload_evidence(
         except Exception as se:
             storage_path = f"local:{file.filename}"
 
+        # Extraer el texto AHORA (síncrono) y guardarlo en la BD, para que la
+        # evaluación con IA no dependa del almacenamiento ni del indexado.
+        extracted_text = ""
+        fn = (file.filename or "").lower()
+        try:
+            if fn.endswith(".pdf"):
+                try:
+                    from pypdf import PdfReader
+                    pdf = PdfReader(io.BytesIO(file_bytes))
+                    for page in pdf.pages:
+                        t = page.extract_text()
+                        if t:
+                            extracted_text += t + "\n"
+                except Exception as pe:
+                    print(f"No se pudo extraer texto del PDF: {pe}")
+            else:
+                try:
+                    extracted_text = file_bytes.decode("utf-8")
+                except Exception:
+                    extracted_text = file_bytes.decode("latin-1", errors="ignore")
+        except Exception as ee:
+            print(f"Extracción de texto falló: {ee}")
+
         now = datetime.utcnow()
         new_evidence = Evidence(
             title=file.filename,
@@ -130,6 +153,7 @@ async def upload_evidence(
             verified_at=now,
             indexing_status="pending",
             organization_id=org_id,
+            extracted_text=(extracted_text.strip() or None),
             evidence_metadata={
                 "control": control,
                 "type": "manual",

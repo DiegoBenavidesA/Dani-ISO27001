@@ -357,27 +357,29 @@ async def evaluate_with_ai(
             select(Evidence).where(Evidence.id.in_(ev_ids), Evidence.organization_id == org_id)
         )).scalars().all()
         for ev in ev_rows:
-            texto_ev = ""
-            # 1) Preferir descargar el archivo guardado y extraer el texto ahora
-            #    (determinista, no depende del indexado en segundo plano).
-            try:
-                data = await storage_service.download(ev.file_url)
-                fn = (ev.file_name or ev.title or "").lower()
-                if fn.endswith(".pdf") and PdfReader:
-                    pdf = PdfReader(io.BytesIO(data))
-                    for page in pdf.pages:
-                        t = page.extract_text()
-                        if t:
-                            texto_ev += t + "\n"
-                else:
-                    try:
-                        texto_ev = data.decode("utf-8")
-                    except Exception:
-                        texto_ev = data.decode("latin-1", errors="ignore")
-            except Exception as e:
-                print(f"No se pudo descargar la evidencia {ev.id}, uso el índice: {e}")
+            # 0) Lo más confiable: el texto ya guardado en la BD al subir.
+            texto_ev = (ev.extracted_text or "").strip()
 
-            # 2) Fallback: texto ya indexado (EvidenceChunk) si no se pudo descargar.
+            # 1) Si no hay, descargar el archivo guardado y extraer el texto ahora.
+            if not texto_ev:
+                try:
+                    data = await storage_service.download(ev.file_url)
+                    fn = (ev.file_name or ev.title or "").lower()
+                    if fn.endswith(".pdf") and PdfReader:
+                        pdf = PdfReader(io.BytesIO(data))
+                        for page in pdf.pages:
+                            t = page.extract_text()
+                            if t:
+                                texto_ev += t + "\n"
+                    else:
+                        try:
+                            texto_ev = data.decode("utf-8")
+                        except Exception:
+                            texto_ev = data.decode("latin-1", errors="ignore")
+                except Exception as e:
+                    print(f"No se pudo descargar la evidencia {ev.id}, uso el índice: {e}")
+
+            # 2) Fallback: texto ya indexado (EvidenceChunk).
             if not texto_ev.strip():
                 chunks = (await db.execute(
                     select(EvidenceChunk).where(
