@@ -601,59 +601,35 @@ export const dataRequestsAPI = {
 // Backend: routes/breaches.py  →  /api/breaches
 // ============================================
 export const breachesAPI = {
-  // Listar todas las brechas (el backend marca alerta_vencida si venció el plazo de 72h)
   getAll: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, {
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
-    });
+    const response = await fetch(`${API_URL}/api/breaches`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
-
-  // Registrar una nueva brecha (el backend calcula fecha_limite_notificacion: +72 horas)
-  // breachData: { descripcion, datos_afectados, gravedad, fecha_deteccion?, cantidad_afectados?, organization_id? }
   create: async (breachData, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
-      },
-      body: JSON.stringify(breachData)
-    });
+    const response = await fetch(`${API_URL}/api/breaches`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(breachData) });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
-
-  // Actualizar la investigación de la brecha
-  // updateData: { estado?, medidas_tomadas?, responsable?, cantidad_afectados?, gravedad? }
   update: async (breachId, updateData, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
-      },
-      body: JSON.stringify(updateData)
-    });
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(updateData) });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
-
-  // Marcar la brecha como notificada a la Agencia (detiene el reloj de las 72h)
   notify: async (breachId, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
-      }
-    });
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+  // NUEVO: Función para eliminar brechas
+  delete: async (breachId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   }
