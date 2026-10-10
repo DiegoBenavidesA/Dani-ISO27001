@@ -126,6 +126,11 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evidence_chunks_organization_id ON evidence_chunks (organization_id);"))
         await conn.execute(text("ALTER TABLE evidences ADD COLUMN IF NOT EXISTS extracted_text TEXT;"))
 
+        # Riesgos, documentos y CAPA multi-tenant: faltaba organization_id en la BD.
+        for tabla in ("risks", "documents", "capas"):
+            await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+            await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó

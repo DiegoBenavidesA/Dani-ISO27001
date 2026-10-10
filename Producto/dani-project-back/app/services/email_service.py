@@ -7,6 +7,8 @@ import ssl
 from email.message import EmailMessage
 from email.utils import formataddr
 
+import httpx
+
 from app.config import settings
 
 
@@ -14,8 +16,56 @@ logger = logging.getLogger(__name__)
 
 
 # =========================================================
+# ENVÍO POR API HTTPS (Brevo)
+# Necesario donde el SMTP saliente está bloqueado (ej. Render free).
+# =========================================================
+
+def _send_via_brevo(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str | None = None,
+    from_name: str | None = None,
+) -> bool:
+    """Envía un correo vía la API HTTPS de Brevo (puerto 443)."""
+    sender_email = settings.EMAIL_FROM or settings.SMTP_USER
+    if not sender_email:
+        logger.warning("Brevo: falta EMAIL_FROM/SMTP_USER (remitente verificado); se omite el envío.")
+        return False
+
+    payload = {
+        "sender": {"name": from_name or settings.SMTP_FROM_NAME, "email": sender_email},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "htmlContent": html_body,
+    }
+    if text_body:
+        payload["textContent"] = text_body
+
+    try:
+        resp = httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={
+                "api-key": settings.BREVO_API_KEY,
+                "content-type": "application/json",
+                "accept": "application/json",
+            },
+            json=payload,
+            timeout=20,
+        )
+        if resp.status_code in (200, 201):
+            logger.info("✉️ Correo enviado vía Brevo a %s", to_email)
+            return True
+        logger.error("Brevo error %s al enviar a %s: %s", resp.status_code, to_email, resp.text[:300])
+        return False
+    except Exception:
+        logger.exception("Error enviando correo vía Brevo a %s", to_email)
+        return False
+
+
+# =========================================================
 # ENVÍO GENÉRICO DE CORREOS
-# Usado principalmente para invitaciones de usuarios
+# Usa Brevo (HTTPS) si hay API key; si no, cae a SMTP (local).
 # =========================================================
 
 def _send_email_sync(
@@ -25,7 +75,11 @@ def _send_email_sync(
     text_body: str | None = None,
     from_name: str | None = None,
 ) -> bool:
-    """Envía un correo de forma síncrona mediante SMTP."""
+    """Envía un correo de forma síncrona: Brevo si hay key, si no SMTP."""
+
+    # Preferir Brevo (HTTPS) cuando esté configurado.
+    if settings.BREVO_API_KEY:
+        return _send_via_brevo(to_email, subject, html_body, text_body, from_name)
 
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         logger.warning(
@@ -181,69 +235,54 @@ def send_consent_email(
     recipient_name: str,
     consent_url: str,
     requests_url: str | None = None,
-) -> None:
+) -> bool:
     """
-    Envía al titular el enlace público para revisar y aceptar
-    una solicitud de consentimiento. Si se pasa `requests_url`, incluye
-    además el canal para ejercer derechos (revocar, acceso, etc.).
+    Envía al titular el enlace público para revisar y aceptar una solicitud de
+    consentimiento. Usa el mismo núcleo (Brevo/SMTP). Devuelve True si se envió.
     """
-
-    if not settings.SMTP_HOST:
-        raise RuntimeError("SMTP_HOST no está configurado.")
-
-    if not settings.SMTP_USER:
-        raise RuntimeError("SMTP_USER no está configurado.")
-
-    if not settings.SMTP_PASSWORD:
-        raise RuntimeError("SMTP_PASSWORD no está configurado.")
-
-    sender_email = settings.EMAIL_FROM or settings.SMTP_USER
     sender_name = settings.SMTP_FROM_NAME or "DANI GRC"
 
-    bloque_derechos = ""
+    bloque_derechos_txt = ""
+    bloque_derechos_html = ""
     if requests_url:
-        bloque_derechos = (
+        bloque_derechos_txt = (
             "\n¿Quieres revocar tu consentimiento o ejercer otros derechos "
             "sobre tus datos (acceso, rectificación, eliminación)?\n"
             f"Puedes hacerlo aquí en cualquier momento:\n\n{requests_url}\n"
         )
+        bloque_derechos_html = (
+            f'<p style="font-size:14px;line-height:1.6;">¿Quieres revocar tu consentimiento o '
+            f'ejercer otros derechos sobre tus datos (acceso, rectificación, eliminación)? '
+            f'Puedes hacerlo aquí en cualquier momento:<br>'
+            f'<a href="{requests_url}" style="color:#10b981;word-break:break-all;">{requests_url}</a></p>'
+        )
 
-    message = EmailMessage()
-    message["Subject"] = "Solicitud de consentimiento - DANI"
-    message["From"] = formataddr((sender_name, sender_email))
-    message["To"] = recipient_email
-
-    message.set_content(
-        f"""Hola {recipient_name},
-
-Has recibido una solicitud de consentimiento.
-
-Para revisar la información del tratamiento y registrar tu decisión,
-ingresa al siguiente enlace:
-
-{consent_url}
-{bloque_derechos}
-Si no esperabas esta solicitud, puedes ignorar este mensaje.
-
-Saludos,
-{sender_name}
-"""
+    text_body = (
+        f"Hola {recipient_name},\n\n"
+        f"Has recibido una solicitud de consentimiento.\n\n"
+        f"Para revisar la información del tratamiento y registrar tu decisión, "
+        f"ingresa al siguiente enlace:\n\n{consent_url}\n"
+        f"{bloque_derechos_txt}\n"
+        f"Si no esperabas esta solicitud, puedes ignorar este mensaje.\n\n"
+        f"Saludos,\n{sender_name}\n"
     )
 
-    context = ssl.create_default_context()
+    html_body = f"""\
+<div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1e293b;">
+  <p style="font-size:16px;">Hola <strong>{recipient_name}</strong>,</p>
+  <p style="font-size:15px;line-height:1.6;">Has recibido una solicitud de consentimiento.
+  Revisa la información del tratamiento y registra tu decisión:</p>
+  <p style="text-align:center;margin:24px 0;">
+    <a href="{consent_url}" style="background:#10b981;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;display:inline-block;">Revisar y decidir</a>
+  </p>
+  {bloque_derechos_html}
+  <p style="font-size:12px;color:#94a3b8;margin-top:20px;">Si no esperabas esta solicitud, ignora este mensaje.</p>
+</div>
+"""
 
-    with smtplib.SMTP(
-        settings.SMTP_HOST,
-        settings.SMTP_PORT,
-        timeout=20,
-    ) as smtp:
-        smtp.ehlo()
-        smtp.starttls(context=context)
-        smtp.ehlo()
-        smtp.login(
-            settings.SMTP_USER,
-            settings.SMTP_PASSWORD,
-        )
-        smtp.send_message(message)
-
-    print("✅ SMTP: correo de consentimiento enviado correctamente")
+    return _send_email_sync(
+        recipient_email,
+        "Solicitud de consentimiento - DANI",
+        html_body,
+        text_body,
+    )
