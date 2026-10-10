@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -64,8 +64,7 @@ class BreachResponse(BaseModel):
 
 
 # =========================================================
-# CREATE — la empresa se asigna desde el token.
-# Se conserva el plazo interno de 72h definido por el proyecto.
+# CREATE
 # =========================================================
 
 @router.post("/", response_model=BreachResponse)
@@ -79,6 +78,7 @@ async def create_breach(
     fecha_deteccion = data.get("fecha_deteccion") or datetime.utcnow()
     data["fecha_deteccion"] = fecha_deteccion
     data["fecha_limite_notificacion"] = fecha_deteccion + timedelta(hours=72)
+    data["estado"] = "detectada"
 
     new_breach = DataBreach(
         **data,
@@ -93,7 +93,7 @@ async def create_breach(
 
 
 # =========================================================
-# READ — solo brechas de mi empresa
+# READ
 # =========================================================
 
 @router.get("/", response_model=List[BreachResponse])
@@ -113,11 +113,6 @@ async def get_breaches(
 
     return result.scalars().all()
 
-
-# =========================================================
-# READ — solo si la brecha pertenece a mi empresa
-# =========================================================
-
 @router.get("/{breach_id}", response_model=BreachResponse)
 async def get_breach_by_id(
     breach_id: str,
@@ -132,12 +127,12 @@ async def get_breach_by_id(
         detail="Brecha no encontrada"
     )
 
-
 # =========================================================
-# UPDATE — solo si pertenece a mi empresa
+# UPDATE
 # =========================================================
 
 @router.put("/{breach_id}", response_model=BreachResponse)
+@router.patch("/{breach_id}", response_model=BreachResponse)
 async def update_breach(
     breach_id: str,
     breach_data: BreachUpdate,
@@ -166,10 +161,11 @@ async def update_breach(
 
 
 # =========================================================
-# NOTIFICAR — solo si pertenece a mi empresa
+# NOTIFICAR
 # =========================================================
 
 @router.post("/{breach_id}/notify", response_model=BreachResponse)
+@router.patch("/{breach_id}/notify", response_model=BreachResponse)
 async def notify_breach(
     breach_id: str,
     org_id: str = Depends(get_current_org),
@@ -194,7 +190,7 @@ async def notify_breach(
 
 
 # =========================================================
-# DELETE — solo si pertenece a mi empresa
+# DELETE
 # =========================================================
 
 @router.delete("/{breach_id}")
