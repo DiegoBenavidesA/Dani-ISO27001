@@ -104,6 +104,9 @@ async def lifespan(app: FastAPI):
         ]
         for _col in _consent_cols:
             await conn.execute(text(f"ALTER TABLE consents {_col};"))
+        # Un consentimiento nace PENDIENTE (sin fecha de otorgamiento). En BDs
+        # viejas esta columna quedó NOT NULL; la relajamos para permitirlo.
+        await conn.execute(text("ALTER TABLE consents ALTER COLUMN fecha_otorgado DROP NOT NULL;"))
         await conn.execute(
             text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_consents_acceptance_token_hash "
@@ -145,7 +148,12 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text(f"ALTER TYPE userrole ADD VALUE IF NOT EXISTS '{valor}';")
             )
-    logger.info("✅ Enum userrole verificado (SUPERADMIN/OWNER)")
+        # consentstate: el valor PENDIENTE se agregó al modelo después y faltaba
+        # en el tipo enum de la BD (create_all no altera tipos existentes).
+        await conn.execute(
+            text("ALTER TYPE consentstate ADD VALUE IF NOT EXISTS 'PENDIENTE';")
+        )
+    logger.info("✅ Enums verificados (userrole, consentstate)")
 
     # Rellenar slugs faltantes (empresas creadas antes de esta feature).
     from app.utils.slug import slug_unico
