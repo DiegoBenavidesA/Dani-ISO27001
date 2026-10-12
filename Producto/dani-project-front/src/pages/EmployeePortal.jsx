@@ -51,7 +51,7 @@ const EmployeePortalScreen = () => {
       {/* HEADER TIPO TOPBAR */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '24px', borderBottom: `1px solid ${t.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#004ac6', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0, 74, 198, 0.3)' }}>
             <Shield size={24} color="white" />
           </div>
           <div>
@@ -73,12 +73,12 @@ const EmployeePortalScreen = () => {
           </div>
         </div>
 
-        <div style={{ width: '320px', background: darkMode ? 'rgba(16, 185, 129, 0.02)' : t.cardBg, border: `1px solid rgba(16, 185, 129, 0.15)`, borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <CheckCircle2 size={28} color="#10b981" />
+        <div style={{ width: '320px', background: darkMode ? 'rgba(0, 74, 198, 0.02)' : t.cardBg, border: `1px solid rgba(0, 74, 198, 0.15)`, borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(0, 74, 198, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CheckCircle2 size={28} color="#004ac6" />
           </div>
           <div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#10b981', lineHeight: '1' }}>{loading ? '-' : completedCount}</div>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: '#004ac6', lineHeight: '1' }}>{loading ? '-' : completedCount}</div>
             <div style={{ fontSize: '13px', color: t.textDim, fontWeight: 600, marginTop: '4px' }}>Completados</div>
           </div>
         </div>
@@ -95,10 +95,10 @@ const EmployeePortalScreen = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {policies.map((policy) => (
-              <div key={policy.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: t.inputBg, border: `1px solid ${policy.is_acknowledged ? '#10b98130' : t.border}`, borderRadius: '16px', transition: 'all 0.2s' }}>
+              <div key={policy.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', background: t.inputBg, border: `1px solid ${policy.is_acknowledged ? '#004ac630' : t.border}`, borderRadius: '16px', transition: 'all 0.2s' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: policy.is_acknowledged ? '#10b98120' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}>
-                    {policy.is_acknowledged ? <CheckCircle2 size={20} color="#10b981" /> : <FileText size={20} color={t.textDim} />}
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: policy.is_acknowledged ? '#004ac620' : 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '2px' }}>
+                    {policy.is_acknowledged ? <CheckCircle2 size={20} color="#004ac6" /> : <FileText size={20} color={t.textDim} />}
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
@@ -111,7 +111,7 @@ const EmployeePortalScreen = () => {
 
                 <button 
                   onClick={() => setSelectedPolicy(policy)}
-                  style={{ padding: '12px 24px', background: policy.is_acknowledged ? 'transparent' : '#10b981', border: policy.is_acknowledged ? `1px solid #10b981` : 'none', borderRadius: '10px', color: policy.is_acknowledged ? '#10b981' : 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+                  style={{ padding: '12px 24px', background: policy.is_acknowledged ? 'transparent' : '#004ac6', border: policy.is_acknowledged ? `1px solid #004ac6` : 'none', borderRadius: '10px', color: policy.is_acknowledged ? '#004ac6' : 'white', fontSize: '13px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
                   {policy.is_acknowledged ? 'Ver Política' : 'Leer y Aceptar'}
                 </button>
               </div>
@@ -145,7 +145,7 @@ const EmployeePortalScreen = () => {
                 <button 
                   onClick={() => handleAcknowledge(selectedPolicy.id)} 
                   disabled={acknowledging}
-                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#10b981', border: 'none', color: 'white', fontWeight: 600, cursor: acknowledging ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#004ac6', border: 'none', color: 'white', fontWeight: 600, cursor: acknowledging ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {acknowledging ? 'Procesando...' : <><Check size={18} /> He leído y comprendido</>}
                 </button>
               )}

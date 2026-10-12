@@ -202,7 +202,7 @@ function EvidenceCenterScreen() {
     return 'fresh';
   };
   const getFreshnessColor = (status) => {
-    switch (status) { case 'fresh': return '#10b981'; case 'expiring': return '#f59e0b'; case 'expired': return '#ef4444'; default: return '#6b7280'; }
+    switch (status) { case 'fresh': return '#004ac6'; case 'expiring': return '#f59e0b'; case 'expired': return '#ef4444'; default: return '#6b7280'; }
   };
 
   const filteredEvidences = evidences.filter(e => {
@@ -238,7 +238,7 @@ function EvidenceCenterScreen() {
           <button onClick={() => setShowRequestModal(true)} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Send size={16} /> {l.requestEvidence}
           </button>
-          <button onClick={() => setActiveTab('upload')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button onClick={() => setActiveTab('upload')} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Upload size={16} /> {l.addEvidence}
           </button>
         </div>
@@ -246,7 +246,7 @@ function EvidenceCenterScreen() {
 
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        {[{ label: l.totalEvidences, value: evidences.length, color: '#10b981', icon: Database }, { label: l.autoCollected, value: evidences.filter(e => e.type === 'automatic').length, color: '#3b82f6', icon: Zap }, { label: l.manualUpload, value: evidences.filter(e => e.type === 'manual').length, color: '#f59e0b', icon: Upload }, { label: l.pendingRequests, value: requests.filter(r => r.status === 'pending' || r.status === 'overdue').length, color: '#ef4444', icon: Clock }].map((stat, idx) => {
+        {[{ label: l.totalEvidences, value: evidences.length, color: '#004ac6', icon: Database }, { label: l.autoCollected, value: evidences.filter(e => e.type === 'automatic').length, color: '#3b82f6', icon: Zap }, { label: l.manualUpload, value: evidences.filter(e => e.type === 'manual').length, color: '#f59e0b', icon: Upload }, { label: l.pendingRequests, value: requests.filter(r => r.status === 'pending' || r.status === 'overdue').length, color: '#ef4444', icon: Clock }].map((stat, idx) => {
           const Icon = stat.icon;
           return (
             <div key={idx} style={{ background: t.cardBg, borderRadius: '14px', padding: '18px', border: `1px solid ${t.border}` }}>
@@ -265,7 +265,7 @@ function EvidenceCenterScreen() {
         {[{ id: 'evidences', label: l.evidences, icon: Database }, { id: 'upload', label: l.upload, icon: Upload }, { id: 'requests', label: l.requests, icon: Send }, { id: 'connectors', label: l.connectors, icon: Zap }].map((tab) => {
           const Icon = tab.icon; const isActive = activeTab === tab.id;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '10px 20px', background: isActive ? '#10b98120' : 'transparent', border: `1px solid ${isActive ? '#10b981' : t.border}`, borderRadius: '10px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '10px 20px', background: isActive ? '#004ac620' : 'transparent', border: `1px solid ${isActive ? '#004ac6' : t.border}`, borderRadius: '10px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Icon size={16} /> {tab.label}
               {tab.id === 'requests' && requests.filter(r => r.status === 'pending' || r.status === 'overdue').length > 0 && (
                 <span style={{ background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '10px' }}>{requests.filter(r => r.status === 'pending' || r.status === 'overdue').length}</span>
@@ -282,7 +282,7 @@ function EvidenceCenterScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '12px', color: t.textDim }}>{l.filterBy}:</span>
               {[{ id: 'all', label: l.all }, { id: 'automatic', label: l.automatic }, { id: 'manual', label: l.manual }, { id: 'expired', label: l.expired }, { id: 'expiring', label: l.expiringSoon }].map((filter) => (
-                <button key={filter.id} onClick={() => setFilterStatus(filter.id)} style={{ padding: '6px 12px', background: filterStatus === filter.id ? '#10b98120' : t.inputBg, border: `1px solid ${filterStatus === filter.id ? '#10b981' : t.border}`, borderRadius: '6px', color: filterStatus === filter.id ? '#10b981' : t.textMuted, fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{filter.label}</button>
+                <button key={filter.id} onClick={() => setFilterStatus(filter.id)} style={{ padding: '6px 12px', background: filterStatus === filter.id ? '#004ac620' : t.inputBg, border: `1px solid ${filterStatus === filter.id ? '#004ac6' : t.border}`, borderRadius: '6px', color: filterStatus === filter.id ? '#004ac6' : t.textMuted, fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{filter.label}</button>
               ))}
             </div>
             <div style={{ position: 'relative' }}>
@@ -359,9 +359,9 @@ function EvidenceCenterScreen() {
             onDrop={handleFileUpload}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
-            style={{ border: `2px dashed ${dragOver ? '#10b981' : t.border}`, borderRadius: '16px', margin: '24px', background: dragOver ? 'rgba(16, 185, 129, 0.05)' : 'transparent', display: 'block', cursor: isUploading ? 'not-allowed' : 'pointer' }}>
+            style={{ border: `2px dashed ${dragOver ? '#004ac6' : t.border}`, borderRadius: '16px', margin: '24px', background: dragOver ? 'rgba(0, 74, 198, 0.05)' : 'transparent', display: 'block', cursor: isUploading ? 'not-allowed' : 'pointer' }}>
             <input type="file" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
-            <Upload size={48} color={dragOver ? '#10b981' : t.textDim} style={{ marginBottom: '16px', opacity: isUploading ? 0.5 : 1 }} />
+            <Upload size={48} color={dragOver ? '#004ac6' : t.textDim} style={{ marginBottom: '16px', opacity: isUploading ? 0.5 : 1 }} />
             <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>
               {isUploading ? 'Subiendo evidencia segura...' : 'Arrastra y suelta tu evidencia aquí'}
             </h3>
@@ -378,7 +378,7 @@ function EvidenceCenterScreen() {
             <div key={connector.id} style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: connector.status === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                 <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>{connector.icon}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: connector.status === 'connected' ? 'rgba(16, 185, 129, 0.15)' : connector.status === 'error' ? 'rgba(239, 68, 68, 0.15)' : t.inputBg, color: connector.status === 'connected' ? '#10b981' : connector.status === 'error' ? '#ef4444' : t.textDim }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: connector.status === 'connected' ? 'rgba(0, 74, 198, 0.15)' : connector.status === 'error' ? 'rgba(239, 68, 68, 0.15)' : t.inputBg, color: connector.status === 'connected' ? '#004ac6' : connector.status === 'error' ? '#ef4444' : t.textDim }}>
                   {connector.status === 'connected' && <CheckCircle2 size={12} />}
                   {connector.status === 'error' && <XCircle size={12} />}
                   {connector.status === 'connected' ? l.connected : connector.status === 'error' ? l.error : l.pending}
@@ -386,7 +386,7 @@ function EvidenceCenterScreen() {
               </div>
               <h4 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '4px', color: t.text }}>{connector.name}</h4>
               <div style={{ fontSize: '12px', color: connector.status === 'error' ? '#ef4444' : t.textDim, marginBottom: '16px' }}>{l.lastSync}: {connector.lastSync}</div>
-              {connector.status === 'connected' && <div style={{ padding: '10px 14px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '13px', color: t.text }}>{connector.evidences} {l.evidences}</span><Eye size={14} color="#10b981" /></div>}
+              {connector.status === 'connected' && <div style={{ padding: '10px 14px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}><span style={{ fontSize: '13px', color: t.text }}>{connector.evidences} {l.evidences}</span><Eye size={14} color="#004ac6" /></div>}
               {connector.status === 'error' && <button style={{ width: '100%', padding: '10px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: '8px', color: '#ef4444', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>{l.reconnect}</button>}
               {connector.status === 'pending' && <button style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>{l.configure}</button>}
             </div>
@@ -420,10 +420,10 @@ function EvidenceCenterScreen() {
                     <td style={{ padding: '16px 20px' }}><span style={{ padding: '4px 10px', background: '#8b5cf620', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#8b5cf6' }}>{request.control}</span></td>
                     <td style={{ padding: '16px 20px' }}><div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{request.assignee}</div><div style={{ fontSize: '11px', color: t.textDim }}>{request.department}</div></td>
                     <td style={{ padding: '16px 20px' }}><span style={{ fontSize: '13px', color: request.status === 'overdue' ? '#ef4444' : t.textMuted }}>{request.dueDate}</span></td>
-                    <td style={{ padding: '16px 20px' }}><span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: request.status === 'submitted' ? '#10b98120' : request.status === 'overdue' ? '#ef444420' : '#f59e0b20', color: request.status === 'submitted' ? '#10b981' : request.status === 'overdue' ? '#ef4444' : '#f59e0b' }}>{request.status}</span></td>
+                    <td style={{ padding: '16px 20px' }}><span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600, background: request.status === 'submitted' ? '#004ac620' : request.status === 'overdue' ? '#ef444420' : '#f59e0b20', color: request.status === 'submitted' ? '#004ac6' : request.status === 'overdue' ? '#ef4444' : '#f59e0b' }}>{request.status}</span></td>
                     <td style={{ padding: '16px 20px', textAlign: 'right' }}>
                       {request.status === 'submitted' ? (
-                        <button style={{ padding: '6px 12px', background: '#10b98120', border: '1px solid #10b98140', borderRadius: '6px', color: '#10b981', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.viewSubmission}</button>
+                        <button style={{ padding: '6px 12px', background: '#004ac620', border: '1px solid #004ac640', borderRadius: '6px', color: '#004ac6', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.viewSubmission}</button>
                       ) : (
                         <button style={{ padding: '6px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textMuted, fontSize: '11px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Send size={12} /> {l.resendReminder}</button>
                       )}

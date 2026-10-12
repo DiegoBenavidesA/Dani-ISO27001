@@ -15,16 +15,19 @@ export const themes = {
     inputBg: 'rgba(255,255,255,0.05)', 
     hoverBg: 'rgba(255,255,255,0.03)' 
   },
-  light: { 
-    bg: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)', 
-    cardBg: 'rgba(255, 255, 255, 0.8)', 
-    sidebarBg: 'rgba(255, 255, 255, 0.9)', 
-    text: '#1e293b', 
-    textMuted: '#475569', 
-    textDim: '#64748b', 
-    border: 'rgba(0,0,0,0.08)', 
-    inputBg: 'rgba(0,0,0,0.03)', 
-    hoverBg: 'rgba(0,0,0,0.02)' 
+  // Paleta única "Material 3" (claro) — diseño oficial de DANI GRC.
+  // Tokens derivados del design system: primary #004ac6, tertiary #006243,
+  // surface #f8f9ff, on-surface #0b1c30, etc.
+  light: {
+    bg: '#f8f9ff',                 // surface
+    cardBg: '#ffffff',             // surface-container-lowest
+    sidebarBg: '#ffffff',          // surface-container-lowest
+    text: '#0b1c30',               // on-surface
+    textMuted: '#434655',          // on-surface-variant
+    textDim: '#565e74',            // secondary
+    border: 'rgba(11,28,48,0.10)', // outline-variant suave
+    inputBg: '#eff4ff',            // surface-container-low
+    hoverBg: 'rgba(0,74,198,0.05)' // primary muy tenue
   },
   highContrast: { 
     bg: '#000000', cardBg: '#000000', sidebarBg: '#000000', text: '#ffffff', 
@@ -76,14 +79,18 @@ export const translations = {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('dani-darkMode') !== 'false');
   const [language, setLanguage] = useState(() => localStorage.getItem('dani-language') || 'es');
-  const [highContrast, setHighContrast] = useState(() => localStorage.getItem('dani-highContrast') === 'true');
-  const t = highContrast ? themes.highContrast : (darkMode ? themes.dark : themes.light);
 
-  const persistedSetDarkMode = (val) => { localStorage.setItem('dani-darkMode', val); setDarkMode(val); };
+  // Tema fijo: DANI GRC usa un único tema claro (Material 3). Se eliminaron
+  // los modos oscuro/alto-contraste. Mantenemos las variables y setters como
+  // no-op para no romper componentes que aún los referencian.
+  const darkMode = false;
+  const highContrast = false;
+  const setDarkMode = () => {};
+  const setHighContrast = () => {};
+  const t = themes.light;
+
   const persistedSetLanguage = (val) => { localStorage.setItem('dani-language', val); setLanguage(val); };
-  const persistedSetHighContrast = (val) => { localStorage.setItem('dani-highContrast', val); setHighContrast(val); };
 
   // Inyecta estilos globales para <select> según el tema activo.
   // Los <option> no admiten rgba, así que necesitan fondos opacos explícitos.
@@ -119,7 +126,7 @@ export const ThemeProvider = ({ children }) => {
       }
       select:focus {
         outline: none !important;
-        box-shadow: 0 0 0 1.5px rgba(139,92,246,0.45) !important;
+        box-shadow: 0 0 0 1.5px rgba(0,74,198,0.45) !important;
       }
       select option {
         background-color: ${optBg};
@@ -135,7 +142,7 @@ export const ThemeProvider = ({ children }) => {
   }, [darkMode, highContrast]);
 
   return (
-    <ThemeContext.Provider value={{ darkMode, setDarkMode: persistedSetDarkMode, language, setLanguage: persistedSetLanguage, highContrast, setHighContrast: persistedSetHighContrast, theme: t, translations }}>
+    <ThemeContext.Provider value={{ darkMode, setDarkMode, language, setLanguage: persistedSetLanguage, highContrast, setHighContrast, theme: t, translations }}>
       {children}
     </ThemeContext.Provider>
   );

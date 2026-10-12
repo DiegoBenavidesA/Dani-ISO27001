@@ -116,11 +116,11 @@ function CommandPalette({ isOpen, onClose, onNavigate, darkMode }) {
                     const globalIdx = filteredCommands.indexOf(cmd);
                     const isSelected = globalIdx === selectedIndex;
                     return (
-                      <div key={cmd.id} onClick={() => { onNavigate(cmd.id); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: isSelected ? '#10b98120' : 'transparent', borderRadius: '8px', cursor: 'pointer', marginBottom: '2px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isSelected ? '#10b98130' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Icon size={16} color={isSelected ? '#10b981' : t.textDim} />
+                      <div key={cmd.id} onClick={() => { onNavigate(cmd.id); onClose(); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 14px', background: isSelected ? '#004ac620' : 'transparent', borderRadius: '8px', cursor: 'pointer', marginBottom: '2px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isSelected ? '#004ac630' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon size={16} color={isSelected ? '#004ac6' : t.textDim} />
                         </div>
-                        <span style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: isSelected ? '#10b981' : t.text }}>{cmd.name[language] || cmd.name.en}</span>
+                        <span style={{ flex: 1, fontSize: '14px', fontWeight: 500, color: isSelected ? '#004ac6' : t.text }}>{cmd.name[language] || cmd.name.en}</span>
                         {cmd.shortcut && <kbd style={{ padding: '3px 8px', background: t.inputBg, borderRadius: '4px', fontSize: '10px', color: t.textDim, fontFamily: 'monospace' }}>{cmd.shortcut}</kbd>}
                       </div>
                     );

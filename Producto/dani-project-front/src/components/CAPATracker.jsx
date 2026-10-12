@@ -74,11 +74,11 @@ function CAPATracker() {
   const [updatingId, setUpdatingId] = useState(null);
 
   const getStatusColor = (status) => ({
-    open: '#ef4444', inProgress: '#f59e0b', resolved: '#10b981', closed: '#6b7280'
+    open: '#ef4444', inProgress: '#f59e0b', resolved: '#004ac6', closed: '#6b7280'
   }[status] || '#6b7280');
 
   const getPriorityColor = (priority) => ({
-    high: '#ef4444', medium: '#f59e0b', low: '#10b981'
+    high: '#ef4444', medium: '#f59e0b', low: '#004ac6'
   }[priority] || '#6b7280');
 
   const load = async () => {
@@ -129,7 +129,7 @@ function CAPATracker() {
   const stats = [
     { label: cl.open,       count: capas.filter(c => c.status === 'open').length,       color: '#ef4444' },
     { label: cl.inProgress, count: capas.filter(c => c.status === 'inProgress').length, color: '#f59e0b' },
-    { label: cl.resolved,   count: capas.filter(c => c.status === 'resolved').length,   color: '#10b981' },
+    { label: cl.resolved,   count: capas.filter(c => c.status === 'resolved').length,   color: '#004ac6' },
     { label: cl.closed,     count: capas.filter(c => c.status === 'closed').length,     color: '#6b7280' },
   ];
 

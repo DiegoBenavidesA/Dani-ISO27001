@@ -140,7 +140,7 @@ function InteractiveSOA({ controls = [], setControls }) {
                   </td>
                   <td style={{ padding: '16px 20px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                      <button onClick={() => toggleApplicable(currentId)} style={{ padding: '6px 12px', background: isApplicable ? '#10b98120' : 'transparent', border: `1px solid ${isApplicable ? '#10b981' : t.border}`, borderRadius: '6px 0 0 6px', color: isApplicable ? '#10b981' : t.textDim, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>{l.applicable}</button>
+                      <button onClick={() => toggleApplicable(currentId)} style={{ padding: '6px 12px', background: isApplicable ? '#004ac620' : 'transparent', border: `1px solid ${isApplicable ? '#004ac6' : t.border}`, borderRadius: '6px 0 0 6px', color: isApplicable ? '#004ac6' : t.textDim, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>{l.applicable}</button>
                       <button onClick={() => toggleApplicable(currentId)} style={{ padding: '6px 12px', background: !isApplicable ? '#ef444420' : 'transparent', border: `1px solid ${!isApplicable ? '#ef4444' : t.border}`, borderRadius: '0 6px 6px 0', color: !isApplicable ? '#ef4444' : t.textDim, fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>{l.notApplicable}</button>
                     </div>
                   </td>
@@ -165,7 +165,7 @@ function InteractiveSOA({ controls = [], setControls }) {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
+      <div style={{ padding: '12px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#004ac6' }}>
         <CheckCircle2 size={14} /><span>{l.autoSaved}</span>
       </div>
     </div>
