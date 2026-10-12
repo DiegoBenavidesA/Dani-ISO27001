@@ -1,17 +1,9 @@
-/* eslint-disable */
 import React, { useState, useEffect, useContext } from 'react';
 import {
-  ShieldAlert, Plus, Clock, AlertTriangle, CheckCircle, Send, X, Save, RefreshCw
+  ShieldAlert, Plus, Clock, AlertTriangle, CheckCircle, Send, X, Save, RefreshCw, Trash2, Edit
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { breachesAPI } from '../services/api';
-
-// ==========================================
-// Pantalla 3.4 — Gestión de Brechas de Datos
-// Obligación O4 de la Ley 21.719: notificar a la Agencia en 72 horas.
-// El backend (routes/breaches.py) calcula fecha_limite_notificacion (+72h)
-// y marca alerta_vencida. Aquí lo mostramos y permitimos "Notificar".
-// ==========================================
 
 const GRAVEDADES = [
   { value: 'baja', label: 'Baja' },
@@ -33,16 +25,12 @@ const BreachesScreen = () => {
   const [breaches, setBreaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newBreach, setNewBreach] = useState({ descripcion: '', datos_afectados: '', gravedad: 'media', cantidad_afectados: '' });
-
-  // Datos demo: solo si el backend no responde.
-  const demoBreaches = [
-    { id: 'demo-1', fecha_deteccion: new Date().toISOString(), descripcion: 'Acceso no autorizado a base de datos de clientes.', datos_afectados: 'Nombres, correos, teléfonos', cantidad_afectados: 1200, gravedad: 'critica', fecha_limite_notificacion: addHours(new Date(), 40).toISOString(), fecha_notificacion: null, estado: 'en_investigacion', medidas_tomadas: null, responsable: 'ciso@empresa.cl', alerta_vencida: false },
-    { id: 'demo-2', fecha_deteccion: addHours(new Date(), -80).toISOString(), descripcion: 'Envío erróneo de correo con datos personales.', datos_afectados: 'Correos, RUT', cantidad_afectados: 35, gravedad: 'media', fecha_limite_notificacion: addHours(new Date(), -8).toISOString(), fecha_notificacion: null, estado: 'detectada', medidas_tomadas: null, responsable: null, alerta_vencida: true },
-    { id: 'demo-3', fecha_deteccion: addHours(new Date(), -20).toISOString(), descripcion: 'Laptop extraviada con información sensible.', datos_afectados: 'Datos de salud', cantidad_afectados: 8, gravedad: 'alta', fecha_limite_notificacion: addHours(new Date(), 52).toISOString(), fecha_notificacion: addHours(new Date(), -2).toISOString(), estado: 'notificada', medidas_tomadas: 'Cifrado remoto activado.', responsable: 'dpo@empresa.cl', alerta_vencida: false },
-  ];
+  
+  const [currentBreach, setCurrentBreach] = useState({ id: '', descripcion: '', datos_afectados: '', gravedad: 'media', estado: 'detectada', cantidad_afectados: '' });
 
   useEffect(() => { fetchBreaches(); }, []);
 
@@ -51,37 +39,78 @@ const BreachesScreen = () => {
     setError(null);
     try {
       const data = await breachesAPI.getAll();
-      setBreaches(Array.isArray(data) && data.length > 0 ? data : demoBreaches);
+      setBreaches(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error al cargar brechas. Usando datos demo.', err);
-      setError('No se pudo conectar con el servidor. Mostrando datos de ejemplo.');
-      setBreaches(demoBreaches);
+      console.error('Error al cargar brechas.', err);
+      setError('No se pudo conectar con el servidor.');
+      setBreaches([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreate = async () => {
-    if (!newBreach.descripcion.trim() || !newBreach.datos_afectados.trim()) return;
+  const handleCreateOrUpdate = async () => {
+    if (!currentBreach.descripcion.trim() || !currentBreach.datos_afectados.trim()) return;
     setIsSubmitting(true);
     try {
       const payload = {
-        descripcion: newBreach.descripcion,
-        datos_afectados: newBreach.datos_afectados,
-        gravedad: newBreach.gravedad,
+        descripcion: currentBreach.descripcion,
+        datos_afectados: currentBreach.datos_afectados,
+        gravedad: currentBreach.gravedad,
       };
-      if (newBreach.cantidad_afectados !== '') {
-        payload.cantidad_afectados = parseInt(newBreach.cantidad_afectados, 10);
+      
+      if (currentBreach.id) {
+         payload.estado = currentBreach.estado;
       }
-      await breachesAPI.create(payload);
+
+      if (currentBreach.cantidad_afectados !== '' && currentBreach.cantidad_afectados !== null) {
+        payload.cantidad_afectados = parseInt(currentBreach.cantidad_afectados, 10);
+      } else {
+        payload.cantidad_afectados = null; 
+      }
+
+      if (currentBreach.id) {
+         await breachesAPI.update(currentBreach.id, payload);
+      } else {
+         await breachesAPI.create(payload);
+      }
+
       setShowAddModal(false);
-      setNewBreach({ descripcion: '', datos_afectados: '', gravedad: 'media', cantidad_afectados: '' });
+      setShowEditModal(false);
+      setCurrentBreach({ id: '', descripcion: '', datos_afectados: '', gravedad: 'media', estado: 'detectada', cantidad_afectados: '' });
       await fetchBreaches();
     } catch (err) {
-      console.error('Error al registrar la brecha.', err);
-      alert('No se pudo registrar la brecha. Revisa la conexión con el backend.');
+      console.error('Error al registrar/actualizar la brecha.', err);
+      alert('Error en la operación. Revisa la consola para más detalles.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (breach) => {
+    setCurrentBreach({
+      id: breach.id,
+      descripcion: breach.descripcion,
+      datos_afectados: breach.datos_afectados,
+      gravedad: breach.gravedad,
+      estado: breach.estado || 'detectada',
+      cantidad_afectados: breach.cantidad_afectados !== null ? breach.cantidad_afectados : ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (breachId) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar permanentemente esta brecha de datos?')) return;
+    try {
+      if (breachesAPI.delete) {
+        await breachesAPI.delete(breachId);
+        await fetchBreaches();
+      } else {
+        alert("La función de eliminar no está configurada en api.js");
+      }
+    } catch (err) {
+       console.error('Error al eliminar:', err);
+       alert("No se pudo eliminar la brecha.");
     }
   };
 
@@ -102,16 +131,14 @@ const BreachesScreen = () => {
       await fetchBreaches();
     } catch (err) {
       console.error('Error al actualizar el estado.', err);
-      alert('No se pudo actualizar el estado.');
+      alert('Abre "Editar" para cambiar el estado manualmente si el atajo falla.');
     }
   };
 
-  // ==========================================
-  // Reloj de 72 horas: horas restantes para el semáforo.
-  // ==========================================
   const horasRestantes = (fechaLimite) => {
     const ahora = new Date();
     const limite = parseServerDate(fechaLimite);
+    if (isNaN(limite)) return 0;
     return Math.round((limite - ahora) / (1000 * 60 * 60));
   };
 
@@ -126,9 +153,7 @@ const BreachesScreen = () => {
   };
 
   const gravedadLabel = (v) => (GRAVEDADES.find(x => x.value === v) || {}).label || v;
-  const estadoLabel = (v) => (ESTADOS.find(x => x.value === v) || {}).label || v;
 
-  // Resumen
   const total = breaches.length;
   const activas = breaches.filter(b => b.estado !== 'notificada' && b.estado !== 'cerrada').length;
   const vencidas = breaches.filter(b => (b.estado !== 'notificada' && b.estado !== 'cerrada') && (b.alerta_vencida || horasRestantes(b.fecha_limite_notificacion) < 0)).length;
@@ -153,7 +178,7 @@ const BreachesScreen = () => {
           <button onClick={fetchBreaches} style={secondaryBtn(t)}>
             <RefreshCw size={16} /> Actualizar
           </button>
-          <button onClick={() => setShowAddModal(true)} style={primaryBtn()}>
+          <button onClick={() => { setCurrentBreach({id: '', descripcion: '', datos_afectados: '', gravedad: 'media', estado: 'detectada', cantidad_afectados: ''}); setShowAddModal(true); }} style={primaryBtn()}>
             <Plus size={16} /> Registrar brecha
           </button>
         </div>
@@ -190,6 +215,7 @@ const BreachesScreen = () => {
                   <th style={thStyle(t)}>Plazo (72 h)</th>
                   <th style={thStyle(t)}>Estado</th>
                   <th style={thStyle(t)}>Acción</th>
+                  <th style={thStyle(t)}></th>
                 </tr>
               </thead>
               <tbody>
@@ -218,7 +244,7 @@ const BreachesScreen = () => {
                         </div>
                       </td>
                       <td style={tdStyle(t)}>
-                        <select value={b.estado} onChange={(e) => handleChangeEstado(b, e.target.value)} style={selectStyle(t)} disabled={yaNotificada}>
+                        <select value={b.estado || 'detectada'} onChange={(e) => handleChangeEstado(b, e.target.value)} style={selectStyle(t)} disabled={yaNotificada}>
                           {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                         </select>
                       </td>
@@ -233,6 +259,10 @@ const BreachesScreen = () => {
                           </button>
                         )}
                       </td>
+                      <td style={{...tdStyle(t), textAlign: 'right'}}>
+                         <button onClick={() => handleEditClick(b)} title="Editar" style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', padding: '4px' }}><Edit size={15} /></button>
+                         <button onClick={() => handleDelete(b.id)} title="Eliminar" style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={15} /></button>
+                      </td>
                     </tr>
                   );
                 })}
@@ -242,27 +272,27 @@ const BreachesScreen = () => {
         )}
       </div>
 
-      {/* Modal de creación */}
-      {showAddModal && (
+      {/* Modal de creación / edición */}
+      {(showAddModal || showEditModal) && (
         <div style={modalOverlay}>
           <div style={modalBox(t)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px' }}>Registrar nueva brecha</h3>
-              <button onClick={() => setShowAddModal(false)} style={iconBtn(t)}><X size={18} /></button>
+              <h3 style={{ margin: 0, fontSize: '17px' }}>{currentBreach.id ? 'Editar Brecha' : 'Registrar nueva brecha'}</h3>
+              <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }} style={iconBtn(t)}><X size={18} /></button>
             </div>
 
             <label style={labelStyle(t)}>Descripción del incidente</label>
             <textarea
-              value={newBreach.descripcion}
-              onChange={(e) => setNewBreach({ ...newBreach, descripcion: e.target.value })}
+              value={currentBreach.descripcion}
+              onChange={(e) => setCurrentBreach({ ...currentBreach, descripcion: e.target.value })}
               style={{ ...inputStyle(t), minHeight: '70px', resize: 'vertical' }}
               placeholder="¿Qué ocurrió?"
             />
 
             <label style={labelStyle(t)}>Datos afectados</label>
             <input
-              value={newBreach.datos_afectados}
-              onChange={(e) => setNewBreach({ ...newBreach, datos_afectados: e.target.value })}
+              value={currentBreach.datos_afectados}
+              onChange={(e) => setCurrentBreach({ ...currentBreach, datos_afectados: e.target.value })}
               style={inputStyle(t)}
               placeholder="Ej: Nombres, correos, contraseñas"
             />
@@ -270,7 +300,7 @@ const BreachesScreen = () => {
             <div style={{ display: 'flex', gap: '10px' }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle(t)}>Gravedad</label>
-                <select value={newBreach.gravedad} onChange={(e) => setNewBreach({ ...newBreach, gravedad: e.target.value })} style={inputStyle(t)}>
+                <select value={currentBreach.gravedad} onChange={(e) => setCurrentBreach({ ...currentBreach, gravedad: e.target.value })} style={inputStyle(t)}>
                   {GRAVEDADES.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                 </select>
               </div>
@@ -279,21 +309,31 @@ const BreachesScreen = () => {
                 <input
                   type="number"
                   min="0"
-                  value={newBreach.cantidad_afectados}
-                  onChange={(e) => setNewBreach({ ...newBreach, cantidad_afectados: e.target.value })}
+                  value={currentBreach.cantidad_afectados}
+                  onChange={(e) => setCurrentBreach({ ...currentBreach, cantidad_afectados: e.target.value })}
                   style={inputStyle(t)}
                   placeholder="Ej: 1200"
                 />
               </div>
             </div>
 
-            <p style={{ color: t.textDim, fontSize: '11px', marginTop: '8px' }}>
-              El plazo de notificación (72 horas desde ahora) se calcula automáticamente al guardar.
+            {/* NUEVO: Permite editar el estado directamente dentro del modal */}
+            {currentBreach.id && (
+              <div style={{ marginTop: '10px' }}>
+                <label style={labelStyle(t)}>Estado de la brecha</label>
+                <select value={currentBreach.estado} onChange={(e) => setCurrentBreach({ ...currentBreach, estado: e.target.value })} style={inputStyle(t)}>
+                  {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                </select>
+              </div>
+            )}
+
+            <p style={{ color: t.textDim, fontSize: '11px', marginTop: '12px' }}>
+              El plazo de notificación (72 horas) se calcula automáticamente.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-              <button onClick={() => setShowAddModal(false)} style={secondaryBtn(t)}>Cancelar</button>
-              <button onClick={handleCreate} disabled={isSubmitting} style={primaryBtn()}>
+              <button onClick={() => { setShowAddModal(false); setShowEditModal(false); }} style={secondaryBtn(t)}>Cancelar</button>
+              <button onClick={handleCreateOrUpdate} disabled={isSubmitting} style={primaryBtn()}>
                 <Save size={16} /> {isSubmitting ? 'Guardando…' : 'Guardar'}
               </button>
             </div>
@@ -305,28 +345,14 @@ const BreachesScreen = () => {
 };
 
 // ==========================================
-// Helper: el backend devuelve fechas en UTC SIN zona horaria; hay que
-// interpretarlas como UTC (si no, JS las toma como local y el contador se
-// desfasa por el offset del país, ej. Chile −3h → 72h se veían como 75h).
+// Helpers
 // ==========================================
 function parseServerDate(s) {
   if (!s) return new Date(NaN);
-  const tieneZona = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+  const tieneZona = /[zZ]$\vert{}[+-]\d\d:?\d\d$/.test(s);
   return new Date(tieneZona ? s : s + 'Z');
 }
 
-// ==========================================
-// Helper: suma horas (solo para datos demo del frontend)
-// ==========================================
-function addHours(date, hours) {
-  const result = new Date(date);
-  result.setTime(result.getTime() + hours * 60 * 60 * 1000);
-  return result;
-}
-
-// ==========================================
-// Subcomponentes y estilos
-// ==========================================
 const SummaryCard = ({ t, label, value, color }) => (
   <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '14px' }}>
     <div style={{ fontSize: '12px', color: t.textMuted }}>{label}</div>
