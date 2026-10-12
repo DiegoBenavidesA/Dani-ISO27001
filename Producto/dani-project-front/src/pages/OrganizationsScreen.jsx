@@ -98,7 +98,7 @@ export default function OrganizationsScreen() {
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: t.text, marginBottom: '8px' }}>Gestión de Empresas</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Administración del sistema Multi-Tenant</p>
         </div>
-        <button onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 18px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
+        <button onClick={openCreate} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 18px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}>
           <Plus size={16} /> Nueva Empresa
         </button>
       </div>
@@ -131,7 +131,7 @@ export default function OrganizationsScreen() {
                 </td>
                 <td style={{ padding: '16px 20px', fontSize: '13px', color: t.textMuted, fontFamily: 'monospace' }}>/{org.slug || '—'}</td>
                 <td style={{ padding: '16px 20px' }}>
-                  <span style={{ padding: '4px 10px', background: org.activo ? '#10b98120' : '#ef444420', color: org.activo ? '#10b981' : '#ef4444', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>{org.activo ? 'Activa' : 'Suspendida'}</span>
+                  <span style={{ padding: '4px 10px', background: org.activo ? '#004ac620' : '#ef444420', color: org.activo ? '#004ac6' : '#ef4444', borderRadius: '6px', fontSize: '12px', fontWeight: 600 }}>{org.activo ? 'Activa' : 'Suspendida'}</span>
                 </td>
                 <td style={{ padding: '16px 20px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                   <div style={{ display: 'inline-block' }}>
@@ -149,13 +149,13 @@ export default function OrganizationsScreen() {
                         <div style={{ position: 'fixed', top: '50%', right: '24px', transform: 'translateY(-50%)', minWidth: '190px', background: darkMode ? '#111827' : '#ffffff', border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 12px 30px rgba(0,0,0,0.35)', zIndex: 50, overflow: 'hidden', textAlign: 'left' }}>
                           <button
                             onClick={() => { openInvite(org); setMenuOpenId(null); }}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#10b981', fontSize: '13px', fontWeight: 500 }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: '#004ac6', fontSize: '13px', fontWeight: 500 }}
                           >
                             <UserPlus size={16} /> Invitar usuario
                           </button>
                           <button
                             onClick={() => { toggleStatus(org); setMenuOpenId(null); }}
-                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: org.activo ? '#f59e0b' : '#10b981', fontSize: '13px', fontWeight: 500, borderTop: `1px solid ${t.border}` }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: org.activo ? '#f59e0b' : '#004ac6', fontSize: '13px', fontWeight: 500, borderTop: `1px solid ${t.border}` }}
                           >
                             {org.activo ? <PauseCircle size={16} /> : <Activity size={16} />} {org.activo ? 'Suspender' : 'Activar'}
                           </button>
@@ -192,7 +192,7 @@ export default function OrganizationsScreen() {
               {createError && <div style={{ padding: '10px 14px', background: '#ef444420', color: '#ef4444', borderRadius: '10px', fontSize: '13px' }}>{createError}</div>}
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button type="button" onClick={() => setCreateOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>
-                <button type="submit" disabled={creating} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: creating ? 'default' : 'pointer', opacity: creating ? 0.7 : 1 }}>{creating ? 'Creando...' : 'Crear empresa'}</button>
+                <button type="submit" disabled={creating} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: creating ? 'default' : 'pointer', opacity: creating ? 0.7 : 1 }}>{creating ? 'Creando...' : 'Crear empresa'}</button>
               </div>
             </form>
           </div>
@@ -232,10 +232,10 @@ export default function OrganizationsScreen() {
                 Se enviará una invitación por correo. El usuario definirá su propia contraseña al activar la cuenta.
               </p>
               {inviteError && <div style={{ padding: '10px 14px', background: '#ef444420', color: '#ef4444', borderRadius: '10px', fontSize: '13px' }}>{inviteError}</div>}
-              {inviteSuccess && <div style={{ padding: '10px 14px', background: '#10b98120', color: '#10b981', borderRadius: '10px', fontSize: '13px' }}>{inviteSuccess}</div>}
+              {inviteSuccess && <div style={{ padding: '10px 14px', background: '#004ac620', color: '#004ac6', borderRadius: '10px', fontSize: '13px' }}>{inviteSuccess}</div>}
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button type="button" onClick={() => setInviteOrg(null)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>
-                <button type="submit" disabled={inviting} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: inviting ? 'default' : 'pointer', opacity: inviting ? 0.7 : 1 }}>{inviting ? 'Enviando...' : 'Enviar invitación'}</button>
+                <button type="submit" disabled={inviting} style={{ flex: 1, padding: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: inviting ? 'default' : 'pointer', opacity: inviting ? 0.7 : 1 }}>{inviting ? 'Enviando...' : 'Enviar invitación'}</button>
               </div>
             </form>
           </div>

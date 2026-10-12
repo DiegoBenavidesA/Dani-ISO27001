@@ -98,7 +98,7 @@ const DashboardScreen = ({ onNavigate }) => {
       const sectionHeader = (num, title) => {
         if (y > 255) newPage();
         lb(4);
-        setFill(16, 185, 129);
+        setFill(0, 74, 198);
         doc.rect(M, y - 4, W - M * 2, 9, 'F');
         doc.setFontSize(11);
         doc.setFont('helvetica', 'bold');
@@ -141,7 +141,7 @@ const DashboardScreen = ({ onNavigate }) => {
       // ════════════════════════════════════════════════════════════════════
       // PÁGINA 1 — PORTADA
       // ════════════════════════════════════════════════════════════════════
-      setFill(16, 185, 129);
+      setFill(0, 74, 198);
       doc.rect(0, 0, W, 60, 'F');
 
       // Logo textual
@@ -167,7 +167,7 @@ const DashboardScreen = ({ onNavigate }) => {
       setColor(20, 20, 40);
       doc.text('INFORME DE AUDITORÍA INTERNA', M, y); lb(12);
       doc.setFontSize(15);
-      setColor(16, 185, 129);
+      setColor(0, 74, 198);
       doc.text('Evaluación del Estado del SGSI', M, y); lb(12);
 
       hr([180, 220, 200], 0.5);
@@ -195,7 +195,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
       // Score destacado en portada
       const score = d.overall_score?.overall_score ?? 0;
-      const scoreColor = score >= 85 ? [16, 185, 129] : score >= 70 ? [245, 158, 11] : [239, 68, 68];
+      const scoreColor = score >= 85 ? [0, 74, 198] : score >= 70 ? [245, 158, 11] : [239, 68, 68];
       setFill(...scoreColor);
       doc.roundedRect(M, y, 80, 28, 3, 3, 'F');
       doc.setFontSize(26);
@@ -235,7 +235,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
       // Encabezado tabla
       const colCl = [M, M + 18, M + 50, M + 80, M + 108, M + 134, M + 155];
-      setFill(16, 185, 129);
+      setFill(0, 74, 198);
       doc.rect(M, y - 4, W - M * 2, 8, 'F');
       const hdrs = ['Cláusula', 'Nombre', 'Score', 'Brecha', 'Peso', 'Prioridad'];
       hdrs.forEach((h, i) => {
@@ -245,14 +245,14 @@ const DashboardScreen = ({ onNavigate }) => {
       lb(9);
 
       const clauseNames = { '4':'Contexto', '5':'Liderazgo', '6':'Planificación', '7':'Soporte', '8':'Operación', '9':'Evaluación', '10':'Mejora' };
-      const prioColor = { critical: [239,68,68], high: [245,158,11], medium: [59,130,246], low: [16,185,129] };
+      const prioColor = { critical: [239,68,68], high: [245,158,11], medium: [59,130,246], low: [0, 74, 198] };
 
       for (let i = 0; i < (d.clause_gaps || []).length; i++) {
         const c = d.clause_gaps[i];
         if (y > 265) newPage();
         if (i % 2 === 0) { setFill(248, 253, 250); doc.rect(M, y-3, W-M*2, 7, 'F'); }
         const sc = c.current_score ?? 0;
-        const scCol = sc >= 75 ? [16,185,129] : sc >= 50 ? [245,158,11] : [239,68,68];
+        const scCol = sc >= 75 ? [0, 74, 198] : sc >= 50 ? [245,158,11] : [239,68,68];
         txt(c.clause_id, colCl[0], 8.5, 'bold', [20,20,40]);
         txt(c.clause_name || clauseNames[c.clause_id] || '—', colCl[1], 8, 'normal');
         txt(`${sc.toFixed(0)}%`, colCl[2], 8.5, 'bold', scCol);
@@ -271,7 +271,7 @@ const DashboardScreen = ({ onNavigate }) => {
         const sc = c.current_score ?? 0;
         const barW = W - M * 2 - 45;
         const filled = (sc / 100) * barW;
-        const bColor = sc >= 75 ? [16,185,129] : sc >= 50 ? [245,158,11] : [239,68,68];
+        const bColor = sc >= 75 ? [0, 74, 198] : sc >= 50 ? [245,158,11] : [239,68,68];
         txt(`C${c.clause_id}`, M, 8, 'bold', [60,60,80]);
         setFill(220, 220, 220); doc.rect(M + 12, y - 4, barW, 5, 'F');
         setFill(...bColor); doc.rect(M + 12, y - 4, filled, 5, 'F');
@@ -297,7 +297,7 @@ const DashboardScreen = ({ onNavigate }) => {
         { label: 'Críticos', val: rs.critical ?? 0, color: [239,68,68] },
         { label: 'Altos', val: rs.high ?? 0, color: [249,115,22] },
         { label: 'Medios', val: rs.medium ?? 0, color: [59,130,246] },
-        { label: 'Bajos', val: rs.low ?? 0, color: [16,185,129] },
+        { label: 'Bajos', val: rs.low ?? 0, color: [0, 74, 198] },
       ];
       const blockW = (W - M * 2) / riskCols.length;
       riskCols.forEach((rc, i) => {
@@ -345,14 +345,14 @@ const DashboardScreen = ({ onNavigate }) => {
       ];
       for (const [lbl, val] of capaStats) {
         txt(lbl + ':', M, 9.5, 'normal');
-        txt(String(val), M + 55, 9.5, 'bold', [16, 185, 129]);
+        txt(String(val), M + 55, 9.5, 'bold', [0, 74, 198]);
         lb(6);
       }
       lb(5);
 
       if ((cs.list || []).length > 0) {
         const colC = [M, M + 24, M + 88, M + 108, M + 128, M + 150];
-        setFill(16, 185, 129);
+        setFill(0, 74, 198);
         doc.rect(M, y - 4, W - M * 2, 8, 'F');
         ['Código', 'Título', 'Prioridad', 'Estado', 'Progreso', 'Asignado'].forEach((h, i) => {
           doc.setFontSize(8); doc.setFont('helvetica', 'bold'); setColor(255, 255, 255);
@@ -362,7 +362,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
         const statusLbl = { open: 'Abierta', inProgress: 'En Prog.', resolved: 'Resuelta', closed: 'Cerrada' };
         const prioLbl   = { high: 'Alta', medium: 'Media', low: 'Baja' };
-        const prioC2    = { high: [239,68,68], medium: [245,158,11], low: [16,185,129] };
+        const prioC2    = { high: [239,68,68], medium: [245,158,11], low: [0, 74, 198] };
 
         for (let i = 0; i < cs.list.length; i++) {
           const c = cs.list[i];
@@ -374,7 +374,7 @@ const DashboardScreen = ({ onNavigate }) => {
           txt(title,                        colC[1], 7.5, 'normal');
           txt(prioLbl[c.priority] || c.priority || '—', colC[2], 8, 'bold', prioC2[c.priority] || [80,80,80]);
           txt(statusLbl[c.status] || c.status || '—',   colC[3], 7.5, 'normal');
-          txt(`${c.progress ?? 0}%`,        colC[4], 8, 'bold', [16,185,129]);
+          txt(`${c.progress ?? 0}%`,        colC[4], 8, 'bold', [0, 74, 198]);
           txt(assignee,                     colC[5], 7.5, 'normal', [80,80,80]);
           lb(7);
         }
@@ -401,7 +401,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
           setFill(240, 253, 250);
           doc.roundedRect(M, y - 3, W - M * 2, 9 + rest.length * 5.5, 3, 3, 'F');
-          setDraw(16, 185, 129);
+          setDraw(0, 74, 198);
           doc.setLineWidth(0.4);
           doc.roundedRect(M, y - 3, W - M * 2, 9 + rest.length * 5.5, 3, 3, 'S');
 
@@ -460,7 +460,7 @@ const DashboardScreen = ({ onNavigate }) => {
       // ── Última línea de cierre ──────────────────────────────────────────
       if (y > 265) newPage();
       lb(8);
-      hr([16, 185, 129], 0.5);
+      hr([0, 74, 198], 0.5);
       addWrappedText(
         'Este informe ha sido generado automáticamente por el sistema DANI (Plataforma de Gestión ISO 27001) '
         + `combinando datos reales del SGSI con análisis narrativo del modelo ${report.ai_model}. `
@@ -486,13 +486,13 @@ const DashboardScreen = ({ onNavigate }) => {
           <p style={{ color: t.textDim, fontSize: '15px' }}>{tr('realtimeOverview')}</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#10b981' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#004ac6' }}>
             <RefreshCw size={14} />
             {lastSync ? `Actualizado ${lastSync.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}` : 'Cargando...'}
           </div>
           <button
             onClick={generatePDFReport}
-            style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+            style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
           >
             <Download size={16} /> {tr('exportReport')}
           </button>
@@ -508,10 +508,10 @@ const DashboardScreen = ({ onNavigate }) => {
             <svg width="120" height="120" viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="52" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="12" />
               <circle cx="60" cy="60" r="52" fill="none" stroke="url(#hg)" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(healthScore ?? 0) * 3.27} 327`} transform="rotate(-90 60 60)" />
-              <defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#059669" /></linearGradient></defs>
+              <defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#004ac6" /><stop offset="100%" stopColor="#003ea8" /></linearGradient></defs>
             </svg>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: '#10b981' }}>
+              <div style={{ fontSize: '32px', fontWeight: 700, color: '#004ac6' }}>
                 {isLoading ? '...' : `${healthScore ?? '--'}%`}
               </div>
               <div style={{ fontSize: '11px', color: t.textDim }}>{tr('ready')}</div>
@@ -520,7 +520,7 @@ const DashboardScreen = ({ onNavigate }) => {
           {/* Triple Score */}
           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
             {[
-              { label: 'Documentado', value: tripleScore?.doc ?? 0, color: '#10b981' },
+              { label: 'Documentado', value: tripleScore?.doc ?? 0, color: '#004ac6' },
               { label: 'Implementado', value: tripleScore?.impl ?? 0, color: '#3b82f6' },
               { label: 'Probado', value: tripleScore?.tested ?? 0, color: '#f59e0b' },
             ].map(({ label, value, color }) => (
@@ -585,14 +585,14 @@ const DashboardScreen = ({ onNavigate }) => {
       {canAccessGapAnalysis && (
         <div
           onClick={() => onNavigate('gap-analysis')}
-          style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(16, 185, 129, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
+          style={{ background: 'linear-gradient(135deg, rgba(0, 74, 198, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(0, 74, 198, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
         >
-          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#10b981" /></div>
+          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(0, 74, 198, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#004ac6" /></div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>{tr('continueGapAnalysis')}</div>
             <div style={{ fontSize: '14px', color: t.textDim }}>{tr('completeAssessment')} • {isLoading ? '...' : `${healthScore ?? '--'}%`} {tr('complete')}</div>
           </div>
-          <div style={{ padding: '12px 24px', background: '#10b981', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ padding: '12px 24px', background: '#004ac6', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {tr('continue')} <ArrowRight size={16} />
           </div>
         </div>

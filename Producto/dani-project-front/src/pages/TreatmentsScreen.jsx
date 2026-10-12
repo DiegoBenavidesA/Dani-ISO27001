@@ -89,7 +89,7 @@ export default function TreatmentsScreen({ onNavigate }) {
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: t.text }}>Registro de Tratamientos (RoPA)</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Inventario de actividades de tratamiento de datos personales - Ley N° 21.719</p>
         </div>
-        <button onClick={() => setShowForm(true)} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <button onClick={() => setShowForm(true)} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
           <Plus size={16} /> Nuevo Tratamiento
         </button>
       </div>
@@ -179,7 +179,7 @@ export default function TreatmentsScreen({ onNavigate }) {
               ))}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
                 <button type="button" onClick={() => setShowForm(false)} disabled={saving} style={{ padding: '10px 16px', borderRadius: '9px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={saving} style={{ padding: '10px 18px', borderRadius: '9px', border: 'none', background: '#10b981', color: '#fff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'Guardando...' : 'Crear Tratamiento'}</button>
+                <button type="submit" disabled={saving} style={{ padding: '10px 18px', borderRadius: '9px', border: 'none', background: '#004ac6', color: '#fff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'Guardando...' : 'Crear Tratamiento'}</button>
               </div>
             </form>
           </div>

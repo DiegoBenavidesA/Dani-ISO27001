@@ -202,7 +202,7 @@ const UserManagementScreen = () => {
     owner:      { label: 'Owner (Dueño)', color: '#ec4899', bg: 'rgba(236, 72, 153, 0.15)', icon: Shield },
     admin:      { label: 'Administrador',  color: '#8b5cf6', bg: 'rgba(139, 92, 246, 0.15)', icon: Shield },
     manager:    { label: 'Manager',        color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.15)', icon: Key },
-    auditor:    { label: 'Auditor',        color: '#10b981', bg: 'rgba(16, 185, 129, 0.15)', icon: Search },
+    auditor:    { label: 'Auditor',        color: '#004ac6', bg: 'rgba(0, 74, 198, 0.15)', icon: Search },
     dpo:        { label: 'DPO',            color: '#06b6d4', bg: 'rgba(6, 182, 212, 0.15)',  icon: Key },
     employee:   { label: 'Empleado',       color: t.textDim, bg: t.inputBg,                  icon: Users },
   };
@@ -245,7 +245,7 @@ const UserManagementScreen = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
         {[
           { label: 'Total Usuarios', value: users.length, color: '#3b82f6', icon: Users },
-          { label: 'Usuarios Activos', value: users.filter(u => u.status === 'active').length, color: '#10b981', icon: CheckCircle2 },
+          { label: 'Usuarios Activos', value: users.filter(u => u.status === 'active').length, color: '#004ac6', icon: CheckCircle2 },
           { label: 'Inactivos / Pendientes', value: users.filter(u => u.status !== 'active').length, color: '#f59e0b', icon: Mail },
           { label: 'Equipo de Seguridad', value: users.filter(u => ['superadmin', 'owner', 'admin', 'manager', 'auditor', 'dpo'].includes(u.role)).length, color: '#8b5cf6', icon: Shield }
         ].map((stat, idx) => (
@@ -379,8 +379,8 @@ const UserManagementScreen = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div style={{ 
                             width: '8px', height: '8px', borderRadius: '50%', 
-                            background: user.status === 'active' ? '#10b981' : user.status === 'inactive' ? '#ef4444' : '#f59e0b',
-                            boxShadow: `0 0 8px ${user.status === 'active' ? '#10b981' : user.status === 'inactive' ? '#ef4444' : '#f59e0b'}60`
+                            background: user.status === 'active' ? '#004ac6' : user.status === 'inactive' ? '#ef4444' : '#f59e0b',
+                            boxShadow: `0 0 8px ${user.status === 'active' ? '#004ac6' : user.status === 'inactive' ? '#ef4444' : '#f59e0b'}60`
                           }} />
                           <span style={{ fontSize: '12px', color: t.textDim, textTransform: 'capitalize' }}>
                             {user.status === 'active' ? 'Activo' : user.status === 'inactive' ? 'Inactivo' : 'Pendiente'}
@@ -407,7 +407,7 @@ const UserManagementScreen = () => {
                                 {user.role !== 'superadmin' && (
                                   <button
                                     onClick={(e) => { handleToggleActive(user, e); setMenuOpenId(null); }}
-                                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: user.status === 'active' ? '#f59e0b' : '#10b981', fontSize: '13px', fontWeight: 500 }}
+                                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '11px 14px', background: 'transparent', border: 'none', cursor: 'pointer', color: user.status === 'active' ? '#f59e0b' : '#004ac6', fontSize: '13px', fontWeight: 500 }}
                                   >
                                     {user.status === 'active' ? <Ban size={16} /> : <UserCheck size={16} />}
                                     {user.status === 'active' ? 'Suspender acceso' : 'Reactivar acceso'}
@@ -544,7 +544,7 @@ const UserManagementScreen = () => {
 
               <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setIsEditModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" disabled={isUpdating} style={{ flex: 1, padding: '12px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isUpdating ? 'not-allowed' : 'pointer', opacity: isUpdating ? 0.7 : 1 }}>
+                <button type="submit" disabled={isUpdating} style={{ flex: 1, padding: '12px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isUpdating ? 'not-allowed' : 'pointer', opacity: isUpdating ? 0.7 : 1 }}>
                   {isUpdating ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
@@ -603,7 +603,7 @@ const UserManagementScreen = () => {
                 Se enviará una invitación por correo. El usuario definirá su propia contraseña al activar la cuenta.
               </p>
 
-              {inviteMsg && <div role="status" aria-live="polite" style={{ padding: '10px 14px', background: inviteMsg.startsWith('Error') ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: inviteMsg.startsWith('Error') ? '#ef4444' : '#10b981', borderRadius: '10px', fontSize: '13px' }}>{inviteMsg}</div>}
+              {inviteMsg && <div role="status" aria-live="polite" style={{ padding: '10px 14px', background: inviteMsg.startsWith('Error') ? 'rgba(239,68,68,0.15)' : 'rgba(0, 74, 198,0.15)', color: inviteMsg.startsWith('Error') ? '#ef4444' : '#004ac6', borderRadius: '10px', fontSize: '13px' }}>{inviteMsg}</div>}
 
               <div style={{ marginTop: '8px', display: 'flex', gap: '12px' }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} style={{ flex: 1, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontWeight: 600, cursor: 'pointer' }}>Cerrar</button>

@@ -111,14 +111,14 @@ export default function ImpactScreen({ navParams, onNavigate }) {
                       <td style={{ padding: '16px 24px' }}>
                         {riesgo === 'alto' && <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '13px' }}>Alto</span>}
                         {riesgo === 'medio' && <span style={{ color: '#f59e0b', fontWeight: 600, fontSize: '13px' }}>Medio</span>}
-                        {riesgo === 'bajo' && <span style={{ color: '#10b981', fontWeight: 600, fontSize: '13px' }}>Bajo</span>}
+                        {riesgo === 'bajo' && <span style={{ color: '#004ac6', fontWeight: 600, fontSize: '13px' }}>Bajo</span>}
                         {riesgo === 'No evaluado' && <span style={{ color: t.textMuted, fontSize: '13px' }}>No evaluado</span>}
                       </td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ 
                           padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 600,
-                          background: estado === 'pendiente' ? 'rgba(245, 158, 11, 0.1)' : estado === 'completado' ? 'rgba(16, 185, 129, 0.1)' : t.inputBg,
-                          color: estado === 'pendiente' ? '#f59e0b' : estado === 'completado' ? '#10b981' : t.textMuted
+                          background: estado === 'pendiente' ? 'rgba(245, 158, 11, 0.1)' : estado === 'completado' ? 'rgba(0, 74, 198, 0.1)' : t.inputBg,
+                          color: estado === 'pendiente' ? '#f59e0b' : estado === 'completado' ? '#004ac6' : t.textMuted
                         }}>
                           {estado.toUpperCase()}
                         </span>
@@ -147,7 +147,7 @@ export default function ImpactScreen({ navParams, onNavigate }) {
     <div style={{ animation: 'fadeIn 0.4s ease', padding: '24px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: treatment.eval?.nivel_riesgo === 'alto' ? '#ef4444' : treatment.eval?.nivel_riesgo === 'medio' ? '#f59e0b' : '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: treatment.eval?.nivel_riesgo === 'alto' ? '#ef4444' : treatment.eval?.nivel_riesgo === 'medio' ? '#f59e0b' : '#004ac6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shield size={24} color="white" />
           </div>
           <div>
@@ -209,7 +209,7 @@ export default function ImpactScreen({ navParams, onNavigate }) {
               {/* Convertimos el string de medidas en un arreglo separando por saltos de línea o viñetas */}
               {treatment.eval.medidas_mitigacion.split('\n').filter(m => m.trim().length > 0).map((medida, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px' }}>
-                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}><Check size={12} color="white" /></div>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#004ac6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}><Check size={12} color="white" /></div>
                   <span style={{ fontSize: '13px', color: t.text, fontWeight: 500, lineHeight: 1.4 }}>{medida.replace(/^[-*•\d.]+\s*/, '')}</span>
                 </div>
               ))}

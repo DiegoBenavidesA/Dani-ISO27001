@@ -144,12 +144,12 @@ const BreachesScreen = () => {
 
   const plazoBadge = (breach) => {
     if (breach.estado === 'notificada' || breach.estado === 'cerrada') {
-      return { text: 'Notificada', color: '#10b981', icon: CheckCircle };
+      return { text: 'Notificada', color: '#004ac6', icon: CheckCircle };
     }
     const horas = horasRestantes(breach.fecha_limite_notificacion);
     if (horas < 0 || breach.alerta_vencida) return { text: `Vencida hace ${Math.abs(horas)} h`, color: '#ef4444', icon: AlertTriangle };
     if (horas <= 24) return { text: `${horas} h restantes`, color: '#f59e0b', icon: Clock };
-    return { text: `${horas} h restantes`, color: '#10b981', icon: Clock };
+    return { text: `${horas} h restantes`, color: '#004ac6', icon: Clock };
   };
 
   const gravedadLabel = (v) => (GRAVEDADES.find(x => x.value === v) || {}).label || v;
@@ -195,7 +195,7 @@ const BreachesScreen = () => {
         <SummaryCard t={t} label="Total" value={total} color={t.text} />
         <SummaryCard t={t} label="Activas" value={activas} color="#6366f1" />
         <SummaryCard t={t} label="Plazo vencido" value={vencidas} color="#ef4444" />
-        <SummaryCard t={t} label="Notificadas" value={notificadas} color="#10b981" />
+        <SummaryCard t={t} label="Notificadas" value={notificadas} color="#004ac6" />
       </div>
 
       {/* Tabla */}
@@ -250,7 +250,7 @@ const BreachesScreen = () => {
                       </td>
                       <td style={tdStyle(t)}>
                         {yaNotificada ? (
-                          <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
+                          <span style={{ color: '#004ac6', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px' }}>
                             <CheckCircle size={14} /> Hecho
                           </span>
                         ) : (
@@ -371,7 +371,7 @@ const secondaryBtn = (t) => ({ display: 'inline-flex', alignItems: 'center', gap
 const iconBtn = (t) => ({ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer' });
 
 const gravedadPill = (g) => {
-  const map = { baja: '#10b981', media: '#f59e0b', alta: '#f97316', critica: '#ef4444' };
+  const map = { baja: '#004ac6', media: '#f59e0b', alta: '#f97316', critica: '#ef4444' };
   const c = map[g] || '#64748b';
   return { padding: '3px 9px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: c, background: `${c}22`, whiteSpace: 'nowrap' };
 };

@@ -96,8 +96,7 @@ function SettingsModal({ onClose }) {
     { id: 'password', label: l.password, icon: Key },
     { id: '2fa', label: l.twoFA, icon: Smartphone },
     { id: 'auditCycle', label: l.auditCycle, icon: Calendar },
-    { id: 'language', label: l.language, icon: Globe },
-    { id: 'appearance', label: l.appearance, icon: Monitor }
+    { id: 'language', label: l.language, icon: Globe }
   ];
 
   const languages = [
@@ -169,7 +168,7 @@ function SettingsModal({ onClose }) {
         {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Settings size={20} color="white" />
             </div>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>{l.settings}</h2>
@@ -186,7 +185,7 @@ function SettingsModal({ onClose }) {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
               return (
-                <button key={section.id} onClick={() => setActiveSection(section.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', background: isActive ? 'rgba(16,185,129,0.15)' : 'transparent', border: 'none', borderRadius: '10px', cursor: 'pointer', color: isActive ? '#10b981' : t.textMuted, fontSize: '14px', fontWeight: isActive ? 600 : 500, textAlign: 'left' }}>
+                <button key={section.id} onClick={() => setActiveSection(section.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', background: isActive ? 'rgba(0, 74, 198,0.15)' : 'transparent', border: 'none', borderRadius: '10px', cursor: 'pointer', color: isActive ? '#004ac6' : t.textMuted, fontSize: '14px', fontWeight: isActive ? 600 : 500, textAlign: 'left' }}>
                   <Icon size={18} /> {section.label}
                 </button>
               );
@@ -229,11 +228,11 @@ function SettingsModal({ onClose }) {
                     </div>
                   )}
                   {pwdSuccess && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#004ac6', fontSize: '13px' }}>
                       <CheckCircle2 size={14} /> {l.passwordUpdated}
                     </div>
                   )}
-                  <button type="submit" disabled={pwdLoading} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: pwdLoading ? 'wait' : 'pointer', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', opacity: pwdLoading ? 0.7 : 1 }}>
+                  <button type="submit" disabled={pwdLoading} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: pwdLoading ? 'wait' : 'pointer', alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '8px', opacity: pwdLoading ? 0.7 : 1 }}>
                     {pwdLoading && <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />}
                     {l.updatePassword}
                   </button>
@@ -248,15 +247,15 @@ function SettingsModal({ onClose }) {
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.twoFADescription}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', background: t.inputBg, borderRadius: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: twoFAEnabled ? 'rgba(16,185,129,0.15)' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Shield size={20} color={twoFAEnabled ? '#10b981' : t.textDim} />
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: twoFAEnabled ? 'rgba(0, 74, 198,0.15)' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Shield size={20} color={twoFAEnabled ? '#004ac6' : t.textDim} />
                     </div>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{l.twoFactorAuth}</div>
-                      <div style={{ fontSize: '12px', color: twoFAEnabled ? '#10b981' : t.textDim }}>{twoFAEnabled ? l.enabled : l.disabled}</div>
+                      <div style={{ fontSize: '12px', color: twoFAEnabled ? '#004ac6' : t.textDim }}>{twoFAEnabled ? l.enabled : l.disabled}</div>
                     </div>
                   </div>
-                  <button onClick={() => setTwoFAEnabled(!twoFAEnabled)} style={{ width: '52px', height: '28px', borderRadius: '14px', background: twoFAEnabled ? '#10b981' : t.hoverBg, border: `1px solid ${twoFAEnabled ? '#10b981' : t.border}`, cursor: 'pointer', position: 'relative' }}>
+                  <button onClick={() => setTwoFAEnabled(!twoFAEnabled)} style={{ width: '52px', height: '28px', borderRadius: '14px', background: twoFAEnabled ? '#004ac6' : t.hoverBg, border: `1px solid ${twoFAEnabled ? '#004ac6' : t.border}`, cursor: 'pointer', position: 'relative' }}>
                     <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: twoFAEnabled ? '27px' : '2px', transition: 'all 0.2s ease' }} />
                   </button>
                 </div>
@@ -270,7 +269,7 @@ function SettingsModal({ onClose }) {
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.auditCycleDescription}</p>
                 <div style={{ padding: '20px', background: t.inputBg, borderRadius: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(16,185,129,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Calendar size={20} color="#10b981" /></div>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(0, 74, 198,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Calendar size={20} color="#004ac6" /></div>
                     <div>
                       <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{l.auditCycleDay}: {auditCycleDay}</div>
                       <div style={{ fontSize: '12px', color: t.textDim }}>{l.auditCycleDayHelp}</div>
@@ -278,7 +277,7 @@ function SettingsModal({ onClose }) {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => (
-                      <button key={day} onClick={() => setAuditCycleDay(day)} style={{ aspectRatio: '1', borderRadius: '8px', background: auditCycleDay === day ? '#10b981' : 'transparent', border: `1px solid ${auditCycleDay === day ? '#10b981' : t.border}`, color: auditCycleDay === day ? 'white' : t.text, fontSize: '13px', fontWeight: auditCycleDay === day ? 600 : 500, cursor: 'pointer' }}>{day}</button>
+                      <button key={day} onClick={() => setAuditCycleDay(day)} style={{ aspectRatio: '1', borderRadius: '8px', background: auditCycleDay === day ? '#004ac6' : 'transparent', border: `1px solid ${auditCycleDay === day ? '#004ac6' : t.border}`, color: auditCycleDay === day ? 'white' : t.text, fontSize: '13px', fontWeight: auditCycleDay === day ? 600 : 500, cursor: 'pointer' }}>{day}</button>
                     ))}
                   </div>
                 </div>
@@ -292,48 +291,29 @@ function SettingsModal({ onClose }) {
                 <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.languageDescription}</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {languages.map((lang) => (
-                    <button key={lang.code} onClick={() => setLanguage(lang.code)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: language === lang.code ? 'rgba(16,185,129,0.1)' : t.inputBg, border: `2px solid ${language === lang.code ? '#10b981' : t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
+                    <button key={lang.code} onClick={() => setLanguage(lang.code)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 18px', background: language === lang.code ? 'rgba(0, 74, 198,0.1)' : t.inputBg, border: `2px solid ${language === lang.code ? '#004ac6' : t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
                       <span style={{ fontSize: '28px' }}>{lang.flag}</span>
-                      <span style={{ flex: 1, fontSize: '15px', fontWeight: 600, color: language === lang.code ? '#10b981' : t.text }}>{lang.name}</span>
-                      {language === lang.code && <Check size={14} color="#10b981" />}
+                      <span style={{ flex: 1, fontSize: '15px', fontWeight: 600, color: language === lang.code ? '#004ac6' : t.text }}>{lang.name}</span>
+                      {language === lang.code && <Check size={14} color="#004ac6" />}
                     </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Apariencia */}
-            {activeSection === 'appearance' && (
-              <div>
-                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.screenMode}</h3>
-                <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.appearanceDescription}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <button onClick={() => setDarkMode(true)} style={{ padding: '20px', background: darkMode ? 'rgba(16,185,129,0.1)' : t.inputBg, border: `2px solid ${darkMode ? '#10b981' : t.border}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'center' }}>
-                    <div style={{ width: '100%', height: '80px', background: 'linear-gradient(135deg, #0a0f1c 0%, #1e293b 100%)', borderRadius: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(255,255,255,0.1)' }}><Moon size={28} color="#6366f1" /></div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: darkMode ? '#10b981' : t.text }}>{l.darkMode}</div>
-                    <div style={{ fontSize: '11px', color: t.textDim }}>{l.darkModeDesc}</div>
-                  </button>
-                  <button onClick={() => setDarkMode(false)} style={{ padding: '20px', background: !darkMode ? 'rgba(16,185,129,0.1)' : t.inputBg, border: `2px solid ${!darkMode ? '#10b981' : t.border}`, borderRadius: '16px', cursor: 'pointer', textAlign: 'center' }}>
-                    <div style={{ width: '100%', height: '80px', background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)', borderRadius: '10px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(0,0,0,0.1)' }}><Sun size={28} color="#f59e0b" /></div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: !darkMode ? '#10b981' : t.text }}>{l.lightMode}</div>
-                    <div style={{ fontSize: '11px', color: t.textDim }}>{l.lightModeDesc}</div>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: '13px' }}>
-            {prefsSaved && <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} /> {l.saved}</span>}
+            {prefsSaved && <span style={{ color: '#004ac6', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} /> {l.saved}</span>}
             {prefsError && <span style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '6px' }}><AlertCircle size={14} /> {prefsError}</span>}
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button onClick={onClose} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>{l.cancel}</button>
             {isPrefsSection && (
-              <button onClick={handleSavePreferences} disabled={prefsSaving} style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: prefsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: prefsSaving ? 0.7 : 1 }}>
+              <button onClick={handleSavePreferences} disabled={prefsSaving} style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: prefsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: prefsSaving ? 0.7 : 1 }}>
                 {prefsSaving && <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />}
                 {prefsSaving ? l.saving : l.saveChanges}
               </button>

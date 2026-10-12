@@ -132,28 +132,13 @@ export default function DaniPlatform() {
             {langDropdownOpen && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: darkMode ? '#1e293b' : '#ffffff', border: `1px solid ${t.border}`, borderRadius: '12px', padding: '8px', minWidth: '160px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', zIndex: 100 }}>
                 {languages.map((lang) => (
-                  <button key={lang.code} onClick={() => { setLanguage(lang.code); setLangDropdownOpen(false); }} style={{ width: '100%', display: 'flex', gap: '10px', padding: '10px', border: 'none', background: language === lang.code ? 'rgba(16, 185, 129, 0.1)' : 'transparent', color: t.text, cursor: 'pointer', borderRadius: '8px' }}>
+                  <button key={lang.code} onClick={() => { setLanguage(lang.code); setLangDropdownOpen(false); }} style={{ width: '100%', display: 'flex', gap: '10px', padding: '10px', border: 'none', background: language === lang.code ? 'rgba(0, 74, 198, 0.1)' : 'transparent', color: t.text, cursor: 'pointer', borderRadius: '8px' }}>
                     <span>{lang.flag}</span> <span>{lang.name}</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
-
-          {/* High Contrast Toggle */}
-          <button onClick={() => setHighContrast(!highContrast)} title="Alto Contraste" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: highContrast ? '#ffffff' : t.inputBg, border: `1px solid ${highContrast ? '#000000' : t.border}`, borderRadius: '12px', color: highContrast ? '#000000' : t.text, cursor: 'pointer' }}>
-            <Contrast size={20} />
-          </button>
-
-          {/* Toggle Modo Oscuro */}
-          <button onClick={() => setDarkMode(!darkMode)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', transform: darkMode ? 'translateY(0)' : 'translateY(-40px)', opacity: darkMode ? 1 : 0 }}>
-              <Sun size={20} color="#f59e0b" />
-            </div>
-            <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.3s ease', transform: darkMode ? 'translateY(40px)' : 'translateY(0)', opacity: darkMode ? 0 : 1 }}>
-              <Moon size={20} color="#6366f1" />
-            </div>
-          </button>
 
           {/* Notificaciones */}
           <div style={{ position: 'relative' }}>
@@ -203,16 +188,8 @@ export default function DaniPlatform() {
       </main>
 
       {/* Componentes Flotantes y Modales */}
-      {!chatOpen && (
-        <button
-          onClick={() => setChatOpen(true)}
-          style={{ position: 'fixed', bottom: '32px', right: '32px', width: '60px', height: '60px', borderRadius: '50%', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(16, 185, 129, 0.4)', zIndex: 100 }}
-        >
-          <Bot size={28} color="white" />
-        </button>
-      )}
-
-      <ChatDANI isOpen={chatOpen} onClose={() => setChatOpen(false)} activeScreen={activeScreen} />
+      {/* El Asistente DANI gestiona su propio botón flotante (FAB) y panel. */}
+      <ChatDANI activeScreen={activeScreen} />
       
       {commandPaletteOpen && <CommandPalette isOpen={commandPaletteOpen} darkMode={darkMode} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}

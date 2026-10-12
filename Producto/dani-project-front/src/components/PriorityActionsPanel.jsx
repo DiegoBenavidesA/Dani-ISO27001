@@ -4,13 +4,13 @@ import { API_URL } from '../services/api';
 const PRIORITY = {
   high:   { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   label: 'Alta' },
   medium: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  label: 'Media' },
-  low:    { color: '#10b981', bg: 'rgba(16,185,129,0.12)',  label: 'Baja' },
+  low:    { color: '#004ac6', bg: 'rgba(0, 74, 198,0.12)',  label: 'Baja' },
 };
 
 const DECISION = {
   human:  { label: '👤 Humano',   bg: 'rgba(239,68,68,0.1)',   color: '#ef4444' },
   review: { label: '👁 Revisar',  bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b' },
-  auto:   { label: '🤖 Auto',     bg: 'rgba(16,185,129,0.1)',  color: '#10b981' },
+  auto:   { label: '🤖 Auto',     bg: 'rgba(0, 74, 198,0.1)',  color: '#004ac6' },
 };
 
 export default function PriorityActionsPanel({ onNavigate, darkMode }) {

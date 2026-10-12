@@ -22,7 +22,7 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
   const domainProgress = [
     { name: language === 'es' ? 'Personas' : 'People',     progress: domains?.people      ?? null, color: '#3b82f6' },
     { name: language === 'es' ? 'Tecnología' : 'Technology', progress: domains?.technology ?? null, color: '#8b5cf6' },
-    { name: language === 'es' ? 'Físico' : 'Physical',     progress: domains?.physical     ?? null, color: '#10b981' },
+    { name: language === 'es' ? 'Físico' : 'Physical',     progress: domains?.physical     ?? null, color: '#004ac6' },
     { name: language === 'es' ? 'Procesos' : 'Processes',  progress: domains?.processes    ?? null, color: '#f59e0b' }
   ];
 
@@ -35,9 +35,9 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
         <div style={{ width: '48px', height: '48px', margin: '0 auto', position: 'relative' }}>
           <svg width="48" height="48" viewBox="0 0 48 48">
             <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
-            <circle cx="24" cy="24" r="20" fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.26} 126`} transform="rotate(-90 24 24)" />
+            <circle cx="24" cy="24" r="20" fill="none" stroke="#004ac6" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.26} 126`} transform="rotate(-90 24 24)" />
           </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#10b981' }}>{displayOverall ?? '--'}%</div>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#004ac6' }}>{displayOverall ?? '--'}%</div>
         </div>
       </div>
     );
@@ -52,9 +52,9 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
           <svg width="64" height="64" viewBox="0 0 64 64">
             <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
             <circle cx="32" cy="32" r="26" fill="none" stroke="url(#overallGradient)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.63} 163`} transform="rotate(-90 32 32)" />
-            <defs><linearGradient id="overallGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#10b981" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
+            <defs><linearGradient id="overallGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#004ac6" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
           </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#10b981' }}>{displayOverall ?? '--'}%</div>
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#004ac6' }}>{displayOverall ?? '--'}%</div>
         </div>
         <div>
           <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{language === 'es' ? 'General' : 'Overall'}</div>
@@ -149,7 +149,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     <aside style={{ width: sidebarCollapsed ? '80px' : '260px', background: t.sidebarBg, backdropFilter: 'blur(20px)', borderRight: `1px solid ${t.border}`, padding: '24px 16px', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', position: 'relative', zIndex: 10 }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', padding: '0 8px' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Shield size={24} color="white" />
         </div>
         {!sidebarCollapsed && <div><div style={{ fontWeight: 700, fontSize: '20px' }}>Dani</div><div style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px' }}>ISO 27001</div></div>}
@@ -192,7 +192,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
           const renderNavButton = (item, extraStyle = {}) => {
             const isActive = activeScreen === item.id;
             return (
-              <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#10b981' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', ...extraStyle }}>
+              <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', ...extraStyle }}>
                 <item.icon size={20} />
                 {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
               </button>
@@ -271,7 +271,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
               {employeePortal && (() => {
                 const isActive = activeScreen === employeePortal.id;
                 return (
-                  <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(16, 185, 129, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#10b981' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
+                  <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#004ac6' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
                     <employeePortal.icon size={20} />
                     {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
                   </button>

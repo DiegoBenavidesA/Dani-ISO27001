@@ -65,7 +65,7 @@ const AssessmentScreen = () => {
     <div style={{ padding: '28px', maxWidth: '1100px', margin: '0 auto' }}>
       {/* Encabezado */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-        <ClipboardList size={26} color="#10b981" />
+        <ClipboardList size={26} color="#004ac6" />
         <h1 style={{ margin: 0, color: t.text, fontSize: '24px' }}>Catálogo de Evaluación</h1>
       </div>
       <p style={{ color: t.textMuted, marginTop: 0, marginBottom: '20px', fontSize: '14px' }}>

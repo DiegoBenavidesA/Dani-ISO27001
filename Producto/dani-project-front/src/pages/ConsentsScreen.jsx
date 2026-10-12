@@ -269,8 +269,8 @@ const ConsentsScreen = () => {
     }
 
     return {
-      background: 'rgba(16, 185, 129, 0.15)',
-      color: '#10b981'
+      background: 'rgba(0, 74, 198, 0.15)',
+      color: '#004ac6'
     };
   };
 
@@ -322,7 +322,7 @@ const ConsentsScreen = () => {
               gap: '12px'
             }}
           >
-            <ClipboardCheck size={30} color="#10b981" />
+            <ClipboardCheck size={30} color="#004ac6" />
 
             <h1
               style={{
@@ -355,7 +355,7 @@ const ConsentsScreen = () => {
             padding: '11px 18px',
             border: 'none',
             borderRadius: '10px',
-            background: '#10b981',
+            background: '#004ac6',
             color: '#ffffff',
             fontWeight: 600,
             cursor: 'pointer'
@@ -425,7 +425,7 @@ const ConsentsScreen = () => {
             style={{
               fontSize: '28px',
               fontWeight: 700,
-              color: '#10b981'
+              color: '#004ac6'
             }}
           >
             {grantedCount}
@@ -1060,7 +1060,7 @@ const ConsentsScreen = () => {
                     padding: '10px 18px',
                     borderRadius: '9px',
                     border: 'none',
-                    background: '#10b981',
+                    background: '#004ac6',
                     color: '#ffffff',
                     fontWeight: 600,
                     cursor: saving ? 'not-allowed' : 'pointer',
