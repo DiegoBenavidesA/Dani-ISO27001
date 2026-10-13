@@ -9,6 +9,7 @@ import GapAnalysis from './pages/GapAnalysisScreen';
 import PublicConsentScreen from './pages/PublicConsentScreen';
 import ActivateScreen from './pages/ActivateScreen';
 import PublicDataRequestScreen from './pages/PublicDataRequestScreen';
+import LandingPage from './pages/LandingPage';
 
 // Componente para manejar las rutas
 function AppRoutes() {
@@ -46,7 +47,7 @@ function AppRoutes() {
       />
 
       {/* Raíz */}
-      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/" element={<LandingPage />} />
 
       {/* Rutas multi-tenant */}
       <Route
