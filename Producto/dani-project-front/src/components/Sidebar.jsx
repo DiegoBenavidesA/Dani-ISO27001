@@ -146,13 +146,71 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   });
 
   return (
-    <aside style={{ width: sidebarCollapsed ? '80px' : '260px', background: t.sidebarBg, backdropFilter: 'blur(20px)', borderRight: `1px solid ${t.border}`, padding: '24px 16px', display: 'flex', flexDirection: 'column', transition: 'all 0.3s ease', position: 'relative', zIndex: 10 }}>
+    <aside
+      style={{
+        width: sidebarCollapsed ? '80px' : '260px',
+        background: t.sidebarBg,
+        backdropFilter: 'blur(20px)',
+        borderRight: `1px solid ${t.border}`,
+        padding: '24px 16px',
+        display: 'flex',
+        flexDirection: 'column',
+        transition: 'all 0.3s ease',
+        position: 'relative',
+        zIndex: 10
+      }}
+    >
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', padding: '0 8px' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Shield size={24} color="white" />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '32px',
+          padding: '0 8px'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <img
+            src="/LogoNormIa.png"
+            alt="NormIA"
+            style={{
+              width: '44px',
+              height: '44px',
+              objectFit: 'contain'
+            }}
+          />
         </div>
-        {!sidebarCollapsed && <div><div style={{ fontWeight: 700, fontSize: '20px' }}>Dani</div><div style={{ fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px' }}>ISO 27001</div></div>}
+
+        {!sidebarCollapsed && (
+          <div>
+            <div
+              style={{
+                fontWeight: 700,
+                fontSize: '20px'
+              }}
+            >
+              NormIA
+            </div>
+
+            <div
+              style={{
+                fontSize: '11px',
+                color: t.textDim,
+                textTransform: 'lowercase',
+                letterSpacing: '1px'
+              }}
+            >
+              Plataforma de gestión de cumplimiento
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Command Palette Trigger */}

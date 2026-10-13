@@ -112,13 +112,23 @@ const Login = () => {
         
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 10px 25px -5px rgba(0, 74, 198, 0.4)' }}>
-            <Shield size={36} color="white" />
+            <img
+              src="/LogoNormIa.png"
+              alt="NormIA"
+              style={{
+                width: '72px',
+                height: '72px',
+                objectFit: 'contain'
+              }}
+            />
           </div>
           <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#0b1c30', letterSpacing: '-0.5px' }}>
-            {isRegistering ? 'Crear Cuenta' : 'Bienvenido a DANI'}
+            {isRegistering ? 'Crear Cuenta' : 'Bienvenido a NORMIA'}
           </h2>
           <p style={{ color: '#565e74', fontSize: '14px', marginTop: '8px', textAlign: 'center' }}>
-            {isRegistering ? 'Registra tus datos para acceder al sistema' : 'Acceso seguro al portal de gestión ISO 27001'}
+            {isRegistering
+              ? 'Registra tus datos para acceder al sistema'
+              : 'Acceso seguro a la plataforma de cumplimiento y seguridad'}
           </p>
         </div>
 
