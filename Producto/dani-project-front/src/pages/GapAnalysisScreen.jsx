@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect, useMemo } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
-  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2
+  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -499,6 +499,23 @@ function GapAnalysisScreen({ onNavigate }) {
       }
     };
 
+    const handleImportPdf = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImportPdf(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
     const handleDownloadTemplate = async () => {
       try { await assessmentQuestionsAPI.downloadTemplate(); }
       catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
@@ -546,6 +563,10 @@ function GapAnalysisScreen({ onNavigate }) {
             <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
             <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
           </label>
+          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FileText size={16} /> {importing ? 'Importando…' : 'Importar PDF'}
+            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
+          </label>
           <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Plus size={16} /> Nueva Pregunta
           </button>
@@ -558,10 +579,15 @@ function GapAnalysisScreen({ onNavigate }) {
               <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos} filas con datos).</span>
+                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
                 {importResult.columnas_detectadas && (
                   <span style={{ color: t.textDim, fontSize: '12px' }}>
                     Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
+                  </span>
+                )}
+                {importResult.categorias && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
                   </span>
                 )}
               </div>
