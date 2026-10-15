@@ -1108,6 +1108,24 @@ export const assessmentQuestionsAPI = {
     return response.json();
   },
 
+  // Carga masiva desde un PDF (checklist/listado). Devuelve { creadas, omitidas, total_detectadas, categorias }
+  bulkImportPdf: async (file, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import-pdf`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
   // Descarga la plantilla Excel con las columnas esperadas.
   downloadTemplate: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');

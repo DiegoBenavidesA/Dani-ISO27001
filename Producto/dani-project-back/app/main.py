@@ -134,6 +134,26 @@ async def lifespan(app: FastAPI):
             await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
             await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
 
+        # Tratamientos (RoPA) y Evaluaciones de Impacto (DPIA) multi-tenant:
+        # faltaba organization_id en la BD de producción (create_all no altera
+        # tablas existentes). Sin esta columna fallan el alta manual de
+        # tratamientos, la extracción con IA y la página de Evaluación de Impacto.
+        for tabla in ("data_treatments", "impact_assessments"):
+            await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+            await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
+
+        # Campos del flujo de datos del tratamiento (Obligación O1) que pudieran
+        # faltar en tablas creadas antes de añadirlos al modelo.
+        for _col in (
+            "categorias_datos TEXT",
+            "origen VARCHAR(255)",
+            "destinatarios TEXT",
+            "transferencias_internacionales TEXT",
+            "plazo_conservacion VARCHAR(100)",
+            "responsable VARCHAR(255)",
+        ):
+            await conn.execute(text(f"ALTER TABLE data_treatments ADD COLUMN IF NOT EXISTS {_col};"))
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
