@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect, useMemo } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
-  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2
+  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -86,24 +86,58 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { loadQuestions(); }, []);
 
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
+  const catLower = (q) => (q.categoria || '').toLowerCase();
   const phaseDefs = [
-    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => q.categoria?.startsWith('Cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
-    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#10b981', match: (q) => q.categoria?.startsWith('Cláusula') && clauseNum(q.codigo) === '6' },
-    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => q.categoria?.startsWith('Cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
-    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => q.categoria === 'Organizacional' },
-    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
-    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
-    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
-    { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => q.categoria === 'Privacidad' || (q.categoria || '').toLowerCase().startsWith('ley') },
+    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => catLower(q).startsWith('cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
+    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#004ac6', match: (q) => catLower(q).startsWith('cláusula') && clauseNum(q.codigo) === '6' },
+    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => catLower(q).startsWith('cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
+    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => catLower(q).includes('organizacional') },
+    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => catLower(q).includes('persona') },
+    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => catLower(q).includes('físic') || catLower(q).includes('fisic') },
+    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => catLower(q).includes('tecnológic') || catLower(q).includes('tecnologic') },
+    { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => catLower(q).includes('privacidad') || catLower(q).startsWith('ley') || catLower(q).includes('protección de datos') || catLower(q).includes('proteccion de datos') || catLower(q).includes('tratamiento') || catLower(q).includes('rgpd') || catLower(q).includes('gdpr') },
   ];
 
   const phases = useMemo(() => {
-    return phaseDefs.map((def) => ({
-      id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
-      questions: dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((q) => ({
-        id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
-      })),
-    })).filter((p) => p.questions.length > 0);
+    // Ids de preguntas ya matcheadas por las fases definidas
+    const matchedIds = new Set();
+    const result = phaseDefs.map((def) => {
+      const matched = dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+      matched.forEach((q) => matchedIds.add(q.id));
+      return {
+        id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
+        questions: matched.map((q) => ({
+          id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: (q.categoria || '').toLowerCase().startsWith('cláusula'), evidencia: q.evidencia_esperada,
+        })),
+      };
+    }).filter((p) => p.questions.length > 0);
+
+    // Fase catch-all para preguntas que no matchearon con ninguna fase conocida
+    const unmatchedQuestions = dbQuestions.filter((q) => !matchedIds.has(q.id));
+    if (unmatchedQuestions.length > 0) {
+      // Agrupar por categoría para crear fases dinámicas
+      const byCat = {};
+      unmatchedQuestions.forEach((q) => {
+        const cat = q.categoria || 'General';
+        if (!byCat[cat]) byCat[cat] = [];
+        byCat[cat].push(q);
+      });
+      Object.entries(byCat).forEach(([cat, qs]) => {
+        qs.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+        result.push({
+          id: `extra-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+          name: cat,
+          clause: `${qs.length} preguntas`,
+          icon: FileCheck,
+          color: '#6366f1',
+          questions: qs.map((q) => ({
+            id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: false, evidencia: q.evidencia_esperada,
+          })),
+        });
+      });
+    }
+
+    return result;
   }, [dbQuestions, language]);
 
   const loadISOControls = async () => {
@@ -361,7 +395,7 @@ function GapAnalysisScreen({ onNavigate }) {
             { id: 'applicable', label: tText.showApplicable },
             { id: 'notApplicable', label: tText.showNotApplicable }
           ].map((filter) => (
-            <button key={filter.id} onClick={() => { setFilterApplicable(filter.id); setCurrentPage(1); }} style={{ padding: '6px 14px', background: filterApplicable === filter.id ? '#10b98120' : 'transparent', border: `1px solid ${filterApplicable === filter.id ? '#10b981' : t.border}`, borderRadius: '20px', color: filterApplicable === filter.id ? '#10b981' : t.textMuted, fontSize: '12px', cursor: 'pointer' }}>
+            <button key={filter.id} onClick={() => { setFilterApplicable(filter.id); setCurrentPage(1); }} style={{ padding: '6px 14px', background: filterApplicable === filter.id ? '#004ac620' : 'transparent', border: `1px solid ${filterApplicable === filter.id ? '#004ac6' : t.border}`, borderRadius: '20px', color: filterApplicable === filter.id ? '#004ac6' : t.textMuted, fontSize: '12px', cursor: 'pointer' }}>
               {filter.label}
             </button>
           ))}
@@ -398,7 +432,7 @@ function GapAnalysisScreen({ onNavigate }) {
                 <td style={{ padding: '11px 16px' }}><div style={{ fontSize: '13px', color: t.text, lineHeight: 1.35 }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
                 <td style={{ padding: '11px 16px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
-                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: control.applicable ? '#10b98120' : 'transparent', border: `1px solid ${control.applicable ? '#10b981' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#10b981' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
+                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: control.applicable ? '#004ac620' : 'transparent', border: `1px solid ${control.applicable ? '#004ac6' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#004ac6' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
                     <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 5px 5px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>No</button>
                   </div>
                 </td>
@@ -422,7 +456,7 @@ function GapAnalysisScreen({ onNavigate }) {
           </tbody>
         </table>
       </div>
-      <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#10b981' }}>
+      <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#004ac6' }}>
         <CheckCircle2 size={14} /><span>{tText.autoSaved}</span>
       </div>
 
@@ -433,7 +467,7 @@ function GapAnalysisScreen({ onNavigate }) {
             <textarea defaultValue={showJustificationModal.justification} rows={4} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '14px', marginBottom: '16px' }} id="justification-textarea" />
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowJustificationModal(null)} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={() => { const textarea = document.getElementById('justification-textarea'); updateJustification(showJustificationModal.id, textarea.value); }} style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Guardar</button>
+              <button onClick={() => { const textarea = document.getElementById('justification-textarea'); updateJustification(showJustificationModal.id, textarea.value); }} style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Guardar</button>
             </div>
           </div>
         </div>
@@ -442,7 +476,7 @@ function GapAnalysisScreen({ onNavigate }) {
   );
 
   const ResultadosView = () => {
-    const getScoreColor = (s) => s >= 85 ? '#10b981' : s >= 70 ? '#f59e0b' : '#ef4444';
+    const getScoreColor = (s) => s >= 85 ? '#004ac6' : s >= 70 ? '#f59e0b' : '#ef4444';
     if (isLoadingAnalysis) return <div style={{ padding: '80px', textAlign: 'center', color: t.textDim }}>Calculando análisis...</div>;
 
     const score = overallScore?.overall_score ?? 0;
@@ -499,6 +533,23 @@ function GapAnalysisScreen({ onNavigate }) {
       }
     };
 
+    const handleImportPdf = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImportPdf(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
     const handleDownloadTemplate = async () => {
       try { await assessmentQuestionsAPI.downloadTemplate(); }
       catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
@@ -542,26 +593,35 @@ function GapAnalysisScreen({ onNavigate }) {
           <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Download size={16} /> Plantilla
           </button>
-          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #10b981`, borderRadius: '8px', color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
             <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
             <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
           </label>
-          <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FileText size={16} /> {importing ? 'Importando…' : 'Importar PDF'}
+            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
+          </label>
+          <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Plus size={16} /> Nueva Pregunta
           </button>
           </div>
         </div>
 
         {importResult && (
-          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#10b981'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
+          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#004ac6'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
             {importResult.error ? (
               <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span><strong style={{ color: '#10b981' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos} filas con datos).</span>
+                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
                 {importResult.columnas_detectadas && (
                   <span style={{ color: t.textDim, fontSize: '12px' }}>
                     Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
+                  </span>
+                )}
+                {importResult.categorias && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
                   </span>
                 )}
               </div>
@@ -643,7 +703,7 @@ function GapAnalysisScreen({ onNavigate }) {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
                   <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer' }}>Cancelar</button>
-                  <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
+                  <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
                 </div>
               </form>
             </div>
@@ -677,7 +737,7 @@ function GapAnalysisScreen({ onNavigate }) {
             </button>
           )}
           
-          <button onClick={handleSaveProgress} disabled={isSaving} style={{ padding: '8px 16px', borderRadius: '8px', background: '#10b981', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
+          <button onClick={handleSaveProgress} disabled={isSaving} style={{ padding: '8px 16px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
             <Download size={14} /> {isSaving ? tText.saving : tText.saveProgress}
           </button>
         </div>
@@ -689,10 +749,10 @@ function GapAnalysisScreen({ onNavigate }) {
           <div style={{ background: t.cardBg, borderRadius: '12px', padding: '16px 20px', marginBottom: '24px', border: `1px solid ${t.border}` }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ fontSize: '13px', fontWeight: 500, color: t.textDim }}>Progreso General</span>
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#10b981' }}>{globalProgress}%</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#004ac6' }}>{globalProgress}%</span>
             </div>
             <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
-              <div style={{ width: `${globalProgress}%`, height: '100%', background: '#10b981', borderRadius: '4px', transition: 'width 0.3s ease' }} />
+              <div style={{ width: `${globalProgress}%`, height: '100%', background: '#004ac6', borderRadius: '4px', transition: 'width 0.3s ease' }} />
             </div>
           </div>
 
@@ -706,12 +766,12 @@ function GapAnalysisScreen({ onNavigate }) {
                   const isActive = currentPhase === idx;
                   const phaseProgress = getPhaseProgress(idx);
                   return (
-                    <button key={phase.id} onClick={() => { setCurrentPhase(idx); setCurrentQuestion(0); }} style={{ width: '100%', padding: '16px', marginBottom: '8px', background: isActive ? 'rgba(16, 185, 129, 0.1)' : t.cardBg, border: isActive ? `1px solid rgba(16, 185, 129, 0.3)` : `1px solid ${t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
+                    <button key={phase.id} onClick={() => { setCurrentPhase(idx); setCurrentQuestion(0); }} style={{ width: '100%', padding: '16px', marginBottom: '8px', background: isActive ? 'rgba(0, 74, 198, 0.1)' : t.cardBg, border: isActive ? `1px solid rgba(0, 74, 198, 0.3)` : `1px solid ${t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#10b981' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={16} color={isActive ? 'white' : t.textDim} /></div>
-                        <div><div style={{ fontSize: '14px', fontWeight: 600, color: isActive ? '#10b981' : t.text }}>{phase.name}</div></div>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: isActive ? '#004ac6' : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={16} color={isActive ? 'white' : t.textDim} /></div>
+                        <div><div style={{ fontSize: '14px', fontWeight: 600, color: isActive ? '#004ac6' : t.text }}>{phase.name}</div></div>
                       </div>
-                      {phaseProgress > 0 && <div style={{ marginTop: '8px', height: '4px', background: t.inputBg, borderRadius: '2px', overflow: 'hidden' }}><div style={{ width: `${phaseProgress}%`, height: '100%', background: '#10b981', borderRadius: '2px' }} /></div>}
+                      {phaseProgress > 0 && <div style={{ marginTop: '8px', height: '4px', background: t.inputBg, borderRadius: '2px', overflow: 'hidden' }}><div style={{ width: `${phaseProgress}%`, height: '100%', background: '#004ac6', borderRadius: '2px' }} /></div>}
                     </button>
                   );
                 })}
@@ -763,7 +823,7 @@ function GapAnalysisScreen({ onNavigate }) {
                   <div style={{ marginBottom: '16px', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', padding: '10px 12px', borderRadius: '8px', fontSize: '12px' }}>⚠️ {evalError}</div>
                 )}
                 {evalInfo && (
-                  <div style={{ marginBottom: '16px', background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.4)', color: '#10b981', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>
+                  <div style={{ marginBottom: '16px', background: 'rgba(0, 74, 198,0.12)', border: '1px solid rgba(0, 74, 198,0.4)', color: '#004ac6', padding: '10px 12px', borderRadius: '8px', fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>
                 )}
 
                 {currentQuestionData && (
@@ -773,7 +833,7 @@ function GapAnalysisScreen({ onNavigate }) {
                     <p style={{ fontSize: '16px', marginBottom: '32px', lineHeight: '1.5', color: t.text }}>{currentQuestionData.question}</p>
                     <div style={{ display: 'flex', gap: '16px', marginBottom: '32px' }}>
                       {currentQuestionData.options.map(option => (
-                        <button key={option} onClick={() => handleAnswer(option)} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: answers[currentQuestionData.id] === option ? '2px solid #10b981' : `1px solid ${t.border}`, background: answers[currentQuestionData.id] === option ? 'rgba(16, 185, 129, 0.1)' : t.cardBg, color: answers[currentQuestionData.id] === option ? '#10b981' : t.text, cursor: 'pointer', fontWeight: 500 }}>{option}</button>
+                        <button key={option} onClick={() => handleAnswer(option)} style={{ flex: 1, padding: '14px', borderRadius: '8px', border: answers[currentQuestionData.id] === option ? '2px solid #004ac6' : `1px solid ${t.border}`, background: answers[currentQuestionData.id] === option ? 'rgba(0, 74, 198, 0.1)' : t.cardBg, color: answers[currentQuestionData.id] === option ? '#004ac6' : t.text, cursor: 'pointer', fontWeight: 500 }}>{option}</button>
                       ))}
                     </div>
                     {aiResults[currentQuestionData.id] && (
@@ -783,7 +843,7 @@ function GapAnalysisScreen({ onNavigate }) {
                           <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Respuesta de la IA:</span>
                           {(() => {
                             const v = aiResults[currentQuestionData.id].veredicto;
-                            const map = { cumple: ['Cumple', '#10b981'], parcial: ['Parcial', '#f59e0b'], no_cumple: ['No cumple', '#ef4444'], sin_evidencia: ['Sin evidencia', '#6b7280'] };
+                            const map = { cumple: ['Cumple', '#004ac6'], parcial: ['Parcial', '#f59e0b'], no_cumple: ['No cumple', '#ef4444'], sin_evidencia: ['Sin evidencia', '#6b7280'] };
                             const [label, color] = map[v] || ['—', t.textDim];
                             return <span style={{ fontSize: '11px', fontWeight: 700, color, background: `${color}22`, padding: '2px 8px', borderRadius: '10px' }}>{label}</span>;
                           })()}
@@ -796,18 +856,18 @@ function GapAnalysisScreen({ onNavigate }) {
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px' }}>
                       <button onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', cursor: (currentPhase === 0 && currentQuestion === 0) ? 'not-allowed' : 'pointer', opacity: (currentPhase === 0 && currentQuestion === 0) ? 0.5 : 1 }}>Anterior</button>
-                      <button onClick={goToNext} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Continuar</button>
+                      <button onClick={goToNext} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Continuar</button>
                     </div>
                   </div>
                 )}
               </div>
 
               <div style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, height: 'fit-content' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}><Sparkles size={18} color="#10b981" /><h3 style={{ fontSize: '15px', fontWeight: 600 }}>Vista Previa</h3></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}><Sparkles size={18} color="#004ac6" /><h3 style={{ fontSize: '15px', fontWeight: 600 }}>Vista Previa</h3></div>
                 {phases.map((phase, idx) => (
                   <div key={phase.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                     <span style={{ fontSize: '12px', color: t.textDim }}>{phase.name}</span>
-                    <span style={{ fontSize: '12px', fontWeight: 500, color: getPhaseProgress(idx) === 100 ? '#10b981' : t.textMuted }}>{getPhaseProgress(idx)}%</span>
+                    <span style={{ fontSize: '12px', fontWeight: 500, color: getPhaseProgress(idx) === 100 ? '#004ac6' : t.textMuted }}>{getPhaseProgress(idx)}%</span>
                   </div>
                 ))}
               </div>

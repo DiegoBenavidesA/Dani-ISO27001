@@ -106,19 +106,29 @@ const Login = () => {
   const strength = getPasswordStrength(password);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f172a', color: '#e2e8f0', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#eff4ff', color: '#0b1c30', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       
-      <div style={{ backgroundColor: '#1e293b', padding: '40px', borderRadius: '24px', border: '1px solid #334155', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', transition: 'all 0.3s ease' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '40px', borderRadius: '24px', border: '1px solid #dce9ff', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(15,23,42,0.12)', transition: 'all 0.3s ease' }}>
         
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
-          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.4)' }}>
-            <Shield size={36} color="white" />
+          <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 10px 25px -5px rgba(0, 74, 198, 0.4)' }}>
+            <img
+              src="/LogoNormIa.png"
+              alt="NormIA"
+              style={{
+                width: '72px',
+                height: '72px',
+                objectFit: 'contain'
+              }}
+            />
           </div>
-          <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#f8fafc', letterSpacing: '-0.5px' }}>
-            {isRegistering ? 'Crear Cuenta' : 'Bienvenido a DANI'}
+          <h2 style={{ fontSize: '28px', fontWeight: 'bold', margin: 0, color: '#0b1c30', letterSpacing: '-0.5px' }}>
+            {isRegistering ? 'Crear Cuenta' : 'Bienvenido a NORMIA'}
           </h2>
-          <p style={{ color: '#94a3b8', fontSize: '14px', marginTop: '8px', textAlign: 'center' }}>
-            {isRegistering ? 'Registra tus datos para acceder al sistema' : 'Acceso seguro al portal de gestión ISO 27001'}
+          <p style={{ color: '#565e74', fontSize: '14px', marginTop: '8px', textAlign: 'center' }}>
+            {isRegistering
+              ? 'Registra tus datos para acceder al sistema'
+              : 'Acceso seguro a la plataforma de cumplimiento y seguridad'}
           </p>
         </div>
 
@@ -126,11 +136,11 @@ const Login = () => {
           
           {isRegistering && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#434655', marginBottom: '8px' }}>
                 Nombre Completo
                 {isRegistering && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#434655', marginBottom: '8px' }}>
                 Nombre de la Empresa
               </label>
               <div style={{ position: 'relative' }}>
@@ -140,14 +150,14 @@ const Login = () => {
                   value={empresa} 
                   onChange={(e) => setEmpresa(e.target.value)} 
                   placeholder="Ej. TechCorp Spa"
-                  style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px', color: 'white', fontSize: '14px', outline: 'none' }}
+                  style={{ width: '100%', backgroundColor: '#eff4ff', border: '1px solid #dce9ff', borderRadius: '12px', padding: '14px 16px', color: '#0b1c30', fontSize: '14px', outline: 'none' }}
                 />
               </div>
             </div>
           )}
               </label>
               <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#737686' }}>
                   <User size={18} />
                 </div>
                 <input 
@@ -156,18 +166,18 @@ const Login = () => {
                   value={name} 
                   onChange={(e) => setName(e.target.value)} 
                   placeholder="Ej. Juan Pérez"
-                  style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                  style={{ width: '100%', backgroundColor: '#eff4ff', border: '1px solid #dce9ff', borderRadius: '12px', padding: '14px 16px 14px 44px', color: '#0b1c30', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#434655', marginBottom: '8px' }}>
               Correo Electrónico
             </label>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#737686' }}>
                 <Mail size={18} />
               </div>
               <input 
@@ -177,17 +187,17 @@ const Login = () => {
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)} 
                 placeholder="ciso@empresa.com"
-                style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                style={{ width: '100%', backgroundColor: '#eff4ff', border: '1px solid #dce9ff', borderRadius: '12px', padding: '14px 16px 14px 44px', color: '#0b1c30', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#434655', marginBottom: '8px' }}>
               Contraseña
             </label>
             <div style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+              <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#737686' }}>
                 <Lock size={18} />
               </div>
               <input 
@@ -196,23 +206,23 @@ const Login = () => {
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 placeholder="••••••••"
-                style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                style={{ width: '100%', backgroundColor: '#eff4ff', border: '1px solid #dce9ff', borderRadius: '12px', padding: '14px 16px 14px 44px', color: '#0b1c30', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
               />
             </div>
 
             {isRegistering && password.length > 0 && (
-              <div style={{ marginTop: '12px', fontSize: '12px', color: '#94a3b8' }}>
+              <div style={{ marginTop: '12px', fontSize: '12px', color: '#565e74' }}>
                 <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
                   {[...Array(5)].map((_, i) => (
-                    <div key={i} style={{ height: '4px', flex: 1, backgroundColor: i < strength ? '#10b981' : '#334155', borderRadius: '2px', transition: 'background-color 0.3s' }} />
+                    <div key={i} style={{ height: '4px', flex: 1, backgroundColor: i < strength ? '#004ac6' : '#dce9ff', borderRadius: '2px', transition: 'background-color 0.3s' }} />
                   ))}
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
-                  <li style={{ color: password.length >= 8 ? '#10b981' : '#94a3b8' }}>{password.length >= 8 ? '✓' : '○'} Mín. 8 caracteres</li>
-                  <li style={{ color: /[A-Z]/.test(password) ? '#10b981' : '#94a3b8' }}>{/[A-Z]/.test(password) ? '✓' : '○'} Mayúscula</li>
-                  <li style={{ color: /[a-z]/.test(password) ? '#10b981' : '#94a3b8' }}>{/[a-z]/.test(password) ? '✓' : '○'} Minúscula</li>
-                  <li style={{ color: /[0-9]/.test(password) ? '#10b981' : '#94a3b8' }}>{/[0-9]/.test(password) ? '✓' : '○'} Número</li>
-                  <li style={{ color: /[^A-Za-z0-9]/.test(password) ? '#10b981' : '#94a3b8' }}>{/[^A-Za-z0-9]/.test(password) ? '✓' : '○'} Carácter especial</li>
+                  <li style={{ color: password.length >= 8 ? '#004ac6' : '#565e74' }}>{password.length >= 8 ? '✓' : '○'} Mín. 8 caracteres</li>
+                  <li style={{ color: /[A-Z]/.test(password) ? '#004ac6' : '#565e74' }}>{/[A-Z]/.test(password) ? '✓' : '○'} Mayúscula</li>
+                  <li style={{ color: /[a-z]/.test(password) ? '#004ac6' : '#565e74' }}>{/[a-z]/.test(password) ? '✓' : '○'} Minúscula</li>
+                  <li style={{ color: /[0-9]/.test(password) ? '#004ac6' : '#565e74' }}>{/[0-9]/.test(password) ? '✓' : '○'} Número</li>
+                  <li style={{ color: /[^A-Za-z0-9]/.test(password) ? '#004ac6' : '#565e74' }}>{/[^A-Za-z0-9]/.test(password) ? '✓' : '○'} Carácter especial</li>
                 </ul>
               </div>
             )}
@@ -220,11 +230,11 @@ const Login = () => {
 
           {isRegistering && (
             <div>
-              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#cbd5e1', marginBottom: '8px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: '#434655', marginBottom: '8px' }}>
                 Confirmar Contraseña
               </label>
               <div style={{ position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#64748b' }}>
+                <div style={{ position: 'absolute', top: '50%', left: '16px', transform: 'translateY(-50%)', color: '#737686' }}>
                   <Lock size={18} />
                 </div>
                 <input 
@@ -233,7 +243,7 @@ const Login = () => {
                   value={confirmPassword} 
                   onChange={(e) => setConfirmPassword(e.target.value)} 
                   placeholder="••••••••"
-                  style={{ width: '100%', backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px', padding: '14px 16px 14px 44px', color: 'white', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
+                  style={{ width: '100%', backgroundColor: '#eff4ff', border: '1px solid #dce9ff', borderRadius: '12px', padding: '14px 16px 14px 44px', color: '#0b1c30', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -263,9 +273,9 @@ const Login = () => {
 
           {success && (
             <div style={{
-              backgroundColor: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.3)', 
-              color: '#10b981', 
+              backgroundColor: 'rgba(0, 74, 198, 0.15)',
+              border: '1px solid rgba(0, 74, 198, 0.3)', 
+              color: '#004ac6', 
               padding: '14px', 
               borderRadius: '10px', 
               fontSize: '14px', 
@@ -284,7 +294,7 @@ const Login = () => {
           <button 
             type="submit" 
             disabled={isLoading} 
-            style={{ marginTop: '10px', width: '100%', padding: '14px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', fontSize: '15px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s', opacity: isLoading ? 0.7 : 1 }}
+            style={{ marginTop: '10px', width: '100%', padding: '14px', borderRadius: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', color: 'white', border: 'none', fontSize: '15px', fontWeight: 600, cursor: isLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s', opacity: isLoading ? 0.7 : 1 }}
           >
             {isLoading ? 'Procesando...' : (
               <>
@@ -295,13 +305,13 @@ const Login = () => {
           </button>
         </form>
 
-        <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #334155', textAlign: 'center' }}>
-          <p style={{ fontSize: '14px', color: '#94a3b8', margin: 0 }}>
+        <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #dce9ff', textAlign: 'center' }}>
+          <p style={{ fontSize: '14px', color: '#565e74', margin: 0 }}>
             {isRegistering ? '¿Ya tienes una cuenta?' : '¿No tienes una cuenta?'}
             <button 
               onClick={toggleMode}
               type="button"
-              style={{ background: 'none', border: 'none', color: '#10b981', fontWeight: 600, marginLeft: '8px', cursor: 'pointer', fontSize: '14px', padding: 0 }}
+              style={{ background: 'none', border: 'none', color: '#004ac6', fontWeight: 600, marginLeft: '8px', cursor: 'pointer', fontSize: '14px', padding: 0 }}
             >
               {isRegistering ? 'Inicia sesión' : 'Regístrate aquí'}
             </button>

@@ -20,7 +20,7 @@ const labels = {
 };
 
 const TYPE_ICON = { error: XCircle, warning: AlertTriangle, info: Clock, success: CheckCircle2 };
-const TYPE_COLOR = { error: '#ef4444', warning: '#f59e0b', info: '#3b82f6', success: '#10b981' };
+const TYPE_COLOR = { error: '#ef4444', warning: '#f59e0b', info: '#3b82f6', success: '#004ac6' };
 
 function NotificationCenter({ isOpen, onClose, onCountChange }) {
   const { darkMode, theme: t, language } = useTheme();
@@ -77,7 +77,7 @@ function NotificationCenter({ isOpen, onClose, onCountChange }) {
     <div style={{ position: 'absolute', top: '50px', right: '0', width: '380px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: `1px solid ${t.border}`, overflow: 'hidden', zIndex: 100 }}>
       <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{l.title}</h3>
-        <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{l.markAllRead}</button>
+        <button onClick={markAllRead} style={{ background: 'none', border: 'none', color: '#004ac6', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{l.markAllRead}</button>
       </div>
 
       <div style={{ maxHeight: '400px', overflowY: 'auto' }}>

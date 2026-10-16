@@ -214,7 +214,7 @@ function AuditRoomScreen() {
   }, []);
 
   const getActionColor = (action) => {
-    switch (action) { case 'created': return '#10b981'; case 'modified': return '#3b82f6'; case 'deleted': return '#ef4444'; case 'approved': return '#8b5cf6'; case 'exported': return '#f59e0b'; case 'viewed': return '#6b7280'; default: return t.textDim; }
+    switch (action) { case 'created': return '#004ac6'; case 'modified': return '#3b82f6'; case 'deleted': return '#ef4444'; case 'approved': return '#8b5cf6'; case 'exported': return '#f59e0b'; case 'viewed': return '#6b7280'; default: return t.textDim; }
   };
 
   const getActionIcon = (action) => {
@@ -296,7 +296,7 @@ function AuditRoomScreen() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: 700 }}>{l.title}</h1>
-            <div style={{ padding: '6px 14px', background: auditorMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(16, 185, 129, 0.15)', border: `1px solid ${auditorMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(16, 185, 129, 0.3)'}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: auditorMode ? '#a855f7' : '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ padding: '6px 14px', background: auditorMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0, 74, 198, 0.15)', border: `1px solid ${auditorMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(0, 74, 198, 0.3)'}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: auditorMode ? '#a855f7' : '#004ac6', display: 'flex', alignItems: 'center', gap: '6px' }}>
               {auditorMode ? <Eye size={14} /> : <Lock size={14} />}
               {auditorMode ? l.readOnly : l.fullAccess}
             </div>
@@ -310,7 +310,7 @@ function AuditRoomScreen() {
               <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: auditorMode ? '22px' : '2px', transition: 'all 0.2s ease' }} />
             </button>
           </div>
-          <button onClick={handleExport} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+          <button onClick={handleExport} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
             <Download size={18} /> {l.auditorsBinder}
           </button>
         </div>
@@ -331,7 +331,7 @@ function AuditRoomScreen() {
             <Search size={18} color={t.textDim} />
             <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={l.semanticSearch} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} />
           </div>
-          <button onClick={handleAISearch} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}><Sparkles size={14} /> {l.aiSearch}</button>
+          <button onClick={handleAISearch} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}><Sparkles size={14} /> {l.aiSearch}</button>
         </div>
       </div>
 
@@ -373,7 +373,7 @@ function AuditRoomScreen() {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
                       <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: isSelected ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#10b98115' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#10b981' : '#f59e0b', marginRight: '28px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#004ac615' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#004ac6' : '#f59e0b', marginRight: '28px' }}>
                         {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
                         {folder.status === 'complete' ? l.complete : l.partial}
                       </div>
@@ -382,7 +382,7 @@ function AuditRoomScreen() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
                       {folder.score != null && (
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#10b981' : '#f59e0b' }}>{folder.score}%</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#004ac6' : '#f59e0b' }}>{folder.score}%</span>
                       )}
                     </div>
                   </div>
@@ -455,7 +455,7 @@ function AuditRoomScreen() {
       {activeTab === 'export' && (
         <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '24px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Download size={24} color="white" /></div>
+            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Download size={24} color="white" /></div>
             <div><h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text }}>{l.exportTitle}</h3></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -465,17 +465,17 @@ function AuditRoomScreen() {
                 {[{ id: 'pdf', label: l.pdfFormat, desc: l.pdfDesc, icon: FileText }, { id: 'zip', label: l.zipFormat, desc: l.zipDesc, icon: Folder }].map((format) => {
                   const Icon = format.icon; const isSelected = selectedExportFormat === format.id;
                   return (
-                    <button key={format.id} onClick={() => setSelectedExportFormat(format.id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: isSelected ? '#10b98115' : t.inputBg, border: `2px solid ${isSelected ? '#10b981' : t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: isSelected ? '#10b98120' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} color={isSelected ? '#10b981' : t.textDim} /></div>
-                      <div style={{ flex: 1 }}><div style={{ fontSize: '14px', fontWeight: 600, color: isSelected ? '#10b981' : t.text }}>{format.label}</div><div style={{ fontSize: '12px', color: t.textDim }}>{format.desc}</div></div>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isSelected ? '#10b981' : t.border}`, background: isSelected ? '#10b981' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSelected && <Check size={12} color="white" />}</div>
+                    <button key={format.id} onClick={() => setSelectedExportFormat(format.id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: isSelected ? '#004ac615' : t.inputBg, border: `2px solid ${isSelected ? '#004ac6' : t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
+                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: isSelected ? '#004ac620' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} color={isSelected ? '#004ac6' : t.textDim} /></div>
+                      <div style={{ flex: 1 }}><div style={{ fontSize: '14px', fontWeight: 600, color: isSelected ? '#004ac6' : t.text }}>{format.label}</div><div style={{ fontSize: '12px', color: t.textDim }}>{format.desc}</div></div>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isSelected ? '#004ac6' : t.border}`, background: isSelected ? '#004ac6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSelected && <Check size={12} color="white" />}</div>
                     </button>
                   );
                 })}
               </div>
               <div style={{ marginTop: '20px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: t.inputBg, borderRadius: '10px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={includeAnnexes} onChange={(e) => setIncludeAnnexes(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#10b981' }} />
+                  <input type="checkbox" checked={includeAnnexes} onChange={(e) => setIncludeAnnexes(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#004ac6' }} />
                   <span style={{ fontSize: '13px', color: t.text }}>{l.includeAnnexes}</span>
                 </label>
               </div>
@@ -483,14 +483,14 @@ function AuditRoomScreen() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <h4 style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase' }}>{l.selectClauses}</h4>
-                <button onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))} style={{ background: 'none', border: 'none', color: '#10b981', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{selectedClauses.length === folders.length ? l.deselectAll : l.selectAll}</button>
+                <button onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))} style={{ background: 'none', border: 'none', color: '#004ac6', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{selectedClauses.length === folders.length ? l.deselectAll : l.selectAll}</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
                 {folders.map((folder) => (
-                  <label key={folder.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: selectedClauses.includes(folder.id) ? '#10b98110' : t.inputBg, borderRadius: '10px', cursor: 'pointer', border: `1px solid ${selectedClauses.includes(folder.id) ? '#10b98140' : 'transparent'}` }}>
-                    <input type="checkbox" checked={selectedClauses.includes(folder.id)} onChange={() => setSelectedClauses(prev => prev.includes(folder.id) ? prev.filter(id => id !== folder.id) : [...prev, folder.id])} style={{ width: '16px', height: '16px', accentColor: '#10b981' }} />
+                  <label key={folder.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: selectedClauses.includes(folder.id) ? '#004ac610' : t.inputBg, borderRadius: '10px', cursor: 'pointer', border: `1px solid ${selectedClauses.includes(folder.id) ? '#004ac640' : 'transparent'}` }}>
+                    <input type="checkbox" checked={selectedClauses.includes(folder.id)} onChange={() => setSelectedClauses(prev => prev.includes(folder.id) ? prev.filter(id => id !== folder.id) : [...prev, folder.id])} style={{ width: '16px', height: '16px', accentColor: '#004ac6' }} />
                     <div style={{ flex: 1 }}><div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{folder.name}</div><div style={{ fontSize: '11px', color: t.textDim }}>{folder.items} {l.items}</div></div>
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: folder.status === 'complete' ? '#10b981' : '#f59e0b' }} />
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: folder.status === 'complete' ? '#004ac6' : '#f59e0b' }} />
                   </label>
                 ))}
               </div>
@@ -501,7 +501,7 @@ function AuditRoomScreen() {
               <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.evidenceCount}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{folders.filter(f => selectedClauses.includes(f.id)).reduce((sum, f) => sum + f.items, 0)}</div></div>
               <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.estimatedSize}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{`~${selectedClauses.length * 12} MB`}</div></div>
             </div>
-            <button onClick={handleExport} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}><Download size={20} /> {l.generatePackage}</button>
+            <button onClick={handleExport} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}><Download size={20} /> {l.generatePackage}</button>
           </div>
         </div>
       )}
@@ -512,12 +512,12 @@ function AuditRoomScreen() {
           <div style={{ width: '480px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px', textAlign: 'center' }}>
             {exportProgress < 100 ? (
               <>
-                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                   <RefreshCw size={36} color="white" style={{ animation: 'spin 1s linear infinite' }} />
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>{l.generating}</h3>
                 <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-                  <div style={{ width: `${Math.min(exportProgress, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #10b981, #3b82f6)', borderRadius: '4px' }} />
+                  <div style={{ width: `${Math.min(exportProgress, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #004ac6, #3b82f6)', borderRadius: '4px' }} />
                 </div>
                 <span style={{ fontSize: '13px', color: t.textMuted }}>{Math.round(exportProgress)}%</span>
                 <div style={{ marginTop: '16px' }}>
@@ -526,10 +526,10 @@ function AuditRoomScreen() {
               </>
             ) : (
               <>
-                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
                   <CheckCircle2 size={40} color="white" />
                 </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#10b981', marginBottom: '8px' }}>{l.exportReady}</h3>
+                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#004ac6', marginBottom: '8px' }}>{l.exportReady}</h3>
                 <p style={{ fontSize: '14px', color: t.textDim, marginBottom: '24px' }}>ISO27001_Audit_Package_2024.{selectedExportFormat}</p>
                 <button onClick={() => { 
                   if (downloadUrl) {
@@ -542,7 +542,7 @@ function AuditRoomScreen() {
                   }
                   setShowExportModal(false); 
                   setExportProgress(0); 
-                }} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '0 auto' }}>
+                }} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '0 auto' }}>
                   <Download size={20} /> {l.downloadNow}
                 </button>
               </>
@@ -556,7 +556,7 @@ function AuditRoomScreen() {
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
           <div style={{ width: '600px', maxHeight: '80vh', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#004ac6' }}>
                 <Sparkles size={20} />
                 <h3 style={{ fontSize: '18px', fontWeight: 600 }}>{language === 'es' ? 'Asistente de Auditoría IA' : 'AI Audit Assistant'}</h3>
               </div>
@@ -566,7 +566,7 @@ function AuditRoomScreen() {
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', textAlign: 'left' }}>
               {isAiSearching ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '16px' }}>
-                  <RefreshCw size={36} color="#10b981" style={{ animation: 'spin 1s linear infinite' }} />
+                  <RefreshCw size={36} color="#004ac6" style={{ animation: 'spin 1s linear infinite' }} />
                   <p style={{ fontSize: '14px', color: t.textDim, fontWeight: 500 }}>
                     {language === 'es' ? 'Consultando RAG de evidencias y base de conocimiento...' : 'Consulting evidence RAG and knowledge base...'}
                   </p>
@@ -577,7 +577,7 @@ function AuditRoomScreen() {
                 </div>
               ) : (
                 <div style={{ fontSize: '14px', lineHeight: '1.6', color: t.text, whiteSpace: 'pre-line' }}>
-                  <p style={{ fontWeight: 600, color: '#10b981', marginBottom: '12px', fontSize: '15px' }}>
+                  <p style={{ fontWeight: 600, color: '#004ac6', marginBottom: '12px', fontSize: '15px' }}>
                     {language === 'es' ? `Respuesta para: "${searchQuery}"` : `Answer for: "${searchQuery}"`}
                   </p>
                   <div style={{ padding: '16px', background: t.inputBg, borderRadius: '12px', border: `1px solid ${t.border}` }}>
@@ -588,7 +588,7 @@ function AuditRoomScreen() {
             </div>
             
             <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
+              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
                 {language === 'es' ? 'Entendido' : 'Got it'}
               </button>
             </div>

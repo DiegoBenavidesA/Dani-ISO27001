@@ -99,12 +99,12 @@ const DataRequestsScreen = () => {
 
   const plazoBadge = (req) => {
     if (req.estado === 'resuelta') {
-      return { text: 'Resuelta', color: '#10b981', icon: CheckCircle };
+      return { text: 'Resuelta', color: '#004ac6', icon: CheckCircle };
     }
     const dias = diasRestantes(req.fecha_limite);
     if (dias < 0) return { text: `Vencida hace ${Math.abs(dias)} d`, color: '#ef4444', icon: AlertTriangle };
     if (dias <= 5) return { text: `${dias} d restantes`, color: '#f59e0b', icon: Clock };
-    return { text: `${dias} d restantes`, color: '#10b981', icon: Clock };
+    return { text: `${dias} d restantes`, color: '#004ac6', icon: Clock };
   };
 
   const tipoLabel = (v) => (TIPOS.find(x => x.value === v) || {}).label || v;
@@ -157,7 +157,7 @@ const DataRequestsScreen = () => {
         <SummaryCard t={t} label="Total" value={total} color={t.text} />
         <SummaryCard t={t} label="Vencidas" value={vencidas} color="#ef4444" />
         <SummaryCard t={t} label="Por vencer (≤5 d)" value={porVencer} color="#f59e0b" />
-        <SummaryCard t={t} label="Resueltas" value={resueltas} color="#10b981" />
+        <SummaryCard t={t} label="Resueltas" value={resueltas} color="#004ac6" />
       </div>
 
       {/* Tabla / bandeja */}
@@ -319,7 +319,7 @@ const secondaryBtn = (t) => ({ display: 'inline-flex', alignItems: 'center', gap
 const iconBtn = (t) => ({ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer' });
 
 const estadoPill = (estado) => {
-  const map = { pendiente: '#f59e0b', en_proceso: '#6366f1', resuelta: '#10b981' };
+  const map = { pendiente: '#f59e0b', en_proceso: '#6366f1', resuelta: '#004ac6' };
   const c = map[estado] || '#64748b';
   return { padding: '3px 9px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: c, background: `${c}22`, whiteSpace: 'nowrap' };
 };

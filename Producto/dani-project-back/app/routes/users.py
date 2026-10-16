@@ -151,7 +151,7 @@ async def invite_user(
         from_name=org.nombre,  # remitente = nombre de la empresa
     )
 
-    return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent}
+    return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent, "activation_url": activation_url}
 
 
 class CreateUserRequest(BaseModel):

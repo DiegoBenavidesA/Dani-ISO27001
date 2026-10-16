@@ -154,7 +154,7 @@ function DocumentsScreen({ setActiveScreen }) {
     });
   };
 
-  const getStatusColor = (s) => (s === 'approved' || s === 'published') ? '#10b981' : s === 'review' ? '#f59e0b' : '#64748b';
+  const getStatusColor = (s) => (s === 'approved' || s === 'published') ? '#004ac6' : s === 'review' ? '#f59e0b' : '#64748b';
 
   return (
     <div style={{ animation: 'fadeIn 0.4s ease' }}>
@@ -165,7 +165,7 @@ function DocumentsScreen({ setActiveScreen }) {
         </div>
         <button 
           onClick={() => setActiveScreen && setActiveScreen('doc-generator')}
-          style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+          style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
         >
           <Plus size={16} />Crear Documento
         </button>
@@ -210,7 +210,7 @@ function DocumentsScreen({ setActiveScreen }) {
             <button onClick={() => setActiveTab('chat')} style={{ flex: 1, padding: '16px', background: activeTab === 'chat' ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)' : 'transparent', border: 'none', borderBottom: activeTab === 'chat' ? '2px solid #8b5cf6' : '2px solid transparent', color: activeTab === 'chat' ? '#8b5cf6' : t.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
               <MessageSquare size={16} /> {labels.chat}
             </button>
-            <button onClick={() => setActiveTab('faq')} style={{ flex: 1, padding: '16px', background: activeTab === 'faq' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)' : 'transparent', border: 'none', borderBottom: activeTab === 'faq' ? '2px solid #10b981' : '2px solid transparent', color: activeTab === 'faq' ? '#10b981' : t.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
+            <button onClick={() => setActiveTab('faq')} style={{ flex: 1, padding: '16px', background: activeTab === 'faq' ? 'linear-gradient(135deg, rgba(0, 74, 198, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)' : 'transparent', border: 'none', borderBottom: activeTab === 'faq' ? '2px solid #004ac6' : '2px solid transparent', color: activeTab === 'faq' ? '#004ac6' : t.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
               <HelpCircle size={16} /> {labels.faq}
             </button>
           </div>
@@ -275,12 +275,12 @@ function DocumentsScreen({ setActiveScreen }) {
             <>
               <div style={{ flex: 1, padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {faqs.map((faq) => (
-                  <div key={faq.id} style={{ background: expandedFaq === faq.id ? (darkMode ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 185, 129, 0.05)') : t.inputBg, border: `1px solid ${expandedFaq === faq.id ? 'rgba(16, 185, 129, 0.3)' : t.border}`, borderRadius: '12px', overflow: 'hidden' }}>
+                  <div key={faq.id} style={{ background: expandedFaq === faq.id ? (darkMode ? 'rgba(0, 74, 198, 0.08)' : 'rgba(0, 74, 198, 0.05)') : t.inputBg, border: `1px solid ${expandedFaq === faq.id ? 'rgba(0, 74, 198, 0.3)' : t.border}`, borderRadius: '12px', overflow: 'hidden' }}>
                     <button onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)} style={{ width: '100%', padding: '14px 16px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', gap: '12px', textAlign: 'left' }}>
-                      <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: expandedFaq === faq.id ? 'rgba(16, 185, 129, 0.2)' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <ChevronDown size={14} color={expandedFaq === faq.id ? '#10b981' : t.textDim} style={{ transform: expandedFaq === faq.id ? 'rotate(180deg)' : 'rotate(0)' }} />
+                      <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: expandedFaq === faq.id ? 'rgba(0, 74, 198, 0.2)' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ChevronDown size={14} color={expandedFaq === faq.id ? '#004ac6' : t.textDim} style={{ transform: expandedFaq === faq.id ? 'rotate(180deg)' : 'rotate(0)' }} />
                       </div>
-                      <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: expandedFaq === faq.id ? '#10b981' : t.text, lineHeight: '1.4' }}>{faq.question}</span>
+                      <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: expandedFaq === faq.id ? '#004ac6' : t.text, lineHeight: '1.4' }}>{faq.question}</span>
                     </button>
                     {expandedFaq === faq.id && (
                       <div style={{ padding: '0 16px 16px 52px' }}>

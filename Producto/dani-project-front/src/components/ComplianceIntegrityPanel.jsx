@@ -29,7 +29,7 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
   useEffect(() => { load(); }, []);
 
   const scoreColor = !data ? '#9ca3af'
-    : data.integrity_score >= 80 ? '#10b981'
+    : data.integrity_score >= 80 ? '#004ac6'
     : data.integrity_score >= 50 ? '#f59e0b'
     : '#ef4444';
 
@@ -71,7 +71,7 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
           {/* Stats */}
           <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontWeight: 700, color: '#10b981' }}>{data.with_evidence}</div>
+              <div style={{ fontWeight: 700, color: '#004ac6' }}>{data.with_evidence}</div>
               <div style={{ color: t?.textDim || '#9ca3af' }}>Con evidencia</div>
             </div>
             <div style={{ textAlign: 'center' }}>
@@ -92,7 +92,7 @@ const ComplianceIntegrityPanel = ({ onNavigate }) => {
 
       {/* Alerts */}
       {alerts.length === 0 ? (
-        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#10b981' }}>
+        <div style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#004ac6' }}>
           <ShieldCheck size={16} /> Todos los controles implementados tienen evidencia asociada.
         </div>
       ) : (

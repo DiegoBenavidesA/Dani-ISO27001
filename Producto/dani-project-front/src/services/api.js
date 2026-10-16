@@ -303,7 +303,13 @@ export const breachesAPI = {
   },
   notify: async (breachId, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   }
@@ -520,7 +526,46 @@ export const assessmentQuestionsAPI = {
     if (!response.ok) throw new Error('Error al eliminar la pregunta');
     return response.json();
   },
-  evaluate: async (files, questionIds = [], token = null) => {
+
+  // Carga masiva desde Excel (.xlsx). Devuelve { creadas, omitidas, columnas_detectadas, ... }
+  bulkImport: async (file, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const form = new FormData();
+    form.append('file', file);
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
+  // Descarga la plantilla Excel con las columnas esperadas.
+  downloadTemplate: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-template`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('No se pudo descargar la plantilla');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_preguntas.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  // Evaluar con IA: sube documentos y la IA responde cada pregunta.
+  // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
+  evaluate: async (files, questionIds = [], evidenceIds = [], token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const form = new FormData();
     (files || []).forEach((f) => form.append('files', f));

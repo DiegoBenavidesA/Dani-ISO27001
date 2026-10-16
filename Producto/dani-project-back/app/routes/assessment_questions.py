@@ -269,6 +269,150 @@ async def bulk_import_questions(
     }
 
 
+# =========================================================
+# CARGA MASIVA DE PREGUNTAS DESDE PDF (.pdf)
+# Lee un listado/checklist en PDF: detecta las categorías (encabezados en
+# MAYÚSCULAS) y convierte cada ítem en una pregunta. Reutiliza pypdf.
+# =========================================================
+# Valores ya normalizados (sin espacios/acentos) — _normalizar() produce este formato.
+_RUIDO_PDF = {
+    "listadodecumplimientonormativo",
+    "listadodecumplimientodelrgpd",
+    "cumple", "sino", "introduccion", "sino", "pagina",
+}
+
+
+def _parece_categoria(linea: str) -> bool:
+    s = linea.strip()
+    letras = [c for c in s if c.isalpha()]
+    if len(letras) < 4:
+        return False
+    mayus = sum(1 for c in letras if c.isupper())
+    return (mayus / len(letras)) > 0.85 and len(s) > 6
+
+
+def _parsear_preguntas_pdf(texto: str):
+    """Devuelve una lista de (categoria, texto_pregunta) a partir del texto del PDF."""
+    PREP_FINAL = (" DE", " DEL", " A", " EN", " LA", " LOS", " LAS", " Y", " CON", " O")
+    categoria = None
+    capturando = False
+    actual = ""
+    items = []
+
+    def cerrar():
+        nonlocal actual
+        t = re.sub(r"\s+", " ", actual).strip(" .;:-")
+        if t and len(t) >= 15 and categoria:
+            items.append((categoria, t))
+        actual = ""
+
+    for raw in texto.splitlines():
+        linea = raw.strip()
+        if not linea:
+            continue
+        if _normalizar(linea) in _RUIDO_PDF:
+            cerrar()
+            continue
+        if _parece_categoria(linea):
+            cerrar()
+            if categoria and categoria.rstrip().endswith(PREP_FINAL):
+                # Categoría partida en dos líneas (p. ej. "... DATOS SE OBTIENEN DEL / INTERESADO")
+                categoria = (categoria.rstrip() + " " + linea).strip()
+            else:
+                categoria = linea
+            capturando = True
+            continue
+        if not capturando:
+            continue  # saltamos la introducción previa a la primera categoría
+        # Ítem nuevo (empieza en mayúscula) o continuación (empieza en minúscula)
+        if actual and linea[:1].islower():
+            actual += " " + linea
+        else:
+            cerrar()
+            actual = linea
+    cerrar()
+    return items
+
+
+@router.post("/bulk-import-pdf")
+async def bulk_import_questions_pdf(
+    file: UploadFile = File(...),
+    categoria_forzada: Optional[str] = Form(None),
+    current_user: dict = Depends(RequireRole(["admin"])),
+    db: AsyncSession = Depends(get_db),
+):
+    """Carga masiva de preguntas desde un PDF (checklist/listado). Detecta categorías e ítems."""
+    if PdfReader is None:
+        raise HTTPException(status_code=500, detail="Falta la dependencia 'pypdf' en el servidor.")
+
+    nombre_archivo = (file.filename or "").lower()
+    if not nombre_archivo.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser un PDF (.pdf).")
+
+    contenido = await file.read()
+    try:
+        reader = PdfReader(io.BytesIO(contenido))
+        texto = "\n".join((p.extract_text() or "") for p in reader.pages)
+    except Exception:
+        raise HTTPException(status_code=400, detail="No se pudo leer el PDF. ¿Está dañado o protegido?")
+
+    if not texto.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="El PDF no contiene texto extraíble (parece escaneado). Requiere OCR o súbelo como Excel.",
+        )
+
+    items = _parsear_preguntas_pdf(texto)
+    if not items:
+        raise HTTPException(
+            status_code=400,
+            detail="No se detectaron preguntas en el PDF. Verifica que tenga encabezados de categoría e ítems.",
+        )
+
+    prefijo = re.sub(r"[^A-Za-z0-9]", "", os.path.splitext(os.path.basename(nombre_archivo))[0])[:8].upper() or "PDF"
+
+    preguntas_existentes = set()
+    res_prev = await db.execute(select(AssessmentQuestion.pregunta))
+    for (preg,) in res_prev.all():
+        preguntas_existentes.add(_normalizar(preg))
+
+    creadas = 0
+    omitidas = 0
+    nuevas = set()
+    por_categoria: dict = {}
+    indice = 0
+
+    for categoria, texto_item in items:
+        indice += 1
+        cat = (categoria_forzada or categoria or "General")[:100]
+        codigo = f"{prefijo}-{indice:03d}"[:50]
+        clave = _normalizar(texto_item)
+        if clave in preguntas_existentes or clave in nuevas:
+            omitidas += 1
+            continue
+        db.add(AssessmentQuestion(
+            codigo=codigo,
+            categoria=cat,
+            nombre=texto_item[:60],
+            pregunta=texto_item[:1000],
+            evidencia_esperada=None,
+            orden=indice,
+        ))
+        nuevas.add(clave)
+        por_categoria[cat] = por_categoria.get(cat, 0) + 1
+        creadas += 1
+
+    if creadas:
+        await db.commit()
+
+    return {
+        "creadas": creadas,
+        "omitidas": omitidas,
+        "total_detectadas": len(items),
+        "categorias": por_categoria,
+    }
+
+
 @router.get("/bulk-template")
 async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
     """Descarga una plantilla .xlsx con las columnas esperadas y 2 ejemplos."""

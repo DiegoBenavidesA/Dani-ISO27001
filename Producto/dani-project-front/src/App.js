@@ -9,6 +9,7 @@ import GapAnalysis from './pages/GapAnalysisScreen';
 import PublicConsentScreen from './pages/PublicConsentScreen';
 import ActivateScreen from './pages/ActivateScreen';
 import PublicDataRequestScreen from './pages/PublicDataRequestScreen';
+import LandingPage from './pages/LandingPage';
 
 // Componente para manejar las rutas
 function AppRoutes() {
@@ -22,8 +23,9 @@ function AppRoutes() {
           justifyContent: 'center',
           alignItems: 'center',
           height: '100vh',
-          backgroundColor: '#0f172a',
-          color: 'white'
+          backgroundColor: '#f8f9ff',
+          color: '#0b1c30',
+          fontFamily: "'Inter', sans-serif"
         }}
       >
         <div>Cargando...</div>
@@ -45,7 +47,7 @@ function AppRoutes() {
       />
 
       {/* Raíz */}
-      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/" element={<LandingPage />} />
 
       {/* Rutas multi-tenant */}
       <Route

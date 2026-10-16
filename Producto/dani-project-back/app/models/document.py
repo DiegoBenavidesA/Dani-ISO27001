@@ -24,6 +24,7 @@ class Document(Base):
     # Campos requeridos por la diapositiva de arquitectura
     user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     generated_by_ai = Column(Boolean, default=False, nullable=False)
+    organization_id = Column(String(36), index=True, nullable=True)  # Multi-tenant
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

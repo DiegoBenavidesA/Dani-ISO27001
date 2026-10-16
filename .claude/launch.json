@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "cwd": "Producto/dani-project-front",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 3000
+    },
+    {
+      "name": "backend",
+      "cwd": "Producto/dani-project-back",
+      "runtimeExecutable": "venv311/Scripts/python.exe",
+      "runtimeArgs": ["run_local.py"],
+      "port": 8000
+    }
+  ]
+}

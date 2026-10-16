@@ -56,6 +56,7 @@ class InviteUserResponse(BaseModel):
     email: str
     role: str
     email_sent: bool = False
+    activation_url: Optional[str] = None
 
 @router.get("/", response_model=List[OrganizationResponse])
 async def get_all_organizations(
@@ -149,6 +150,7 @@ async def invite_user_to_organization(
         email=invited.email,
         role=data.role,
         email_sent=email_sent,
+        activation_url=activation_url,
     )
 
 @router.patch("/{org_id}", response_model=OrganizationResponse)

@@ -104,6 +104,9 @@ async def lifespan(app: FastAPI):
         ]
         for _col in _consent_cols:
             await conn.execute(text(f"ALTER TABLE consents {_col};"))
+        # Un consentimiento nace PENDIENTE (sin fecha de otorgamiento). En BDs
+        # viejas esta columna quedó NOT NULL; la relajamos para permitirlo.
+        await conn.execute(text("ALTER TABLE consents ALTER COLUMN fecha_otorgado DROP NOT NULL;"))
         await conn.execute(
             text(
                 "CREATE UNIQUE INDEX IF NOT EXISTS ix_consents_acceptance_token_hash "
@@ -126,6 +129,31 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_evidence_chunks_organization_id ON evidence_chunks (organization_id);"))
         await conn.execute(text("ALTER TABLE evidences ADD COLUMN IF NOT EXISTS extracted_text TEXT;"))
 
+        # Riesgos, documentos y CAPA multi-tenant: faltaba organization_id en la BD.
+        for tabla in ("risks", "documents", "capas"):
+            await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+            await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
+
+        # Tratamientos (RoPA) y Evaluaciones de Impacto (DPIA) multi-tenant:
+        # faltaba organization_id en la BD de producción (create_all no altera
+        # tablas existentes). Sin esta columna fallan el alta manual de
+        # tratamientos, la extracción con IA y la página de Evaluación de Impacto.
+        for tabla in ("data_treatments", "impact_assessments"):
+            await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
+            await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
+
+        # Campos del flujo de datos del tratamiento (Obligación O1) que pudieran
+        # faltar en tablas creadas antes de añadirlos al modelo.
+        for _col in (
+            "categorias_datos TEXT",
+            "origen VARCHAR(255)",
+            "destinatarios TEXT",
+            "transferencias_internacionales TEXT",
+            "plazo_conservacion VARCHAR(100)",
+            "responsable VARCHAR(255)",
+        ):
+            await conn.execute(text(f"ALTER TABLE data_treatments ADD COLUMN IF NOT EXISTS {_col};"))
+
     logger.info("✅ Database tables created/verified")
 
     # Roles nuevos (multi-tenant): el tipo enum `userrole` en Postgres se creó
@@ -140,7 +168,12 @@ async def lifespan(app: FastAPI):
             await conn.execute(
                 text(f"ALTER TYPE userrole ADD VALUE IF NOT EXISTS '{valor}';")
             )
-    logger.info("✅ Enum userrole verificado (SUPERADMIN/OWNER)")
+        # consentstate: el valor PENDIENTE se agregó al modelo después y faltaba
+        # en el tipo enum de la BD (create_all no altera tipos existentes).
+        await conn.execute(
+            text("ALTER TYPE consentstate ADD VALUE IF NOT EXISTS 'PENDIENTE';")
+        )
+    logger.info("✅ Enums verificados (userrole, consentstate)")
 
     # Rellenar slugs faltantes (empresas creadas antes de esta feature).
     from app.utils.slug import slug_unico

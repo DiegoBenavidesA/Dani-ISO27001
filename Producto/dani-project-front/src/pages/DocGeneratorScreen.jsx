@@ -22,7 +22,7 @@ const DocGeneratorScreen = ({ navParams }) => {
   const chapters = [
     { id: 4, number: '4', title: 'Contexto de la Organización', sections: '4 sections', icon: Building2, color: '#3b82f6' },
     { id: 5, number: '5', title: 'Liderazgo', sections: '3 sections', icon: Users, color: '#f59e0b' },
-    { id: 6, number: '6', title: 'Planificación', sections: '2 sections', icon: Target, color: '#10b981' },
+    { id: 6, number: '6', title: 'Planificación', sections: '2 sections', icon: Target, color: '#004ac6' },
     { id: 7, number: '7', title: 'Apoyo', sections: '5 sections', icon: HelpCircle, color: '#8b5cf6' },
     { id: 8, number: '8', title: 'Operación', sections: '3 sections', icon: Zap, color: '#ec4899' },
     { id: 9, number: '9', title: 'Evaluación del Desempeño', sections: '3 sections', icon: Search, color: '#0ea5e9' },
@@ -136,8 +136,8 @@ const DocGeneratorScreen = ({ navParams }) => {
     const today = new Date().toLocaleDateString();
     let htmlContent = `
       <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
-        <div style="border-bottom: 2px solid #10b981; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between;">
-          <strong style="font-size: 24px; color: #10b981;">DANI GR&C</strong>
+        <div style="border-bottom: 2px solid #004ac6; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between;">
+          <strong style="font-size: 24px; color: #004ac6;">DANI GR&C</strong>
           <span style="color: #666;">ISO 27001 - ${today}</span>
         </div>
     `;
@@ -222,10 +222,10 @@ const DocGeneratorScreen = ({ navParams }) => {
       <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px 24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: t.textDim, marginBottom: '12px' }}>
           <span>Progreso Total</span>
-          <span style={{ color: '#10b981', fontWeight: 700 }}>{totalGenerated}/7 Capítulos</span>
+          <span style={{ color: '#004ac6', fontWeight: 700 }}>{totalGenerated}/7 Capítulos</span>
         </div>
         <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
-          <div style={{ width: `${progressPercent}%`, height: '100%', background: '#10b981', transition: 'width 0.3s ease' }} />
+          <div style={{ width: `${progressPercent}%`, height: '100%', background: '#004ac6', transition: 'width 0.3s ease' }} />
         </div>
       </div>
 
@@ -291,7 +291,7 @@ const DocGeneratorScreen = ({ navParams }) => {
                 </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
                   {documentStatus[selectedChapter.id] === 'published' ? (
-                    <div style={{ padding: '10px 20px', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: '10px', color: '#10b981', fontWeight: 500, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ padding: '10px 20px', background: 'rgba(0, 74, 198,0.1)', border: '1px solid rgba(0, 74, 198,0.3)', borderRadius: '10px', color: '#004ac6', fontWeight: 500, fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <CheckCircle2 size={16} /> Documento Publicado (Bloqueado)
                     </div>
                   ) : (
@@ -360,10 +360,10 @@ const DocGeneratorScreen = ({ navParams }) => {
                           <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isReview ? '#f59e0b' : 'transparent', border: `2px solid ${isReview ? '#f59e0b' : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye size={16} color={isReview ? 'white' : t.textDim} /></div>
                           <span style={{ fontSize: '11px', color: isReview ? '#f59e0b' : t.textDim, fontWeight: isReview ? 600 : 500 }}>Revisión</span>
                         </div>
-                        <div style={{ width: '40px', height: '2px', background: isApproved ? '#10b981' : t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px', opacity: isReview ? 1 : 0.4, transition: 'all 0.3s ease' }} />
+                        <div style={{ width: '40px', height: '2px', background: isApproved ? '#004ac6' : t.border, margin: '0 10px', alignSelf: 'flex-start', marginTop: '18px', opacity: isReview ? 1 : 0.4, transition: 'all 0.3s ease' }} />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', opacity: isApproved ? 1 : 0.4, transition: 'all 0.3s ease' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isApproved ? '#10b981' : 'transparent', border: `2px solid ${isApproved ? '#10b981' : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={16} color={isApproved ? 'white' : t.textDim} /></div>
-                          <span style={{ fontSize: '11px', color: isApproved ? '#10b981' : t.textDim, fontWeight: isApproved ? 600 : 500 }}>Aprobado</span>
+                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: isApproved ? '#004ac6' : 'transparent', border: `2px solid ${isApproved ? '#004ac6' : t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><UserCheck size={16} color={isApproved ? 'white' : t.textDim} /></div>
+                          <span style={{ fontSize: '11px', color: isApproved ? '#004ac6' : t.textDim, fontWeight: isApproved ? 600 : 500 }}>Aprobado</span>
                         </div>
                       </>
                     );
@@ -379,7 +379,7 @@ const DocGeneratorScreen = ({ navParams }) => {
                   
                   let btnText = 'Enviar a Revisión';
                   let isDisabled = isPublished;
-                  let btnBg = isPublished ? t.hoverBg : '#10b981';
+                  let btnBg = isPublished ? t.hoverBg : '#004ac6';
                   let btnColor = isPublished ? t.textDim : 'white';
                   
                   if (isReview) {
@@ -447,9 +447,9 @@ const DocGeneratorScreen = ({ navParams }) => {
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '12px 24px', background: 'rgba(16, 185, 129, 0.05)', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Edit3 size={16} color="#10b981" />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#10b981' }}>Tu Documento</span>
+                    <div style={{ padding: '12px 24px', background: 'rgba(0, 74, 198, 0.05)', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <Edit3 size={16} color="#004ac6" />
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#004ac6' }}>Tu Documento</span>
                     </div>
                     <div style={{ flex: 1 }}>
                       <textarea

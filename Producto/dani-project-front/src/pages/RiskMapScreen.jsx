@@ -116,7 +116,7 @@ const RiskMapScreen = () => {
   const getRiskBadgeColor = (score) => {
     if (score >= 15) return '#ef4444';
     if (score >= 8) return '#f59e0b';
-    return '#10b981';
+    return '#004ac6';
   };
 
   const calculateMitigatedScore = (risk) => {
@@ -256,7 +256,7 @@ const RiskMapScreen = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
             <button 
               onClick={(e) => { e.stopPropagation(); setShowAddModal(true); }}
-              style={{ padding: '8px 16px', background: '#10b981', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+              style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
             >
               <Plus size={16} /> Nuevo Riesgo
             </button>
@@ -286,7 +286,7 @@ const RiskMapScreen = () => {
                   <button
                     key={key}
                     onClick={() => setActiveAssetSource(key)}
-                    style={{ padding: '8px 16px', background: active ? 'rgba(16,185,129,0.1)' : t.inputBg, border: active ? '1px solid #10b981' : `1px solid ${t.border}`, borderRadius: '8px', color: active ? '#10b981' : t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                    style={{ padding: '8px 16px', background: active ? 'rgba(0, 74, 198,0.1)' : t.inputBg, border: active ? '1px solid #004ac6' : `1px solid ${t.border}`, borderRadius: '8px', color: active ? '#004ac6' : t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
                   >
                     {icon} {label} ({count})
                   </button>
@@ -321,7 +321,7 @@ const RiskMapScreen = () => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '56px', paddingBottom: '2px' }}>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
-                { label: 'Bajo',    color: '#10b981', range: '1\u20134' },
+                { label: 'Bajo',    color: '#004ac6', range: '1\u20134' },
                 { label: 'Medio',   color: '#eab308', range: '5\u20139' },
                 { label: 'Alto',    color: '#f59e0b', range: '10\u201314' },
                 { label: 'Crítico', color: '#ef4444', range: '\u226515' },
@@ -549,7 +549,7 @@ const RiskMapScreen = () => {
               
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '12px', color: getSimulationSubtextColor(), marginBottom: '4px' }}>Después</div>
-                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#10b981' : getSimulationSubtextColor(), lineHeight: '1', transition: 'color 0.3s' }}>
+                <div style={{ fontSize: '32px', fontWeight: 800, color: appliedControls.length > 0 ? '#004ac6' : getSimulationSubtextColor(), lineHeight: '1', transition: 'color 0.3s' }}>
                   {appliedControls.length > 0 ? calculateMitigatedScore(selectedRisk) : '--'}
                 </div>
               </div>
@@ -579,18 +579,18 @@ const RiskMapScreen = () => {
                     onClick={() => toggleControl(control.id)}
                     style={{ 
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                      padding: '16px', background: isApplied ? 'rgba(16, 185, 129, 0.05)' : t.inputBg, 
-                      border: `1px solid ${isApplied ? 'rgba(16, 185, 129, 0.3)' : t.border}`, 
+                      padding: '16px', background: isApplied ? 'rgba(0, 74, 198, 0.05)' : t.inputBg, 
+                      border: `1px solid ${isApplied ? 'rgba(0, 74, 198, 0.3)' : t.border}`, 
                       borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#10b981' : t.textDim}`, background: isApplied ? '#10b981' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#004ac6' : t.textDim}`, background: isApplied ? '#004ac6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {isApplied && <Check size={14} color="white" />}
                       </div>
                       <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
                     </div>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#004ac6', background: 'rgba(0, 74, 198, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
                       -{control.reduction}
                     </span>
                   </div>

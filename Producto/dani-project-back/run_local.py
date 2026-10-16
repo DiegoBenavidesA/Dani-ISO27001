@@ -10,6 +10,14 @@
 import sys
 import asyncio
 
+# Forzar UTF-8 en la salida: algunos lanzadores usan consola cp1252 y los
+# print() con emojis (ej. "✅ pgvector soportado") rompen con UnicodeEncodeError.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { API_URL } from '../services/api';
 
-const SEVERITY_COLOR = { high: '#ef4444', medium: '#f59e0b', low: '#10b981' };
+const SEVERITY_COLOR = { high: '#ef4444', medium: '#f59e0b', low: '#004ac6' };
 const SEVERITY_LABEL = { high: 'Alto', medium: 'Medio', low: 'Bajo' };
 
 export default function PreAuditPanel({ onNavigate, darkMode }) {
@@ -39,7 +39,7 @@ export default function PreAuditPanel({ onNavigate, darkMode }) {
   const readiness = data.readiness ?? 0;
   const target = data.target ?? 85;
   const gap = target - readiness;
-  const readinessColor = readiness >= 80 ? '#10b981' : readiness >= 60 ? '#f59e0b' : '#ef4444';
+  const readinessColor = readiness >= 80 ? '#004ac6' : readiness >= 60 ? '#f59e0b' : '#ef4444';
   const readinessLabel = readiness >= 85 ? 'Listo para auditoría' : readiness >= 70 ? 'Casi listo' : readiness >= 50 ? 'En progreso' : 'Requiere trabajo';
 
   return (
@@ -94,7 +94,7 @@ export default function PreAuditPanel({ onNavigate, darkMode }) {
           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {[
               { label: 'Implementación', val: data.impl_pct, color: '#3b82f6' },
-              { label: 'Evidencia', val: data.evidence_pct, color: '#10b981' },
+              { label: 'Evidencia', val: data.evidence_pct, color: '#004ac6' },
               { label: 'Documentación', val: data.doc_pct, color: '#a855f7' },
             ].map(({ label, val, color }) => (
               <div key={label} style={{ textAlign: 'left' }}>
@@ -120,7 +120,7 @@ export default function PreAuditPanel({ onNavigate, darkMode }) {
             Hallazgos probables en auditoría
           </div>
           {(data.findings ?? []).length === 0 ? (
-            <div style={{ padding: '20px', textAlign: 'center', color: '#10b981', fontSize: '13px' }}>
+            <div style={{ padding: '20px', textAlign: 'center', color: '#004ac6', fontSize: '13px' }}>
               ✓ No se detectan hallazgos de riesgo alto. ¡Buen trabajo!
             </div>
           ) : (

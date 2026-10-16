@@ -13,8 +13,9 @@ export const ProtectedRoute = ({ children, requiredRoles = null }) => {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: '#0f172a',
-        color: 'white'
+        backgroundColor: '#f8f9ff',
+        color: '#0b1c30',
+        fontFamily: "'Inter', sans-serif"
       }}>
         <div>Cargando...</div>
       </div>
