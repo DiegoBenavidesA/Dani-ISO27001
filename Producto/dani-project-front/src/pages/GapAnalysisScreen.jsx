@@ -86,24 +86,58 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { loadQuestions(); }, []);
 
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
+  const catLower = (q) => (q.categoria || '').toLowerCase();
   const phaseDefs = [
-    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => q.categoria?.startsWith('Cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
-    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#004ac6', match: (q) => q.categoria?.startsWith('Cláusula') && clauseNum(q.codigo) === '6' },
-    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => q.categoria?.startsWith('Cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
-    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => q.categoria === 'Organizacional' },
-    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
-    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
-    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
-    { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => q.categoria === 'Privacidad' || (q.categoria || '').toLowerCase().startsWith('ley') },
+    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => catLower(q).startsWith('cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
+    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#004ac6', match: (q) => catLower(q).startsWith('cláusula') && clauseNum(q.codigo) === '6' },
+    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => catLower(q).startsWith('cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
+    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => catLower(q).includes('organizacional') },
+    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => catLower(q).includes('persona') },
+    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => catLower(q).includes('físic') || catLower(q).includes('fisic') },
+    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => catLower(q).includes('tecnológic') || catLower(q).includes('tecnologic') },
+    { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: (q) => catLower(q).includes('privacidad') || catLower(q).startsWith('ley') || catLower(q).includes('protección de datos') || catLower(q).includes('proteccion de datos') || catLower(q).includes('tratamiento') || catLower(q).includes('rgpd') || catLower(q).includes('gdpr') },
   ];
 
   const phases = useMemo(() => {
-    return phaseDefs.map((def) => ({
-      id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
-      questions: dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((q) => ({
-        id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
-      })),
-    })).filter((p) => p.questions.length > 0);
+    // Ids de preguntas ya matcheadas por las fases definidas
+    const matchedIds = new Set();
+    const result = phaseDefs.map((def) => {
+      const matched = dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+      matched.forEach((q) => matchedIds.add(q.id));
+      return {
+        id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
+        questions: matched.map((q) => ({
+          id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: (q.categoria || '').toLowerCase().startsWith('cláusula'), evidencia: q.evidencia_esperada,
+        })),
+      };
+    }).filter((p) => p.questions.length > 0);
+
+    // Fase catch-all para preguntas que no matchearon con ninguna fase conocida
+    const unmatchedQuestions = dbQuestions.filter((q) => !matchedIds.has(q.id));
+    if (unmatchedQuestions.length > 0) {
+      // Agrupar por categoría para crear fases dinámicas
+      const byCat = {};
+      unmatchedQuestions.forEach((q) => {
+        const cat = q.categoria || 'General';
+        if (!byCat[cat]) byCat[cat] = [];
+        byCat[cat].push(q);
+      });
+      Object.entries(byCat).forEach(([cat, qs]) => {
+        qs.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+        result.push({
+          id: `extra-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+          name: cat,
+          clause: `${qs.length} preguntas`,
+          icon: FileCheck,
+          color: '#6366f1',
+          questions: qs.map((q) => ({
+            id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: false, evidencia: q.evidencia_esperada,
+          })),
+        });
+      });
+    }
+
+    return result;
   }, [dbQuestions, language]);
 
   const loadISOControls = async () => {
