@@ -178,7 +178,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
           }}
         >
           <img
-            src="/LogoNormIa.png"
+            src="/LogoNormia.png"
             alt="NormIA"
             style={{
               width: '44px',

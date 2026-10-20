@@ -113,7 +113,7 @@ const Login = () => {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
           <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', boxShadow: '0 10px 25px -5px rgba(0, 74, 198, 0.4)' }}>
             <img
-              src="/LogoNormIa.png"
+              src="/LogoNormia.png"
               alt="NormIA"
               style={{
                 width: '72px',
