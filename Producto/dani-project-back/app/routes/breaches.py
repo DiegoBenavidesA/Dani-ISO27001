@@ -1,5 +1,10 @@
 from datetime import datetime, timedelta
 from typing import List, Optional
+import httpx
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -10,13 +15,52 @@ from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_org
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.data_breach import DataBreach
-
+from app.models.user import User, UserRole
 
 router = APIRouter(
     prefix="/api/breaches",
     tags=["Data Breaches"]
 )
 
+# =========================================================
+# HELPER: Enviar Notificaciones Push (App Móvil Nativa)
+# =========================================================
+async def send_push_notification(tokens: List[str], title: str, body: str, data: dict = None):
+    """
+    Envía notificaciones push a los dispositivos móviles registrados usando Expo.
+    """
+    if not tokens:
+        return
+        
+    messages = []
+    for token in tokens:
+        if token and token.startswith("ExponentPushToken"):
+            messages.append({
+                "to": token,
+                "sound": "default",
+                "title": title,
+                "body": body,
+                "data": data or {}
+            })
+            
+    if not messages:
+        return
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://exp.host/--/api/v2/push/send",
+                json=messages,
+                headers={
+                    "Accept": "application/json",
+                    "Accept-encoding": "gzip, deflate",
+                    "Content-Type": "application/json",
+                }
+            )
+            if response.status_code != 200:
+                logger.error(f"Fallo al enviar Push Notification: {response.text}")
+    except Exception as e:
+        logger.error(f"Error asíncrono enviando Push: {e}")
 
 # =========================================================
 # MODELOS DE ENTRADA Y SALIDA
@@ -32,7 +76,6 @@ class BreachCreate(BaseModel):
     medidas_tomadas: Optional[str] = None
     responsable: Optional[str] = None
 
-
 class BreachUpdate(BaseModel):
     descripcion: Optional[str] = None
     datos_afectados: Optional[str] = None
@@ -41,7 +84,6 @@ class BreachUpdate(BaseModel):
     estado: Optional[str] = None
     medidas_tomadas: Optional[str] = None
     responsable: Optional[str] = None
-
 
 class BreachResponse(BaseModel):
     id: str
@@ -62,9 +104,8 @@ class BreachResponse(BaseModel):
     class Config:
         from_attributes = True
 
-
 # =========================================================
-# CREATE
+# CREATE (Ahora incluye disparo de Notificación Push)
 # =========================================================
 
 @router.post("/", response_model=BreachResponse)
@@ -89,6 +130,26 @@ async def create_breach(
     await db.commit()
     await db.refresh(new_breach)
 
+    # --- NOTIFICACIÓN PUSH A LA APP MÓVIL ---
+    try:
+        # Buscar a los administradores, owners y DPOs de la empresa que tengan la App instalada (tengan push_token)
+        stmt = select(User.push_token).where(
+            User.organization_id == org_id,
+            User.role.in_([UserRole.OWNER, UserRole.ADMIN, UserRole.DPO]),
+            User.push_token.is_not(None)
+        )
+        result = await db.execute(stmt)
+        tokens = result.scalars().all()
+
+        if tokens:
+            title = "⚠️ Alerta de Brecha de Datos"
+            body = f"[{new_breach.gravedad.upper()}] Se ha detectado una nueva brecha: {new_breach.descripcion[:50]}..."
+            
+            # Lanzamos el envío en un hilo separado para no bloquear la respuesta HTTP
+            asyncio.create_task(send_push_notification(tokens, title, body, data={"breach_id": new_breach.id}))
+    except Exception as e:
+        logger.error(f"Error preparando notificaciones push: {e}")
+
     return new_breach
 
 
@@ -106,11 +167,8 @@ async def get_breaches(
         DataBreach,
         org_id
     )
-
     stmt = stmt.order_by(DataBreach.fecha_deteccion.desc())
-
     result = await db.execute(stmt)
-
     return result.scalars().all()
 
 @router.get("/{breach_id}", response_model=BreachResponse)
@@ -156,7 +214,6 @@ async def update_breach(
 
     await db.commit()
     await db.refresh(breach)
-
     return breach
 
 
@@ -185,7 +242,6 @@ async def notify_breach(
 
     await db.commit()
     await db.refresh(breach)
-
     return breach
 
 

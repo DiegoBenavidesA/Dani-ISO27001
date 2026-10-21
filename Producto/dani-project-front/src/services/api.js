@@ -1,4 +1,6 @@
-﻿// src/services/api.js - VERSIÓN COMPLETA
+﻿// src/services/api.js
+// Configuración centralizada de la API (Sin importaciones de React)
+
 export const API_URL = process.env.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 export const userAPI = {
@@ -224,6 +226,21 @@ export const riskAPI = {
     const response = await fetch(`${API_URL}/api/risks/${riskId}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
     return response.json();
+  },
+  predictVulnerabilities: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/risks/predict`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
+      }
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `Error HTTP ${response.status}`);
+    }
+    return response.json();
   }
 };
 
@@ -249,6 +266,19 @@ export const capaAPI = {
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/capas/${dbId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) throw new Error('Error al eliminar CAPA');
+    return response.json();
+  },
+  autoRemediate: async (payload) => {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/capas/auto-remediate`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, 
+      body: JSON.stringify(payload) 
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.detail || 'Fallo al ejecutar script de remediación');
+    }
     return response.json();
   }
 };
@@ -303,13 +333,13 @@ export const breachesAPI = {
   },
   notify: async (breachId, token = null) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
-      }
-    });
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error(await response.text());
+    return response.json();
+  },
+  delete: async (breachId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   }
@@ -368,9 +398,6 @@ export const impactAPI = {
   }
 };
 
-// ============================================
-// ✅ CONSENTS API (Solucionado bloqueo CORS quitando slash final)
-// ============================================
 export const consentsAPI = {
   getAll: async (token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
@@ -526,46 +553,7 @@ export const assessmentQuestionsAPI = {
     if (!response.ok) throw new Error('Error al eliminar la pregunta');
     return response.json();
   },
-
-  // Carga masiva desde Excel (.xlsx). Devuelve { creadas, omitidas, columnas_detectadas, ... }
-  bulkImport: async (file, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const form = new FormData();
-    form.append('file', file);
-    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import`, {
-      method: 'POST',
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
-      body: form
-    });
-    if (!response.ok) {
-      let detail = `Error ${response.status}`;
-      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
-      throw new Error(detail);
-    }
-    return response.json();
-  },
-
-  // Descarga la plantilla Excel con las columnas esperadas.
-  downloadTemplate: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-template`, {
-      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
-    });
-    if (!response.ok) throw new Error('No se pudo descargar la plantilla');
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'plantilla_preguntas.xlsx';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  },
-
-  // Evaluar con IA: sube documentos y la IA responde cada pregunta.
-  // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
-  evaluate: async (files, questionIds = [], evidenceIds = [], token = null) => {
+  evaluate: async (files, questionIds = [], token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const form = new FormData();
     (files || []).forEach((f) => form.append('files', f));
@@ -586,8 +574,9 @@ export const assessmentQuestionsAPI = {
 };
 
 const api = {
-  API_URL, userAPI, chatAPI, documentsAPI, complianceAPI, authAPI, evidenceAPI, riskAPI, vendorsAPI,
-  consentsAPI, dataRequestsAPI, breachesAPI, authFetch, endpoints, treatmentsAPI, impactAPI, organizationsAPI
+  API_URL, userAPI, chatAPI, documentsAPI, complianceAPI, authAPI, evidenceAPI, riskAPI, capaAPI, vendorsAPI,
+  consentsAPI, dataRequestsAPI, breachesAPI, authFetch, endpoints, treatmentsAPI, impactAPI, organizationsAPI,
+  assessmentQuestionsAPI, getFullGapAnalysis, getRemediationPlan, getKPIDashboard, getComplianceScore, getDomainScores
 };
 
 export default api;
