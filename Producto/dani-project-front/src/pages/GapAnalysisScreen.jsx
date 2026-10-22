@@ -3,7 +3,7 @@ import React, { useState, useContext, useEffect, useMemo } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
-  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2
+  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -87,31 +87,74 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { loadQuestions(); }, []);
 
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
-  // Categorías equivalentes utilizadas en distintas cargas de preguntas.
+  // Normalizamos las categorías para aceptar distintas importaciones (con o sin tildes).
+  const categoryOf = (q) => String(q.categoria || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
   const isPrivacyQuestion = (q) => {
-    const category = String(q.categoria || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const category = categoryOf(q);
     return category.includes('privacidad') || category.includes('proteccion de datos') ||
-      category.includes('datos personales') || /\bley\s*21[.\s]*719\b/.test(category) ||
-      /\bley\s*21719\b/.test(category);
+      category.includes('datos personales') || category.includes('rgpd') ||
+      category.includes('gdpr') || category.includes('tratamiento') ||
+      /\bley\s*21[.\s]*719\b/.test(category) || /\bley\s*21719\b/.test(category);
   };
+
+  const isISOCategory = (q, fragment) => !isPrivacyQuestion(q) && categoryOf(q).includes(fragment);
+  const isClause = (q) => !isPrivacyQuestion(q) && categoryOf(q).startsWith('clausula');
+
   const phaseDefs = [
-    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => q.categoria?.startsWith('Cláusula') && ['4', '5'].includes(clauseNum(q.codigo)) },
-    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#004ac6', match: (q) => q.categoria?.startsWith('Cláusula') && clauseNum(q.codigo) === '6' },
-    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => q.categoria?.startsWith('Cláusula') && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
-    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => q.categoria === 'Organizacional' },
-    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => q.categoria === 'Personas' },
-    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => q.categoria === 'Físico' },
-    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => q.categoria === 'Tecnológico' },
+    { id: 'context',  name: 'Contexto y Liderazgo', clause: 'Cláusulas 4 y 5', icon: Building2, color: '#3b82f6', match: (q) => isClause(q) && ['4', '5'].includes(clauseNum(q.codigo)) },
+    { id: 'planning', name: 'Planificación y Riesgo', clause: 'Cláusula 6', icon: Target, color: '#004ac6', match: (q) => isClause(q) && clauseNum(q.codigo) === '6' },
+    { id: 'support',  name: 'Soporte, Operación y Mejora', clause: 'Cláusulas 7 a 10', icon: Users, color: '#f59e0b', match: (q) => isClause(q) && ['7', '8', '9', '10'].includes(clauseNum(q.codigo)) },
+    { id: 'org',      name: 'Anexo A — Organizacional', clause: 'Controles A.5', icon: Shield, color: '#a855f7', match: (q) => isISOCategory(q, 'organizacional') },
+    { id: 'people',   name: 'Anexo A — Personas', clause: 'Controles A.6', icon: Users, color: '#ec4899', match: (q) => isISOCategory(q, 'persona') },
+    { id: 'phys',     name: 'Anexo A — Físico', clause: 'Controles A.7', icon: Lock, color: '#06b6d4', match: (q) => isISOCategory(q, 'fisic') },
+    { id: 'tech',     name: 'Anexo A — Tecnológico', clause: 'Controles A.8', icon: Globe, color: '#8b5cf6', match: (q) => isISOCategory(q, 'tecnologic') },
     { id: 'ley',      name: 'Ley 21.719 — Privacidad', clause: 'Protección de Datos', icon: Eye, color: '#14b8a6', match: isPrivacyQuestion },
   ];
 
   const phases = useMemo(() => {
-    return phaseDefs.map((def) => ({
-      id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
-      questions: dbQuestions.filter(def.match).sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0)).map((q) => ({
-        id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta, codigo: q.codigo, options: [tText.yes, tText.partially, tText.no], critical: q.categoria?.startsWith('Cláusula'), evidencia: q.evidencia_esperada,
-      })),
-    })).filter((p) => p.id === 'ley' || p.questions.length > 0);
+    // Conserva las fases del equipo, evita preguntas repetidas y mantiene visible Privacidad.
+    const matchedIds = new Set();
+    const result = phaseDefs.map((def) => {
+      const matched = dbQuestions
+        .filter((q) => !matchedIds.has(q.id) && def.match(q))
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+      matched.forEach((q) => matchedIds.add(q.id));
+      return {
+        id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
+        questions: matched.map((q) => ({
+          id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta,
+          codigo: q.codigo, options: [tText.yes, tText.partially, tText.no],
+          critical: isClause(q), evidencia: q.evidencia_esperada,
+        })),
+      };
+    }).filter((p) => p.id === 'ley' || p.questions.length > 0);
+
+    // Funcionalidad de main: preguntas con categorías desconocidas tienen su propia fase.
+    const unmatchedQuestions = dbQuestions.filter((q) => !matchedIds.has(q.id));
+    const byCat = {};
+    unmatchedQuestions.forEach((q) => {
+      const cat = q.categoria || 'General';
+      if (!byCat[cat]) byCat[cat] = [];
+      byCat[cat].push(q);
+    });
+    Object.entries(byCat).forEach(([cat, qs]) => {
+      qs.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+      result.push({
+        id: `extra-${cat.toLowerCase().replace(/\s+/g, '-')}`,
+        name: cat,
+        clause: `${qs.length} preguntas`,
+        icon: FileCheck,
+        color: '#6366f1',
+        questions: qs.map((q) => ({
+          id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta,
+          codigo: q.codigo, options: [tText.yes, tText.partially, tText.no],
+          critical: false, evidencia: q.evidencia_esperada,
+        })),
+      });
+    });
+    return result;
   }, [dbQuestions, language]);
 
   const loadISOControls = async () => {
@@ -507,6 +550,23 @@ function GapAnalysisScreen({ onNavigate }) {
       }
     };
 
+    const handleImportPdf = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImportPdf(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
     const handleDownloadTemplate = async () => {
       try { await assessmentQuestionsAPI.downloadTemplate(); }
       catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
@@ -554,6 +614,10 @@ function GapAnalysisScreen({ onNavigate }) {
             <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
             <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
           </label>
+          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FileText size={16} /> {importing ? 'Importando…' : 'Importar PDF'}
+            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
+          </label>
           <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Plus size={16} /> Nueva Pregunta
           </button>
@@ -566,10 +630,15 @@ function GapAnalysisScreen({ onNavigate }) {
               <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos} filas con datos).</span>
+                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
                 {importResult.columnas_detectadas && (
                   <span style={{ color: t.textDim, fontSize: '12px' }}>
                     Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
+                  </span>
+                )}
+                {importResult.categorias && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
                   </span>
                 )}
               </div>
