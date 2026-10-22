@@ -31,3 +31,4 @@ redis==5.0.3
 # hablar con la API REST de Supabase Storage.
 httpx==0.26.0
 openpyxl==3.1.5
+openpyxl==3.1.5
