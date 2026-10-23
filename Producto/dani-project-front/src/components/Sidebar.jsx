@@ -165,9 +165,34 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
         zIndex: 10
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px', padding: '0 8px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/LogoNormIa.png" alt="NormIA" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+
+      {/* Logo */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '32px',
+          padding: '0 8px'
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          <img
+            src="/LogoNormia.png"
+            alt="NormIA"
+            style={{
+              width: '44px',
+              height: '44px',
+              objectFit: 'contain'
+            }}
+          />
+
         </div>
         {!sidebarCollapsed && (
           <div>

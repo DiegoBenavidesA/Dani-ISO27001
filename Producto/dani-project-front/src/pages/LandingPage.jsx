@@ -169,8 +169,16 @@ const LandingPage = () => {
     <div style={styles.page}>
       {/* HEADER */}
       <header style={styles.header}>
-        <div style={styles.brand}>
-          <div style={styles.logoIcon}>✓</div>
+        <div style={styles.brand}>       
+          <img
+            src="/LogoNormia.png"
+            alt="Logo NormIA"
+            style={{
+              width: '44px',
+              height: '44px',
+              objectFit: 'contain'
+            }}
+          />
           <span style={styles.logoText}>NormIA</span>
         </div>
 
@@ -735,14 +743,7 @@ const LandingPage = () => {
           </p>
         </div>
 
-        <div style={styles.footerLinks}>
-          <a href="#inicio" style={styles.footerLink}>Inicio</a>
-          <a href="#quienes-somos" style={styles.footerLink}>Quiénes somos</a>
-          <a href="#soluciones" style={styles.footerLink}>Soluciones</a>
-          <a href="#como-funciona" style={styles.footerLink}>Cómo funciona</a>
-          <a href="#normativas" style={styles.footerLink}>Normativas</a>
-        </div>
-
+      
         <span style={styles.footerText}>
           Seguridad · Cumplimiento · Confianza
         </span>
