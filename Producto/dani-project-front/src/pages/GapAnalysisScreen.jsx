@@ -1,5 +1,5 @@
 // src/pages/GapAnalysisScreen.jsx
-import React, { useState, useContext, useEffect, useMemo } from 'react';
+import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
@@ -72,16 +72,25 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { try { localStorage.setItem('dani_gap_answers', JSON.stringify(answers)); } catch {} }, [answers]);
   useEffect(() => { try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {} }, [aiResults]);
 
+  // Reintenta varias veces antes de rendirse: en el plan gratuito de Render el
+  // servidor puede estar despertando y responder con error unos segundos.
   const loadQuestions = async () => {
     setQuestionsLoading(true); setQuestionsError(null);
-    try {
-      const data = await assessmentQuestionsAPI.getAll();
-      setDbQuestions(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar preguntas', err);
-      setQuestionsError('No se pudieron cargar las preguntas desde la base de datos.');
-      setDbQuestions([]);
-    } finally { setQuestionsLoading(false); }
+    const esperas = [0, 3000, 8000, 15000];
+    for (let i = 0; i < esperas.length; i++) {
+      if (esperas[i]) await new Promise((r) => setTimeout(r, esperas[i]));
+      try {
+        const data = await assessmentQuestionsAPI.getAll();
+        setDbQuestions(Array.isArray(data) ? data : []);
+        setQuestionsLoading(false);
+        return;
+      } catch (err) {
+        console.error(`Error al cargar preguntas (intento ${i + 1})`, err);
+      }
+    }
+    setQuestionsError('No se pudieron cargar las preguntas. Revisa tu conexión e inténtalo de nuevo.');
+    setDbQuestions([]);
+    setQuestionsLoading(false);
   };
   useEffect(() => { loadQuestions(); }, []);
 
@@ -190,6 +199,7 @@ function GapAnalysisScreen({ onNavigate }) {
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
 
   const handleAnswer = (answer) => {
+    markDirty();
     setAnswers({ ...answers, [currentQuestionData.id]: answer });
     setTimeout(() => goToNext(), 300);
   };
@@ -203,10 +213,43 @@ function GapAnalysisScreen({ onNavigate }) {
     else if (currentPhase > 0) { setCurrentPhase(currentPhase - 1); setCurrentQuestion(phases[currentPhase - 1].questions.length - 1); }
   };
   
-  const handleSaveProgress = async () => {
-    setIsSaving(true);
-    try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); loadAnalysis(); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
-  };
+  // ==========================================
+  // AUTOGUARDADO
+  // Las respuestas del cuestionario y los cambios manuales en la SOA se
+  // guardan solos, 1,5 s después del último cambio, en vez de depender de un
+  // botón "Guardar" que el usuario puede olvidar. Solo se dispara con cambios
+  // del usuario (markDirty), no con la carga inicial desde el servidor.
+  // ==========================================
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | pending | saving | saved | error
+  const dirtyRef = useRef(false);
+  const markDirty = () => { dirtyRef.current = true; setSaveStatus('pending'); };
+
+  useEffect(() => {
+    if (!dirtyRef.current) return;
+    const timer = setTimeout(async () => {
+      dirtyRef.current = false;
+      setIsSaving(true); setSaveStatus('saving');
+      try {
+        await complianceAPI.fullAssessment({ controls, answers });
+        setSaveStatus(dirtyRef.current ? 'pending' : 'saved');
+        loadAnalysis();
+      } catch (e) {
+        console.warn('No se pudo autoguardar', e);
+        dirtyRef.current = true; // se reintenta con el próximo cambio
+        setSaveStatus('error');
+      } finally { setIsSaving(false); }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [controls, answers]);
+
+  // Aviso si se intenta cerrar la pestaña con cambios aún sin guardar.
+  useEffect(() => {
+    const onBeforeUnload = (e) => {
+      if (dirtyRef.current) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, []);
 
   const veredictoToOption = (veredicto) => {
     if (veredicto === 'cumple') return tText.yes;
@@ -352,9 +395,9 @@ function GapAnalysisScreen({ onNavigate }) {
     setCurrentPage(1);
   };
 
-  const toggleApplicable = (id) => setControls(prev => prev.map(c => c.id === id ? { ...c, applicable: !c.applicable } : c));
-  const updateStatus = (id, status) => setControls(prev => prev.map(c => c.id === id ? { ...c, status } : c));
-  const updateJustification = (id, justification) => { setControls(prev => prev.map(c => c.id === id ? { ...c, justification } : c)); setShowJustificationModal(null); };
+  const toggleApplicable = (id) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, applicable: !c.applicable } : c)); };
+  const updateStatus = (id, status) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, status } : c)); };
+  const updateJustification = (id, justification) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, justification } : c)); setShowJustificationModal(null); };
 
   const filteredControls = Array.isArray(controls) ? controls.filter(c => {
     if (filterApplicable === 'applicable') return c.applicable;
@@ -737,9 +780,15 @@ function GapAnalysisScreen({ onNavigate }) {
             </button>
           )}
           
-          <button onClick={handleSaveProgress} disabled={isSaving} style={{ padding: '8px 16px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: isSaving ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '12px' }}>
-            <Download size={14} /> {isSaving ? tText.saving : tText.saveProgress}
-          </button>
+          {saveStatus !== 'idle' && (
+            <span
+              title={saveStatus === 'error' ? 'Se reintentará con tu próximo cambio' : undefined}
+              style={{ marginLeft: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 500, color: saveStatus === 'error' ? '#dc2626' : t.textDim }}
+            >
+              {saveStatus === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} color={saveStatus === 'saved' ? '#004ac6' : undefined} />}
+              {saveStatus === 'saved' ? 'Cambios guardados' : saveStatus === 'error' ? 'No se pudo guardar' : 'Guardando...'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -757,6 +806,20 @@ function GapAnalysisScreen({ onNavigate }) {
           </div>
 
           {questionsLoading && <div style={{ color: t.textDim, padding: '24px', textAlign: 'center' }}>Cargando preguntas desde la base de datos...</div>}
+          {!questionsLoading && phases.length === 0 && (
+            <div style={{ padding: '32px 24px', textAlign: 'center', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+              <AlertCircle size={28} color={questionsError ? '#dc2626' : t.textDim} />
+              <div style={{ color: t.text, fontWeight: 600 }}>
+                {questionsError || 'Aún no hay preguntas de evaluación cargadas.'}
+              </div>
+              {!questionsError && isAdmin && (
+                <div style={{ color: t.textDim, fontSize: '13px' }}>Puedes agregarlas desde "Conf. Preguntas".</div>
+              )}
+              <button onClick={loadQuestions} style={{ padding: '8px 16px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', fontWeight: 500, fontSize: '13px', cursor: 'pointer' }}>
+                Reintentar
+              </button>
+            </div>
+          )}
           {!questionsLoading && phases.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 320px', gap: '24px' }}>
               <div>

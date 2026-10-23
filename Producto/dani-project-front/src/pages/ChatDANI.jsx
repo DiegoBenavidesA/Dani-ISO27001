@@ -7,9 +7,9 @@ import ReactMarkdown from 'react-markdown';
 const C = {
   primary: '#004ac6',
   primaryDark: '#003ea8',
-  green: '#059669',          // "en línea" / éxito
-  tertFixed: '#85f8c4',      // chip/ícono del bot
-  onTertFixed: '#002114',
+  accent: '#004ac6',         // "en línea", avatar del bot y énfasis (identidad azul NormIA)
+  tertFixed: '#dbe6ff',      // chip/ícono del bot (azul claro)
+  onTertFixed: '#004ac6',
   white: '#ffffff',          // surface-container-lowest
   surfaceLow: '#eff4ff',     // surface-container-low
   onSurface: '#0b1c30',
@@ -134,8 +134,8 @@ export default function ChatDANI() {
                     GRC Copilot
                   </span>
                 </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: C.green }}>
-                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.green }} />
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: C.accent }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: C.accent }} />
                   En línea • ISO 27001 &amp; Ley 21.719
                 </span>
               </div>
@@ -187,7 +187,7 @@ export default function ChatDANI() {
               >
                 <div style={{
                   width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0, marginTop: '4px',
-                  background: msg.type === 'user' ? C.primary : C.green,
+                  background: msg.type === 'user' ? C.primary : C.accent,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   boxShadow: '0 1px 2px rgba(15,23,42,0.1)'
                 }}>
@@ -219,7 +219,7 @@ export default function ChatDANI() {
                           components={{
                             p: ({ node, ...props }) => <p style={{ margin: '0 0 8px 0' }} {...props} />,
                             a: ({ node, ...props }) => <a style={{ color: C.primary, textDecoration: 'none' }} {...props} />,
-                            strong: ({ node, ...props }) => <strong style={{ color: C.green }} {...props} />,
+                            strong: ({ node, ...props }) => <strong style={{ color: C.accent }} {...props} />,
                             ul: ({ node, ...props }) => <ul style={{ margin: '0 0 8px 0', paddingLeft: '20px' }} {...props} />,
                             ol: ({ node, ...props }) => <ol style={{ margin: '0 0 8px 0', paddingLeft: '20px' }} {...props} />,
                             li: ({ node, ...props }) => <li style={{ marginBottom: '4px' }} {...props} />,
@@ -238,7 +238,7 @@ export default function ChatDANI() {
             ))}
             {isLoading && (
               <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '4px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '4px' }}>
                   <Bot size={16} color="#fff" />
                 </div>
                 <div style={{ padding: '14px 16px', borderRadius: '16px', borderTopLeftRadius: '4px', background: C.white, border: `1px solid ${C.border}`, display: 'flex', gap: '4px' }}>
@@ -330,7 +330,7 @@ export default function ChatDANI() {
         <span style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {isOpen ? <X size={26} /> : <Bot size={26} />}
           {!isOpen && (
-            <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: '#86efac', boxShadow: `0 0 0 2px ${C.primary}` }} />
+            <span style={{ position: 'absolute', top: '-4px', right: '-4px', width: '10px', height: '10px', borderRadius: '50%', background: '#ffffff', boxShadow: `0 0 0 2px ${C.primary}` }} />
           )}
         </span>
       </button>

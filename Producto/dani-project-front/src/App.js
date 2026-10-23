@@ -11,26 +11,50 @@ import ActivateScreen from './pages/ActivateScreen';
 import PublicDataRequestScreen from './pages/PublicDataRequestScreen';
 import LandingPage from './pages/LandingPage';
 
+// Pantalla de carga del inicio de sesión. Si la espera se alarga, avisamos que
+// el servidor está despertando (plan gratuito de Render) en vez de dejar solo
+// "Cargando..." sin explicación.
+function LoadingScreen() {
+  const [slow, setSlow] = React.useState(false);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        height: '100vh',
+        backgroundColor: '#f8f9ff',
+        color: '#0b1c30',
+        fontFamily: "'Inter', sans-serif",
+        textAlign: 'center',
+        padding: '0 16px'
+      }}
+    >
+      <div>Cargando...</div>
+      {slow && (
+        <div style={{ fontSize: 14, color: '#5b6b82', maxWidth: 420 }}>
+          El servidor se está activando tras un periodo sin uso. Esto puede
+          tardar un par de minutos solo la primera vez; no cierres la página.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Componente para manejar las rutas
 function AppRoutes() {
   const { isAuthenticated, isLoading, orgSlug } = useAuth();
 
   if (isLoading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          backgroundColor: '#f8f9ff',
-          color: '#0b1c30',
-          fontFamily: "'Inter', sans-serif"
-        }}
-      >
-        <div>Cargando...</div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
