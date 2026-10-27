@@ -5,6 +5,8 @@ import {
   Contrast, Bot, LayoutDashboard, Search, FilePlus2, 
   AlertTriangle, Database, FileText, FileCheck, Users 
 } from 'lucide-react';
+import PredictiveScreen from './pages/PredictiveScreen';
+import { BrainCircuit } from 'lucide-react'; 
 
 // IMPORTACIÓN DE CONTEXTOS Y COMPONENTES
 import Sidebar from './components/Sidebar';
@@ -38,10 +40,8 @@ import AssessmentScreen from './pages/AssessmentScreen';
 export default function DaniPlatform() {
   const { logout, user, impersonatedOrg } = useAuth();
   const isSuperadmin = user?.role === 'superadmin';
-  // El superadmin "dentro" de una empresa se comporta como un usuario del tenant.
   const platformMode = isSuperadmin && !impersonatedOrg;
   
-  // Extraemos todo del Contexto Global
   const { 
     theme: t, language, setLanguage, darkMode, setDarkMode, 
     translations, highContrast, setHighContrast 
@@ -49,10 +49,6 @@ export default function DaniPlatform() {
   
   const l = translations[language];
 
-  // ESTADOS DE NAVEGACIÓN Y UI
-  // Pantalla inicial según rol: superadmin -> Empresas; empleado -> su Portal;
-  // el resto (owner/admin/manager/auditor/dpo) -> la última pantalla guardada
-  // (persistencia de main) o el Panel por defecto.
   const initialScreen = platformMode
     ? 'organizations'
     : (user?.role === 'employee'
@@ -60,8 +56,6 @@ export default function DaniPlatform() {
         : (sessionStorage.getItem('dani_active_screen') || 'dashboard'));
   const [activeScreen, setActiveScreen] = useState(initialScreen);
 
-  // Al entrar/salir de una empresa (superadmin), cambiamos la pantalla activa:
-  // entrar -> Panel de la empresa; salir -> volver a Gestión de Empresas.
   useEffect(() => {
     if (isSuperadmin) {
       setActiveScreen(impersonatedOrg ? 'dashboard' : 'organizations');
@@ -69,7 +63,6 @@ export default function DaniPlatform() {
   }, [impersonatedOrg, isSuperadmin]);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  // ... (mantén los demás estados intactos)
 
   const handleNavigate = (screen, params = null) => {
     setActiveScreen(screen);
@@ -85,7 +78,6 @@ export default function DaniPlatform() {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [navParams, setNavParams] = useState(null);
 
-  // Keyboard shortcut para Command Palette (Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -103,12 +95,9 @@ export default function DaniPlatform() {
     { code: 'pt', name: 'Português', flag: '🇧🇷' }
   ];
 
- 
-
   return (
     <div style={{ minHeight: '100vh', background: t.bg, color: t.text, display: 'flex', position: 'relative' }}>
       
-      {/* Sidebar - Se encarga de la navegación lateral */}
       <Sidebar 
         activeScreen={activeScreen} 
         setActiveScreen={handleNavigate}
@@ -119,10 +108,8 @@ export default function DaniPlatform() {
 
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
         
-        {/* Header Global */}
         <header style={{ padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}`, zIndex: 10 }}>
           
-          {/* Selector de Idioma */}
           <div style={{ position: 'relative' }}>
             <button onClick={() => setLangDropdownOpen(!langDropdownOpen)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer' }}>
               <Globe size={16} />
@@ -140,7 +127,6 @@ export default function DaniPlatform() {
             )}
           </div>
 
-          {/* Notificaciones */}
           <div style={{ position: 'relative' }}>
             <button onClick={() => setNotificationsOpen(!notificationsOpen)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer', position: 'relative' }}>
               <Bell size={20} />
@@ -153,18 +139,15 @@ export default function DaniPlatform() {
             <NotificationCenter isOpen={notificationsOpen} onClose={() => setNotificationsOpen(false)} onCountChange={setUnreadNotifications} />
           </div>
 
-          {/* Settings */}
           <button onClick={() => setSettingsOpen(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, cursor: 'pointer' }}>
             <Settings size={20} />
           </button>
 
-          {/* Cerrar Sesión */}
           <button onClick={logout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '44px', height: '44px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: '#ef4444', cursor: 'pointer' }}>
             <LogOut size={20} />
           </button>
         </header>
 
-        {/* Contenido Dinámico de Pantallas */}
         <div style={{ flex: '1 0 auto', minWidth: 0, padding: '32px 40px', overflow: 'visible', minHeight: 'calc(100vh - 78px)', boxSizing: 'border-box' }}>
           {activeScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {activeScreen === 'gap-analysis' && <GapAnalysisScreen onNavigate={handleNavigate} />}
@@ -183,12 +166,13 @@ export default function DaniPlatform() {
           {activeScreen === 'treatments' && <TreatmentsScreen onNavigate={handleNavigate} />}
           {activeScreen === 'impact' && <ImpactScreen navParams={navParams} onNavigate={handleNavigate} />}
           {activeScreen === 'organizations' && <OrganizationsScreen />}
+          
+          {/* NUEVO: Renderizado de Análisis Predictivo */}
+          {activeScreen === 'predictive' && <PredictiveScreen />}
             
         </div>
       </main>
 
-      {/* Componentes Flotantes y Modales */}
-      {/* El Asistente DANI gestiona su propio botón flotante (FAB) y panel. */}
       <ChatDANI activeScreen={activeScreen} />
       
       {commandPaletteOpen && <CommandPalette isOpen={commandPaletteOpen} darkMode={darkMode} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}

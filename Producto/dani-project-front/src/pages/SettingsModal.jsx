@@ -2,7 +2,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import {
   Settings, X, Key, Smartphone, Calendar, Globe, Monitor,
-  Shield, Check, Eye, EyeOff, CheckCircle2,
+  Shield, Check, Eye, EyeOff, CheckCircle2, Database, Link,
   Sun, Moon, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
@@ -12,6 +12,8 @@ const labels = {
   en: {
     settings: 'Settings', password: 'Password', twoFA: 'Two-Factor Auth',
     language: 'Language', appearance: 'Appearance', auditCycle: 'Audit Cycle',
+    integrations: 'API Integrations', erpUrl: 'ERP Base URL', erpApiKey: 'API Key / Token',
+    testConnection: 'Test Connection', integrationDesc: 'Connect to external ERPs (e.g. SAP, Buk) to synchronize data automatically.',
     changePassword: 'Change Password', currentPassword: 'Current Password',
     newPassword: 'New Password', confirmPassword: 'Confirm Password',
     passwordRequirements: 'Min. 8 characters',
@@ -31,6 +33,8 @@ const labels = {
   es: {
     settings: 'Configuración', password: 'Contraseña', twoFA: 'Autenticación 2FA',
     language: 'Idioma', appearance: 'Apariencia', auditCycle: 'Ciclo de Auditoría',
+    integrations: 'Integraciones API', erpUrl: 'URL Base del ERP', erpApiKey: 'API Key / Token',
+    testConnection: 'Probar Conexión', integrationDesc: 'Conecta con ERPs externos (ej. SAP, Buk) para sincronizar datos automáticamente.',
     changePassword: 'Cambiar Contraseña', currentPassword: 'Contraseña Actual',
     newPassword: 'Nueva Contraseña', confirmPassword: 'Confirmar Contraseña',
     passwordRequirements: 'Mínimo 8 caracteres',
@@ -50,6 +54,8 @@ const labels = {
   pt: {
     settings: 'Configurações', password: 'Senha', twoFA: 'Autenticação 2FA',
     language: 'Idioma', appearance: 'Aparência', auditCycle: 'Ciclo de Auditoria',
+    integrations: 'Integrações API', erpUrl: 'URL Base do ERP', erpApiKey: 'API Key / Token',
+    testConnection: 'Testar Conexão', integrationDesc: 'Conecte-se a ERPs externos para sincronizar dados.',
     changePassword: 'Alterar Senha', currentPassword: 'Senha Atual',
     newPassword: 'Nova Senha', confirmPassword: 'Confirmar Senha',
     passwordRequirements: 'Mínimo 8 caracteres',
@@ -85,9 +91,15 @@ function SettingsModal({ onClose }) {
   const [pwdSuccess, setPwdSuccess] = useState(false);
   const [pwdLoading, setPwdLoading] = useState(false);
 
-  // Preferences state
+  // Preferences & Integrations state
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [auditCycleDay, setAuditCycleDay] = useState(1);
+  const [erpUrl, setErpUrl] = useState('');
+  const [erpApiKey, setErpApiKey] = useState('');
+
+  const [testLoading, setTestLoading] = useState(false);
+  const [testMessage, setTestMessage] = useState({ type: '', text: '' });
+
   const [prefsSaving, setPrefsSaving] = useState(false);
   const [prefsSaved, setPrefsSaved] = useState(false);
   const [prefsError, setPrefsError] = useState('');
@@ -96,6 +108,7 @@ function SettingsModal({ onClose }) {
     { id: 'password', label: l.password, icon: Key },
     { id: '2fa', label: l.twoFA, icon: Smartphone },
     { id: 'auditCycle', label: l.auditCycle, icon: Calendar },
+    { id: 'integrations', label: l.integrations, icon: Database },
     { id: 'language', label: l.language, icon: Globe }
   ];
 
@@ -108,6 +121,8 @@ function SettingsModal({ onClose }) {
   // Cargar preferencias al abrir
   useEffect(() => {
     const token = localStorage.getItem('token');
+    
+    // 1. Cargar Preferencias
     fetch(`${API_URL}/api/users/me/preferences`, {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -115,6 +130,17 @@ function SettingsModal({ onClose }) {
       .then(prefs => {
         if (prefs.audit_cycle_day) setAuditCycleDay(prefs.audit_cycle_day);
         if (prefs.twofa_enabled !== undefined) setTwoFAEnabled(prefs.twofa_enabled);
+      })
+      .catch(() => {});
+
+    // 2. Cargar Integraciones
+    fetch(`${API_URL}/api/integrations/config`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.erp_url) setErpUrl(data.erp_url);
+        if (data.erp_api_key) setErpApiKey(data.erp_api_key);
       })
       .catch(() => {});
   }, []);
@@ -141,25 +167,63 @@ function SettingsModal({ onClose }) {
     finally { setPwdLoading(false); }
   };
 
-  const handleSavePreferences = async () => {
+  const handleTestConnection = async () => {
+    if (!erpUrl) {
+      setTestMessage({ type: 'error', text: 'Ingresa una URL válida primero.' });
+      return;
+    }
+    setTestLoading(true);
+    setTestMessage({ type: '', text: '' });
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${API_URL}/api/integrations/test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ erp_url: erpUrl, erp_api_key: erpApiKey })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Fallo de conexión');
+      setTestMessage({ type: 'success', text: data.message || 'Conexión exitosa' });
+    } catch (err) {
+      setTestMessage({ type: 'error', text: err.message });
+    } finally {
+      setTestLoading(false);
+    }
+  };
+
+  const handleSaveActiveSection = async () => {
     setPrefsSaving(true);
     setPrefsSaved(false);
     setPrefsError('');
+    const token = localStorage.getItem('token');
+
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${API_URL}/api/users/me/preferences`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ audit_cycle_day: auditCycleDay, twofa_enabled: twoFAEnabled })
-      });
-      if (!res.ok) throw new Error();
+      if (activeSection === 'integrations') {
+        const res = await fetch(`${API_URL}/api/integrations/config`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ erp_url: erpUrl, erp_api_key: erpApiKey })
+        });
+        if (!res.ok) throw new Error('Error guardando integraciones');
+      } else {
+        const res = await fetch(`${API_URL}/api/users/me/preferences`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ audit_cycle_day: auditCycleDay, twofa_enabled: twoFAEnabled })
+        });
+        if (!res.ok) throw new Error('Error guardando preferencias');
+      }
+
       setPrefsSaved(true);
       setTimeout(() => setPrefsSaved(false), 3000);
-    } catch { setPrefsError('Error al guardar'); }
-    finally { setPrefsSaving(false); }
+    } catch (err) { 
+      setPrefsError(err.message); 
+    } finally { 
+      setPrefsSaving(false); 
+    }
   };
 
-  const isPrefsSection = ['2fa', 'auditCycle'].includes(activeSection);
+  const isSaveableSection = ['2fa', 'auditCycle', 'integrations'].includes(activeSection);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
@@ -185,7 +249,7 @@ function SettingsModal({ onClose }) {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
               return (
-                <button key={section.id} onClick={() => setActiveSection(section.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', background: isActive ? 'rgba(0, 74, 198,0.15)' : 'transparent', border: 'none', borderRadius: '10px', cursor: 'pointer', color: isActive ? '#004ac6' : t.textMuted, fontSize: '14px', fontWeight: isActive ? 600 : 500, textAlign: 'left' }}>
+                <button key={section.id} onClick={() => { setActiveSection(section.id); setPrefsSaved(false); setPrefsError(''); }} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', background: isActive ? 'rgba(0, 74, 198,0.15)' : 'transparent', border: 'none', borderRadius: '10px', cursor: 'pointer', color: isActive ? '#004ac6' : t.textMuted, fontSize: '14px', fontWeight: isActive ? 600 : 500, textAlign: 'left' }}>
                   <Icon size={18} /> {section.label}
                 </button>
               );
@@ -284,6 +348,58 @@ function SettingsModal({ onClose }) {
               </div>
             )}
 
+            {/* NUEVO: Integraciones API */}
+            {activeSection === 'integrations' && (
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px', color: t.text }}>{l.integrations}</h3>
+                <p style={{ fontSize: '13px', color: t.textDim, marginBottom: '24px' }}>{l.integrationDesc}</p>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: t.textMuted, marginBottom: '8px' }}>{l.erpUrl}</label>
+                    <div style={{ position: 'relative' }}>
+                      <Link size={16} color={t.textDim} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="url"
+                        placeholder="https://api.tuempresa.com/v1"
+                        value={erpUrl}
+                        onChange={e => setErpUrl(e.target.value)}
+                        style={{ width: '100%', padding: '12px 14px 12px 40px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 500, color: t.textMuted, marginBottom: '8px' }}>{l.erpApiKey}</label>
+                    <div style={{ position: 'relative' }}>
+                      <Key size={16} color={t.textDim} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                      <input
+                        type="password"
+                        placeholder="••••••••••••••••••••••••"
+                        value={erpApiKey}
+                        onChange={e => setErpApiKey(e.target.value)}
+                        style={{ width: '100%', padding: '12px 14px 12px 40px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
+                    <button type="button" onClick={handleTestConnection} disabled={testLoading} style={{ padding: '10px 16px', background: t.hoverBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', fontWeight: 600, cursor: testLoading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {testLoading ? <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Globe size={16} />} 
+                      {l.testConnection}
+                    </button>
+                    
+                    {testMessage.text && (
+                      <span style={{ fontSize: '13px', color: testMessage.type === 'error' ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        {testMessage.type === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} />}
+                        {testMessage.text}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Idioma */}
             {activeSection === 'language' && (
               <div>
@@ -312,8 +428,8 @@ function SettingsModal({ onClose }) {
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button onClick={onClose} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', fontWeight: 500, cursor: 'pointer' }}>{l.cancel}</button>
-            {isPrefsSection && (
-              <button onClick={handleSavePreferences} disabled={prefsSaving} style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: prefsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: prefsSaving ? 0.7 : 1 }}>
+            {isSaveableSection && (
+              <button onClick={handleSaveActiveSection} disabled={prefsSaving} style={{ padding: '10px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontSize: '14px', fontWeight: 600, cursor: prefsSaving ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: prefsSaving ? 0.7 : 1 }}>
                 {prefsSaving && <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />}
                 {prefsSaving ? l.saving : l.saveChanges}
               </button>
@@ -321,6 +437,9 @@ function SettingsModal({ onClose }) {
           </div>
         </div>
       </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}} />
     </div>
   );
 }

@@ -14,10 +14,6 @@ class AIService:
             logger.warning("⚠️ API key no configurada")
             self.client = None
         else:
-            # Configurar cliente.
-            # timeout + max_retries acotados: si el proveedor (Groq) aplica
-            # límite de tasa, el SDK NO se queda reintentando con backoff durante
-            # minutos; falla rápido y el endpoint devuelve un fallback controlado.
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=settings.AI_BASE_URL,
@@ -67,7 +63,6 @@ class AIService:
         try:
             messages_payload = [{"role": "system", "content": system_content}]
             if history:
-                # Keep last 10 turns (5 user + 5 assistant) to stay within context window
                 messages_payload.extend(history[-10:])
             messages_payload.append({"role": "user", "content": message})
 
@@ -83,12 +78,10 @@ class AIService:
             content      = response.choices[0].message.content
             finish_reason = getattr(response.choices[0], 'finish_reason', None)
 
-            # Detect truncation: either the provider said so, or the text ends mid-word/mid-sentence
             last_char  = content.rstrip()[-1] if content.rstrip() else ''
             was_cut    = (finish_reason == "length") or last_char.isalnum() or last_char in ',;:'
 
             if was_cut:
-                # Find the last sentence-ending punctuation followed by whitespace or end-of-string
                 matches = list(re.finditer(r'[.!?](?=\s|\n|$)', content))
                 if matches and matches[-1].end() > len(content) * 0.3:
                     content = content[:matches[-1].end()].rstrip()
@@ -117,15 +110,11 @@ class AIService:
             return fallback_response
     
     async def analyze_risk(self, risk_description: str) -> dict:
-        """Analizar un riesgo usando DeepSeek"""
         if not self.client:
             return {"error": "IA no disponible"}
-        
         prompt = f"""
         Como experto en ISO 27001, analiza el siguiente riesgo:
-        
         Riesgo: {risk_description}
-        
         Responde SOLO en formato JSON (sin markdown):
         {{
             "risk_level": "critical|high|medium|low",
@@ -134,398 +123,140 @@ class AIService:
             "priority": "alta|media|baja"
         }}
         """
-        
         try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3,
-                max_tokens=1000
-            )
-            
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.3, max_tokens=1000)
             import json
             content = response.choices[0].message.content
-            # Limpiar caracteres no JSON
             content = content.replace('```json', '').replace('```', '').strip()
             return json.loads(content)
-            
         except Exception as e:
             logger.error(f"Error en analyze_risk: {e}")
-            return {
-                "risk_level": "high",
-                "recommended_controls": ["A.5.15 Control de acceso", "A.8.24 Criptografía"],
-                "mitigation_steps": ["1. Realizar auditoría de accesos.", "2. Enforzar TLS 1.3.", "3. Implementar MFA."],
-                "priority": "alta"
-            }
+            return { "risk_level": "high", "recommended_controls": ["A.5.15 Control de acceso"], "mitigation_steps": ["1. Auditoría."], "priority": "alta" }
 
     async def generate_document(self, prompt: str) -> str:
-        """Genera un capítulo completo del SGSI — usa max_tokens alto para no truncar"""
-        if not self.client:
-            return "Error: API key no configurada"
-
+        if not self.client: return "Error: API key no configurada"
         try:
             response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[
-                    {"role": "system", "content": "Eres un Consultor Lead Implementer y Auditor Líder de ISO 27001 con 20 años de experiencia. Redacta documentos extensos, formales y listos para producción."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.5,
-                max_tokens=3000
+                model=settings.AI_MODEL, messages=[{"role": "system", "content": "Eres Consultor Lead Implementer ISO 27001."}, {"role": "user", "content": prompt}], temperature=0.5, max_tokens=3000
             )
             return response.choices[0].message.content
-
-        except Exception as e:
-            logger.error(f"Error en generate_document: {e}")
-            raise
+        except Exception as e: raise
 
     async def evaluate_compliance(self, document_text: str, control_title: str, control_desc: str) -> dict:
-        """Auditar un documento contra un control de la ISO 27001"""
         if not self.client:
-            # Fallback simulado
-            return {
-                "score": 2,
-                "status": "implemented",
-                "justification": "[Demo Offline] El documento analizado evidencia lineamientos sólidos que satisfacen plenamente los requerimientos de este control normativo."
-            }
-            
-        prompt = f"""
-        Actúa como un Auditor Líder de ISO 27001. Tu objetivo es evaluar si el documento proporcionado por la empresa cumple con los requisitos del siguiente control normativo.
-        
-        CONTROL A EVALUAR:
-        Título: {control_title}
-        Descripción: {control_desc}
-        
-        DOCUMENTO DE LA EMPRESA (EVIDENCIA):
-        {document_text[:5000]}
-        
-        EVALUACIÓN:
-        1. Analiza estrictamente si el documento aborda lo que exige el control.
-        2. Asigna un puntaje numérico: 0 (No aborda el control), 1 (Aborda parcialmente), 2 (Cumple totalmente).
-        3. Determina el estado: "implemented" (si es 2), "planned" (si es 1), o "notImplemented" (si es 0).
-        4. Redacta una justificación técnica y formal explicando tu decisión como auditor (max 50 palabras).
-        
-        Responde SOLO con un objeto JSON válido. Ejemplo:
-        {{
-            "score": 2,
-            "status": "implemented",
-            "justification": "Tu justificación técnica aquí..."
-        }}
-        """
-        
+            return { "score": 2, "status": "implemented", "justification": "[Demo Offline] Satisface el control normativo." }
+        prompt = f"CONTROL: {control_title}\nDESC: {control_desc}\nDOC:\n{document_text[:5000]}\nEVALUACION:\nResponder en JSON: {{'score': 2, 'status': 'implemented', 'justification': '...'}}"
         try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=1000
-            )
-
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=1000)
             import json
-            content = response.choices[0].message.content
-            content = content.replace('```json', '').replace('```', '').strip()
-            return json.loads(content)
-
+            return json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
         except Exception as e:
-            logger.error(f"Error en evaluate_compliance: {e}")
-            return {
-                "score": 1,
-                "status": "planned",
-                "justification": f"Fallo en la llamada a la IA: {str(e)[:50]}"
-            }
+            return { "score": 1, "status": "planned", "justification": f"Fallo: {str(e)[:50]}" }
 
     async def mass_evaluate_control(self, control_title: str, control_desc: str, context_chunks: str) -> dict:
-        """Auditar un control contra multiples fragmentos RAG extraídos de todos los documentos"""
         if not self.client:
-            return {
-                "score": 2,
-                "status": "implemented",
-                "justification": "[Demo Offline] Según el RAG masivo, la organización cumple con este control adecuadamente."
-            }
-            
-        prompt = f"""
-        Actúa como un Auditor Líder de ISO 27001. Tu objetivo es evaluar si la empresa cumple con el siguiente control normativo, basándote ÚNICAMENTE en los fragmentos de documentación corporativa recuperados (Contexto RAG).
-        
-        CONTROL A EVALUAR:
-        Título: {control_title}
-        Descripción: {control_desc}
-        
-        CONTEXTO CORPORATIVO RECUPERADO (RAG):
-        {context_chunks}
-        
-        EVALUACIÓN:
-        1. Analiza estrictamente si los fragmentos abordan lo que exige el control. Si el contexto está vacío, asume que no hay evidencia.
-        2. Asigna un puntaje numérico: 0 (No aborda el control / Sin evidencia), 1 (Aborda parcialmente), 2 (Cumple totalmente).
-        3. Determina el estado: "implemented" (si es 2), "planned" (si es 1), o "notImplemented" (si es 0).
-        4. Redacta una justificación técnica y formal explicando tu decisión como auditor (max 50 palabras).
-        
-        Responde SOLO con un objeto JSON válido. Ejemplo:
-        {{
-            "score": 2,
-            "status": "implemented",
-            "justification": "Tu justificación técnica aquí..."
-        }}
-        """
-        
+            return { "score": 2, "status": "implemented", "justification": "[Demo Offline] Satisface el control normativo." }
+        prompt = f"CONTROL: {control_title}\nDESC: {control_desc}\nRAG CONTEXT:\n{context_chunks}\nResponder JSON: {{'score': 2, 'status': 'implemented', 'justification': '...'}}"
         try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=1000
-            )
-
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=1000)
             import json
-            content = response.choices[0].message.content
-            content = content.replace('```json', '').replace('```', '').strip()
-            return json.loads(content)
-
+            return json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
         except Exception as e:
-            logger.error(f"Error en mass_evaluate_control: {e}")
-            return {
-                "score": 0,
-                "status": "notImplemented",
-                "justification": f"Fallo en la evaluación masiva con IA: {str(e)[:50]}"
-            }
-
-    # ==========================================================================
-    # Funciones de IA para la Ley N° 21.719 (Tarea 2.8 del plan de integración).
-    # Reutilizan el mismo cliente y patrón que evaluate_compliance / mass_evaluate_control.
-    # Los valores que devuelven calzan con los enums de los modelos:
-    #   base_licitud -> LegalBasis   |   nivel_riesgo -> ImpactRiskLevel
-    # ==========================================================================
+            return { "score": 0, "status": "notImplemented", "justification": f"Fallo: {str(e)[:50]}" }
 
     async def suggest_legal_basis(self, treatment_description: str) -> dict:
-        """
-        Sugiere la BASE DE LICITUD de un tratamiento de datos personales
-        (obligación O2 de la Ley 21.719) a partir de su descripción.
-        Devuelve: {"base_licitud": <valor>, "justificacion": <texto>}
-        """
-        if not self.client:
-            return {
-                "base_licitud": "consentimiento",
-                "justificacion": "[Demo Offline] Sin conexión a la IA; se sugiere consentimiento por defecto."
-            }
-
-        prompt = f"""
-        Actúa como un experto en protección de datos personales y en la Ley N° 21.719 de Chile.
-        A partir de la siguiente descripción de un tratamiento de datos, sugiere la BASE DE LICITUD más adecuada.
-
-        DESCRIPCIÓN DEL TRATAMIENTO:
-        {treatment_description}
-
-        Elige UNA base de licitud EXACTAMENTE de esta lista (usa el valor entre comillas):
-        - "consentimiento": la persona autorizó el uso de sus datos.
-        - "contrato": los datos son necesarios para ejecutar un contrato con la persona.
-        - "obligacion_legal": una ley obliga a tratar los datos.
-        - "interes_legitimo": interés legítimo del responsable, sin afectar los derechos de la persona.
-        - "datos_publicos": datos manifiestamente públicos.
-        - "otro": ninguna de las anteriores.
-
-        Responde SOLO con un objeto JSON válido. Ejemplo:
-        {{
-            "base_licitud": "consentimiento",
-            "justificacion": "Explicación breve de por qué corresponde esta base (máx 40 palabras)."
-        }}
-        """
-
+        if not self.client: return { "base_licitud": "consentimiento", "justificacion": "[Demo]" }
+        prompt = f"TRATAMIENTO:\n{treatment_description}\nElige base licitud (consentimiento, contrato, obligacion_legal, interes_legitimo, datos_publicos). Responde JSON: {{'base_licitud': '...', 'justificacion': '...'}}"
         try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=300
-            )
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=300)
             import json
-            content = response.choices[0].message.content
-            content = content.replace('```json', '').replace('```', '').strip()
-            return json.loads(content)
-        except Exception as e:
-            logger.error(f"Error en suggest_legal_basis: {e}")
-            return {
-                "base_licitud": "otro",
-                "justificacion": f"No se pudo determinar automáticamente: {str(e)[:50]}"
-            }
+            return json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
+        except Exception as e: return { "base_licitud": "otro", "justificacion": "Error" }
 
     async def classify_personal_data(self, document_text: str) -> dict:
-        """
-        Identifica qué DATOS PERSONALES (y sensibles) aparecen en un documento
-        subido (apoya las obligaciones O1/O6 de la Ley 21.719).
-        Devuelve: {"datos_personales": [...], "datos_sensibles": [...], "resumen": <texto>}
-        """
-        if not self.client:
-            return {
-                "datos_personales": [],
-                "datos_sensibles": [],
-                "resumen": "[Demo Offline] Sin conexión a la IA; no se analizó el documento."
-            }
-
-        prompt = f"""
-        Actúa como un experto en protección de datos personales (Ley N° 21.719 de Chile).
-        Analiza el siguiente texto e identifica qué DATOS PERSONALES contiene.
-
-        Distingue entre:
-        - datos_personales: identifican o hacen identificable a una persona (ej: nombre, RUT, correo, teléfono, dirección).
-        - datos_sensibles: categoría especial (ej: salud, origen étnico, religión, afiliación política o sindical, vida sexual, datos biométricos).
-
-        TEXTO A ANALIZAR:
-        {document_text[:5000]}
-
-        Responde SOLO con un objeto JSON válido. Ejemplo:
-        {{
-            "datos_personales": ["nombre", "correo", "RUT"],
-            "datos_sensibles": ["datos de salud"],
-            "resumen": "Frase breve describiendo qué datos personales maneja el documento (máx 40 palabras)."
-        }}
-        """
-
+        if not self.client: return { "datos_personales": [], "datos_sensibles": [], "resumen": "Demo" }
+        prompt = f"Analiza datos personales y sensibles:\n{document_text[:5000]}\nResponder JSON: {{'datos_personales': [], 'datos_sensibles': [], 'resumen': '...'}}"
         try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=500
-            )
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=500)
             import json
-            content = response.choices[0].message.content
-            content = content.replace('```json', '').replace('```', '').strip()
-            return json.loads(content)
-        except Exception as e:
-            logger.error(f"Error en classify_personal_data: {e}")
-            return {
-                "datos_personales": [],
-                "datos_sensibles": [],
-                "resumen": f"No se pudo analizar el documento: {str(e)[:50]}"
-            }
+            return json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
+        except Exception as e: return { "datos_personales": [], "datos_sensibles": [], "resumen": "Error" }
 
     async def assess_treatment_risk(self, treatment_description: str) -> dict:
+        if not self.client: return { "nivel_riesgo": "medio", "descripcion_riesgo": "Demo", "medidas_mitigacion": "Demo" }
+        prompt = f"DPIA de este tratamiento:\n{treatment_description}\nResponder JSON: {{'nivel_riesgo': 'alto|medio|bajo', 'descripcion_riesgo': '...', 'medidas_mitigacion': '...'}}"
+        try:
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.3, max_tokens=500)
+            import json
+            return json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
+        except Exception as e: return { "nivel_riesgo": "medio", "descripcion_riesgo": "Error", "medidas_mitigacion": "Error" }
+
+    async def evaluate_assessment_questions(self, control_nombre: str, preguntas: list, contexto: str) -> list:
+        if not self.client: return [ {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0, "justificacion": "Demo"} for p in preguntas ]
+        lista_preguntas = "\n".join(f'{i+1}. (id={p["id"]}) {p["pregunta"]}' for i, p in enumerate(preguntas))
+        prompt = f"Control: {control_nombre}\nPreguntas:\n{lista_preguntas}\nEvidencia:\n{contexto[:8000]}\nResponder JSON Array."
+        try:
+            response = await self.client.chat.completions.create(model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=3500)
+            import json
+            data = json.loads(response.choices[0].message.content.replace('```json', '').replace('```', '').strip())
+            if isinstance(data, dict): data = [data]
+            by_id = {str(item.get("id")): item for item in data if isinstance(item, dict)}
+            return [ { "id": p["id"], "veredicto": by_id.get(str(p["id"]), {}).get("veredicto", "sin_evidencia"), "confianza": by_id.get(str(p["id"]), {}).get("confianza", 0.0), "justificacion": by_id.get(str(p["id"]), {}).get("justificacion", "") } for p in preguntas ]
+        except Exception as e: return [ {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0, "justificacion": "Error"} for p in preguntas ]
+
+    # =========================================================
+    # NUEVO: MOTOR DE ANÁLISIS PREDICTIVO
+    # =========================================================
+    async def predict_vulnerabilities(self, context_data: str) -> list:
         """
-        Evaluación de impacto (DPIA) asistida por IA: estima el nivel de riesgo
-        de un tratamiento de datos personales (obligación O6 de la Ley 21.719).
-        Devuelve: {"nivel_riesgo": "alto|medio|bajo", "descripcion_riesgo": <texto>, "medidas_mitigacion": <texto>}
+        Analiza el historial completo de la empresa para predecir vulnerabilidades futuras
+        utilizando reconocimiento de patrones avanzados.
         """
         if not self.client:
-            return {
-                "nivel_riesgo": "medio",
-                "descripcion_riesgo": "[Demo Offline] Sin conexión a la IA; nivel de riesgo estimado por defecto.",
-                "medidas_mitigacion": "Revisar manualmente el tratamiento."
-            }
-
+            return [
+                {
+                    "title": "Ataque de Ransomware (Demo)",
+                    "description": "[Demo Offline] Alta probabilidad de ataque debido a falta de MFA en accesos.",
+                    "probability": 85,
+                    "impact": "critical",
+                    "recommended_action": "Implementar MFA inmediatamente."
+                }
+            ]
+            
         prompt = f"""
-        Actúa como un experto en protección de datos y evaluaciones de impacto (DPIA) según la Ley N° 21.719 de Chile.
-        Evalúa el riesgo para los derechos de las personas del siguiente tratamiento de datos.
-
-        DESCRIPCIÓN DEL TRATAMIENTO:
-        {treatment_description}
-
-        Considera factores como: volumen y sensibilidad de los datos, si hay decisiones automatizadas,
-        transferencias a terceros, y el impacto potencial sobre las personas.
-
-        Asigna un nivel de riesgo EXACTAMENTE uno de: "alto", "medio", "bajo".
-
-        Responde SOLO con un objeto JSON válido. Ejemplo:
-        {{
-            "nivel_riesgo": "alto",
-            "descripcion_riesgo": "Qué podría salir mal para las personas (máx 40 palabras).",
-            "medidas_mitigacion": "Medidas recomendadas para reducir el riesgo (máx 40 palabras)."
-        }}
+        Actúa como un experto en Inteligencia de Amenazas y Análisis Predictivo de Ciberseguridad.
+        Analiza el siguiente contexto actual de la organización (Riesgos actuales, Brechas históricas, Tratamientos de datos):
+        
+        CONTEXTO CORPORATIVO DE LA EMPRESA:
+        {context_data[:8000]}
+        
+        Basado en este estado, PREDICE 3 a 5 vulnerabilidades inminentes o incidentes de seguridad que tienen alta probabilidad de ocurrir en el corto plazo si no se toman medidas proactivas.
+        
+        Responde SOLO con un arreglo JSON válido. Cada objeto debe tener esta estructura exacta:
+        [
+          {{
+            "title": "Nombre corto de la amenaza predicha",
+            "description": "Descripción del patrón detectado y por qué podría ocurrir.",
+            "probability": 85, // número entero del 1 al 100
+            "impact": "critical", // elige entre: "critical", "high", "medium", "low"
+            "recommended_action": "Acción preventiva recomendada (máx 20 palabras)"
+          }}
+        ]
         """
-
+        
         try:
             response = await self.client.chat.completions.create(
                 model=settings.AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=500
+                max_tokens=1500
             )
+
             import json
             content = response.choices[0].message.content
             content = content.replace('```json', '').replace('```', '').strip()
             return json.loads(content)
+
         except Exception as e:
-            logger.error(f"Error en assess_treatment_risk: {e}")
-            return {
-                "nivel_riesgo": "medio",
-                "descripcion_riesgo": f"No se pudo evaluar automáticamente: {str(e)[:50]}",
-                "medidas_mitigacion": "Revisar manualmente el tratamiento."
-            }
-
-    async def evaluate_assessment_questions(self, control_nombre: str, preguntas: list, contexto: str) -> list:
-        """
-        Evalúa en LOTE las sub-preguntas de un control ISO 27001 contra el texto de
-        los documentos subidos por el usuario (contexto). Para cada pregunta la IA
-        determina si la evidencia CUMPLE / PARCIAL / NO CUMPLE / SIN EVIDENCIA.
-
-        `preguntas`: lista de dicts {id, pregunta, evidencia_esperada}.
-        Devuelve una lista de dicts {id, veredicto, confianza, justificacion}.
-        Se procesan juntas las preguntas de un mismo control para ahorrar llamadas.
-        """
-        # Sin cliente de IA: devolver "sin evidencia" para todas (modo demo offline).
-        if not self.client:
-            return [
-                {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0,
-                 "justificacion": "[Demo Offline] IA no configurada."}
-                for p in preguntas
-            ]
-
-        lista_preguntas = "\n".join(
-            f'{i+1}. (id={p["id"]}) {p["pregunta"]} '
-            f'[Evidencia esperada: {p.get("evidencia_esperada") or "no especificada"}]'
-            for i, p in enumerate(preguntas)
-        )
-
-        prompt = f"""Actúa como un Auditor Líder de ISO 27001:2022.
-Debes evaluar el siguiente control: "{control_nombre}".
-
-Tienes estas preguntas de evaluación:
-{lista_preguntas}
-
-Basándote ÚNICAMENTE en la siguiente evidencia (extraída de los documentos que subió la organización), responde cada pregunta.
-
-=== EVIDENCIA (documentos subidos) ===
-{contexto[:8000]}
-=== FIN EVIDENCIA ===
-
-Para cada pregunta asigna un veredicto EXACTAMENTE uno de:
-- "cumple": la evidencia demuestra claramente que sí se cumple.
-- "parcial": hay evidencia parcial o incompleta.
-- "no_cumple": la evidencia muestra que no se cumple.
-- "sin_evidencia": los documentos no contienen información para responder.
-
-Responde SOLO con un arreglo JSON válido, un objeto por pregunta, en el mismo orden. Ejemplo:
-[
-  {{"id": "<el id de la pregunta>", "veredicto": "cumple", "confianza": 0.9, "justificacion": "Breve motivo basado en la evidencia (máx 30 palabras)."}}
-]"""
-
-        try:
-            response = await self.client.chat.completions.create(
-                model=settings.AI_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=3500
-            )
-            import json
-            content = response.choices[0].message.content
-            content = content.replace('```json', '').replace('```', '').strip()
-            data = json.loads(content)
-            if isinstance(data, dict):
-                data = [data]
-            # Asegurar que cada pregunta tenga respuesta (aunque la IA omita alguna)
-            by_id = {str(item.get("id")): item for item in data if isinstance(item, dict)}
-            resultados = []
-            for p in preguntas:
-                item = by_id.get(str(p["id"]), {})
-                resultados.append({
-                    "id": p["id"],
-                    "veredicto": item.get("veredicto", "sin_evidencia"),
-                    "confianza": item.get("confianza", 0.0),
-                    "justificacion": item.get("justificacion", "La IA no devolvió respuesta para esta pregunta."),
-                })
-            return resultados
-        except Exception as e:
-            logger.error(f"Error en evaluate_assessment_questions: {e}")
-            return [
-                {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0,
-                 "justificacion": f"Fallo al evaluar con IA: {str(e)[:50]}"}
-                for p in preguntas
-            ]
+            logger.error(f"Error en predict_vulnerabilities: {e}")
+            return []
