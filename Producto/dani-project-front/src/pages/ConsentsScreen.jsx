@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useEffect, useState } from 'react';
-import { ClipboardCheck, Plus, Search, Trash2, X, Ban } from 'lucide-react';
+import { ClipboardCheck, Plus, Search, Trash2, X, Ban, FileText } from 'lucide-react';
 import { consentsAPI, treatmentsAPI } from '../services/api';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -77,7 +77,6 @@ const ConsentsScreen = () => {
 
     try {
       setSaving(true);
-
       await consentsAPI.create(payload);
       await loadConsents();
       handleCloseForm();
@@ -112,23 +111,12 @@ const ConsentsScreen = () => {
 
   const getStatusStyle = (status) => {
     if (String(status || '').toLowerCase() === 'revocado') {
-      return {
-        background: 'rgba(239, 68, 68, 0.15)',
-        color: '#ef4444'
-      };
+      return { background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444' };
     }
-
     if (String(status || '').toLowerCase() === 'pendiente') {
-      return {
-        background: 'rgba(245, 158, 11, 0.15)',
-        color: '#f59e0b'
-      };
+      return { background: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b' };
     }
-
-    return {
-      background: 'rgba(0, 74, 198, 0.15)',
-      color: '#004ac6'
-    };
+    return { background: 'rgba(0, 74, 198, 0.15)', color: '#004ac6' };
   };
 
   const formatDate = (date) => {
@@ -139,62 +127,38 @@ const ConsentsScreen = () => {
   };
 
   return (
-    <div style={{ padding: '32px', color: t.text, minHeight: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', gap: '20px', flexWrap: 'wrap' }}>
+    <div className="consents-container" style={{ padding: '32px', color: t.text, minHeight: '100%', boxSizing: 'border-box' }}>
+      
+      {/* HEADER: Flex-wrap integrado para mobile */}
+      <div className="header-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', gap: '20px', flexWrap: 'wrap' }}>
         <div>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <ClipboardCheck size={30} color="#004ac6" />
-
-            <h1
-              style={{
-                margin: 0,
-                fontSize: '28px',
-                fontWeight: 700
-              }}
-            >
+            <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 700 }}>
               Gestión de Consentimientos
             </h1>
           </div>
-
-          <p
-            style={{
-              color: t.textDim,
-              marginTop: '8px',
-              marginBottom: 0
-            }}
-          >
+          <p style={{ color: t.textDim, marginTop: '8px', marginBottom: 0 }}>
             Registro y administración de consentimientos de titulares.
           </p>
         </div>
 
         <button
+          className="btn-new"
           onClick={handleNewConsent}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '11px 18px',
-            border: 'none',
-            borderRadius: '10px',
-            background: '#004ac6',
-            color: '#ffffff',
-            fontWeight: 600,
-            cursor: 'pointer'
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            padding: '11px 18px', border: 'none', borderRadius: '10px',
+            background: '#004ac6', color: '#ffffff', fontWeight: 600, cursor: 'pointer'
           }}
         >
-          <Plus size={18} />
-          Nuevo Consentimiento
+          <Plus size={18} /> Nuevo Consentimiento
         </button>
       </div>
 
-      {/* RESUMEN */}
+      {/* DASHBOARD GRID: Resumen adaptable */}
       <div
+        className="stats-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -202,118 +166,79 @@ const ConsentsScreen = () => {
           marginBottom: '20px'
         }}
       >
-        <div
-          style={{
-            background: t.cardBg,
-            border: `1px solid ${t.border}`,
-            borderRadius: '14px',
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              color: t.textDim,
-              fontSize: '13px',
-              marginBottom: '6px'
-            }}
-          >
-            Total de consentimientos
-          </div>
-
-          <div
-            style={{
-              fontSize: '28px',
-              fontWeight: 700
-            }}
-          >
-            {consents.length}
-          </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '20px' }}>
+          <div style={{ color: t.textDim, fontSize: '13px', marginBottom: '6px' }}>Total de consentimientos</div>
+          <div style={{ fontSize: '28px', fontWeight: 700 }}>{consents.length}</div>
         </div>
 
-        <div
-          style={{
-            background: t.cardBg,
-            border: `1px solid ${t.border}`,
-            borderRadius: '14px',
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              color: t.textDim,
-              fontSize: '13px',
-              marginBottom: '6px'
-            }}
-          >
-            Otorgados
-          </div>
-
-          <div
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: '#004ac6'
-            }}
-          >
-            {grantedCount}
-          </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '20px' }}>
+          <div style={{ color: t.textDim, fontSize: '13px', marginBottom: '6px' }}>Otorgados</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#004ac6' }}>{grantedCount}</div>
         </div>
 
-        <div
-          style={{
-            background: t.cardBg,
-            border: `1px solid ${t.border}`,
-            borderRadius: '14px',
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              color: t.textDim,
-              fontSize: '13px',
-              marginBottom: '6px'
-            }}
-          >
-            Revocados
-          </div>
-
-          <div
-            style={{
-              fontSize: '28px',
-              fontWeight: 700,
-              color: '#ef4444'
-            }}
-          >
-            {revokedCount}
-          </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '20px' }}>
+          <div style={{ color: t.textDim, fontSize: '13px', marginBottom: '6px' }}>Revocados</div>
+          <div style={{ fontSize: '28px', fontWeight: 700, color: '#ef4444' }}>{revokedCount}</div>
         </div>
       </div>
 
+      {/* BUSCADOR */}
       <div style={{ position: 'relative', marginBottom: '20px' }}>
         <Search size={18} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
-        <input type="text" placeholder="Buscar consentimiento..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '12px 42px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
+        <input 
+          type="text" 
+          placeholder="Buscar consentimiento..." 
+          value={search} 
+          onChange={(e) => setSearch(e.target.value)} 
+          style={{ width: '100%', boxSizing: 'border-box', padding: '12px 42px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} 
+        />
         {search && <X size={18} onClick={() => setSearch('')} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: t.textDim, cursor: 'pointer' }} />}
       </div>
 
-      <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', overflow: 'hidden' }}>
-        {loading ? <div style={{ padding: '30px', textAlign: 'center' }}>Cargando consentimientos...</div> : error ? <div style={{ padding: '30px', textAlign: 'center', color: '#ef4444' }}>{error}</div> : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr style={{ borderBottom: `1px solid ${t.border}` }}>{['TITULAR', 'TRATAMIENTO', 'FINALIDAD', 'MEDIO', 'ESTADO', 'FECHA OTORGADO', 'VENCIMIENTO', 'ACCIONES'].map((title) => (<th key={title} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', color: t.textDim }}>{title}</th>))}</tr></thead>
+      {/* TABLA / VISTA MÓVIL */}
+      <div className="table-container" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ padding: '30px', textAlign: 'center' }}>Cargando consentimientos...</div>
+        ) : error ? (
+          <div style={{ padding: '30px', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        ) : (
+          <>
+            <table className="desktop-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${t.border}` }}>
+                  {['TITULAR', 'TRATAMIENTO', 'MEDIO', 'ESTADO', 'ACCIONES'].map((title) => (
+                    <th key={title} style={{ padding: '14px 16px', textAlign: 'left', fontSize: '12px', color: t.textDim }}>{title}</th>
+                  ))}
+                </tr>
+              </thead>
               <tbody>
-                {filteredConsents.length === 0 ? <tr><td colSpan="8" style={{ padding: '35px', textAlign: 'center', color: t.textDim }}>No hay consentimientos registrados.</td></tr> : (
+                {filteredConsents.length === 0 ? (
+                  <tr><td colSpan="5" style={{ padding: '35px', textAlign: 'center', color: t.textDim }}>No hay consentimientos registrados.</td></tr>
+                ) : (
                   filteredConsents.map((consent) => (
                     <tr key={consent.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                      <td style={{ padding: '16px', fontWeight: 600 }}><div><div>{consent.titular}</div><div style={{ fontSize: '12px', fontWeight: 400, color: t.textDim, marginTop: '4px' }}>{consent.titular_email || 'Sin correo'}</div></div></td>
-                      <td style={{ padding: '16px' }}><span title={consent.treatment_id} style={{ display: 'inline-block', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{treatmentName(consent.treatment_id)}</span></td>
-                      <td style={{ padding: '16px', maxWidth: '220px' }}><span title={consent.finalidades_consentidas || ''}>{consent.finalidades_consentidas || 'No especificada'}</span></td>
+                      <td style={{ padding: '16px', fontWeight: 600 }}>
+                        <div>
+                          <div>{consent.titular}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 400, color: t.textDim, marginTop: '4px' }}>{consent.titular_email || 'Sin correo'}</div>
+                        </div>
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        <span title={consent.treatment_id} style={{ display: 'inline-block', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {treatmentName(consent.treatment_id)}
+                        </span>
+                      </td>
                       <td style={{ padding: '16px' }}>{consent.medio || '—'}</td>
-                      <td style={{ padding: '16px' }}><span style={{ ...getStatusStyle(consent.estado), padding: '6px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize' }}>{consent.estado || 'otorgado'}</span></td>
-                      <td style={{ padding: '16px' }}>{formatDate(consent.fecha_otorgado)}</td>
-                      <td style={{ padding: '16px' }}>{formatDate(consent.fecha_expiracion)}</td>
+                      <td style={{ padding: '16px' }}>
+                        <span style={{ ...getStatusStyle(consent.estado), padding: '6px 10px', borderRadius: '999px', fontSize: '12px', fontWeight: 600, textTransform: 'capitalize' }}>
+                          {consent.estado || 'otorgado'}
+                        </span>
+                      </td>
                       <td style={{ padding: '16px' }}>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          {String(consent.estado || '').toLowerCase() === 'otorgado' && <button title="Revocar" onClick={() => handleRevokeConsent(consent)} style={{ border: `1px solid ${t.border}`, background: 'transparent', color: '#f59e0b', borderRadius: '8px', padding: '7px', cursor: 'pointer' }}><Ban size={16} /></button>}
+                          {String(consent.estado || '').toLowerCase() === 'otorgado' && (
+                            <button title="Revocar" onClick={() => handleRevokeConsent(consent)} style={{ border: `1px solid ${t.border}`, background: 'transparent', color: '#f59e0b', borderRadius: '8px', padding: '7px', cursor: 'pointer' }}><Ban size={16} /></button>
+                          )}
                           <button title="Eliminar" onClick={() => handleDeleteConsent(consent)} style={{ border: `1px solid ${t.border}`, background: 'transparent', color: '#ef4444', borderRadius: '8px', padding: '7px', cursor: 'pointer' }}><Trash2 size={16} /></button>
                         </div>
                       </td>
@@ -322,298 +247,126 @@ const ConsentsScreen = () => {
                 )}
               </tbody>
             </table>
-          </div>
+
+            {/* VISTA DE TARJETAS PARA MÓVILES */}
+            <div className="mobile-cards-view">
+              {filteredConsents.length === 0 ? (
+                <div style={{ padding: '35px', textAlign: 'center', color: t.textDim }}>No hay consentimientos registrados.</div>
+              ) : (
+                filteredConsents.map((consent) => (
+                  <div key={consent.id} style={{ padding: '16px', borderBottom: `1px solid ${t.border}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '16px' }}>{consent.titular}</div>
+                      <span style={{ ...getStatusStyle(consent.estado), padding: '4px 8px', borderRadius: '8px', fontSize: '11px', fontWeight: 600, textTransform: 'capitalize' }}>
+                        {consent.estado || 'otorgado'}
+                      </span>
+                    </div>
+                    
+                    <div style={{ fontSize: '13px', color: t.textDim, marginBottom: '12px' }}>{consent.titular_email || 'Sin correo'}</div>
+                    
+                    <div style={{ fontSize: '14px', marginBottom: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div><strong>Tratamiento:</strong> <span style={{ color: t.textDim }}>{treatmentName(consent.treatment_id)}</span></div>
+                      <div><strong>Medio:</strong> <span style={{ color: t.textDim }}>{consent.medio || '—'}</span></div>
+                      <div><strong>Vencimiento:</strong> <span style={{ color: t.textDim }}>{formatDate(consent.fecha_expiracion)}</span></div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', justifyContent: 'flex-end', borderTop: `1px solid ${t.border}`, paddingTop: '12px' }}>
+                      {String(consent.estado || '').toLowerCase() === 'otorgado' && (
+                        <button onClick={() => handleRevokeConsent(consent)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${t.border}`, background: 'transparent', color: '#f59e0b', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                          <Ban size={14} /> Revocar
+                        </button>
+                      )}
+                      <button onClick={() => handleDeleteConsent(consent)} style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${t.border}`, background: 'transparent', color: '#ef4444', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                        <Trash2 size={14} /> Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
         )}
       </div>
 
+      {/* FORMULARIO MODAL */}
       {showForm && (
-        <div onClick={handleCloseForm} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}><h2 style={{ margin: 0, fontSize: '21px' }}>Nuevo Consentimiento</h2><button type="button" onClick={handleCloseForm} style={{ border: 'none', background: 'transparent', color: t.textDim, cursor: 'pointer', padding: '5px' }}><X size={22} /></button></div>
+        <div className="modal-overlay" onClick={handleCloseForm} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0, 0, 0, 0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px', boxShadow: '0 20px 60px rgba(0,0,0,0.35)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '22px' }}>
+              <h2 style={{ margin: 0, fontSize: '21px' }}>Nuevo Consentimiento</h2>
+              <button type="button" onClick={handleCloseForm} style={{ border: 'none', background: 'transparent', color: t.textDim, cursor: 'pointer', padding: '5px' }}>
+                <X size={22} />
+              </button>
+            </div>
+            
             <form onSubmit={handleSubmit}>
-              {/* TITULAR */}
               <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  Titular *
-                </label>
-
-                <input
-                  type="text"
-                  name="titular"
-                  value={formData.titular}
-                  onChange={handleChange}
-                  placeholder="Ej: Juan Pérez"
-                  required
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none'
-                  }}
-                />
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Titular *</label>
+                <input type="text" name="titular" value={formData.titular} onChange={handleChange} placeholder="Ej: Juan Pérez" required style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
               </div>
 
-                {/* EMAIL DEL TITULAR */}
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                    style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                    }}
-                  >
-                    Email del titular *
-                  </label>
-
-                  <input
-                    type="email"
-                    name="titular_email"
-                    value={formData.titular_email}
-                    onChange={handleChange}
-                    placeholder="Ej: juan@correo.cl"
-                    required
-                    style={{
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      padding: '11px 12px',
-                      borderRadius: '9px',
-                      border: `1px solid ${t.border}`,
-                      background: t.inputBg,
-                      color: t.text,
-                      outline: 'none'
-                    }}
-                  />
-                </div>
-
-              {/* TRATAMIENTO */}
               <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  Tratamiento *
-                </label>
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Email del titular *</label>
+                <input type="email" name="titular_email" value={formData.titular_email} onChange={handleChange} placeholder="Ej: juan@correo.cl" required style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
+              </div>
 
-                <select
-                  name="treatment_id"
-                  value={formData.treatment_id}
-                  onChange={handleChange}
-                  required
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none'
-                  }}
-                >
-                  <option value="">
-                    {treatments.length === 0
-                      ? '— No hay tratamientos: crea uno primero —'
-                      : 'Selecciona un tratamiento...'}
-                  </option>
-                  {treatments.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.nombre}
-                    </option>
-                  ))}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Tratamiento *</label>
+                <select name="treatment_id" value={formData.treatment_id} onChange={handleChange} required style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }}>
+                  <option value="">{treatments.length === 0 ? '— No hay tratamientos —' : 'Selecciona un tratamiento...'}</option>
+                  {treatments.map((tr) => <option key={tr.id} value={tr.id}>{tr.nombre}</option>)}
                 </select>
               </div>
 
-                {/* FINALIDAD CONSENTIDA */}
-                <div style={{ marginBottom: '16px' }}>
-                  <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  Finalidad consentida *
-                </label>
-
-                <textarea
-                  name="finalidades_consentidas"
-                  value={formData.finalidades_consentidas}
-                  onChange={handleChange}
-                  placeholder="Ej: Gestión de clientes y envío de comunicaciones relacionadas con el servicio"
-                  required
-                  rows={3}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
-
-              {/* FECHA DE VENCIMIENTO */}
               <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  Fecha de vencimiento
-                </label>
-
-                <input
-                  type="date"
-                  name="fecha_expiracion"
-                  value={formData.fecha_expiracion}
-                  onChange={handleChange}
-                  min={new Date().toLocaleDateString('en-CA')}
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text
-                  }}
-                />
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Finalidad consentida *</label>
+                <textarea name="finalidades_consentidas" value={formData.finalidades_consentidas} onChange={handleChange} placeholder="Ej: Envío de comunicaciones" required rows={3} style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none', resize: 'vertical' }} />
               </div>
 
-              {/* MEDIO */}
               <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  Medio *
-                </label>
-
-                <input
-                  type="text"
-                  name="medio"
-                  value={formData.medio}
-                  onChange={handleChange}
-                  placeholder="Ej: Formulario web"
-                  required
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none'
-                  }}
-                />
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Fecha de vencimiento</label>
+                <input type="date" name="fecha_expiracion" value={formData.fecha_expiracion} onChange={handleChange} min={new Date().toLocaleDateString('en-CA')} style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
               </div>
 
-              {/* COMPROBANTE */}
               <div style={{ marginBottom: '16px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    marginBottom: '7px',
-                    fontSize: '13px',
-                    fontWeight: 600
-                  }}
-                >
-                  URL del comprobante
-                </label>
-
-                <input
-                  type="url"
-                  name="comprobante_url"
-                  value={formData.comprobante_url}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  style={{
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    padding: '11px 12px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: t.inputBg,
-                    color: t.text,
-                    outline: 'none'
-                  }}
-                />
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>Medio *</label>
+                <input type="text" name="medio" value={formData.medio} onChange={handleChange} placeholder="Ej: Formulario web" required style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
               </div>
 
-              {/* BOTONES */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  gap: '10px'
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={handleCloseForm}
-                  disabled={saving}
-                  style={{
-                    padding: '10px 16px',
-                    borderRadius: '9px',
-                    border: `1px solid ${t.border}`,
-                    background: 'transparent',
-                    color: t.text,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancelar
-                </button>
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'block', marginBottom: '7px', fontSize: '13px', fontWeight: 600 }}>URL del comprobante</label>
+                <input type="url" name="comprobante_url" value={formData.comprobante_url} onChange={handleChange} placeholder="https://..." style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={saving}
-                  style={{
-                    padding: '10px 18px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    background: '#004ac6',
-                    color: '#ffffff',
-                    fontWeight: 600,
-                    cursor: saving ? 'not-allowed' : 'pointer',
-                    opacity: saving ? 0.7 : 1
-                  }}
-                >
-                  {saving ? 'Guardando...' : 'Crear Consentimiento'}
-                </button>
+              <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button type="button" onClick={handleCloseForm} disabled={saving} style={{ padding: '10px 16px', borderRadius: '9px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, cursor: 'pointer', width: 'auto' }}>Cancelar</button>
+                <button type="submit" disabled={saving} style={{ padding: '10px 18px', borderRadius: '9px', border: 'none', background: '#004ac6', color: '#ffffff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1, width: 'auto' }}>{saving ? 'Guardando...' : 'Crear Consentimiento'}</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ESTILOS INYECTADOS PARA RESPONSIVE */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .mobile-cards-view { display: none; }
+        
+        @media (max-width: 768px) {
+          .consents-container { padding: 16px !important; }
+          .header-wrapper { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
+          .btn-new { width: 100%; justify-content: center; }
+          
+          .stats-grid { grid-template-columns: 1fr !important; }
+          
+          .desktop-table { display: none; }
+          .mobile-cards-view { display: block; }
+          
+          .modal-overlay { padding: 12px !important; }
+          .modal-content { padding: 16px !important; max-height: 95vh !important; }
+          .form-actions { flex-direction: column-reverse; }
+          .form-actions button { width: 100% !important; margin-top: 8px; }
+        }
+      `}} />
     </div>
   );
 };

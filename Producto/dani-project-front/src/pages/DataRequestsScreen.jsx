@@ -6,13 +6,6 @@ import {
 import { ThemeContext } from '../contexts/ThemeContext';
 import { dataRequestsAPI } from '../services/api';
 
-// ==========================================
-// Pantalla 3.3 — Solicitudes de Titulares (ARCO+P)
-// Obligación O3 de la Ley 21.719: responder en 30 días hábiles.
-// El backend (routes/data_requests.py) calcula la fecha límite; aquí
-// la mostramos y alertamos según los días que falten.
-// ==========================================
-
 const TIPOS = [
   { value: 'acceso', label: 'Acceso' },
   { value: 'rectificacion', label: 'Rectificación' },
@@ -28,7 +21,7 @@ const ESTADOS = [
 ];
 
 const DataRequestsScreen = () => {
-  const { theme: t, darkMode, highContrast } = useContext(ThemeContext);
+  const { theme: t } = useContext(ThemeContext);
 
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +30,6 @@ const DataRequestsScreen = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newRequest, setNewRequest] = useState({ titular: '', tipo: 'acceso', descripcion: '' });
 
-  // Datos demo: se usan solo si el backend no responde, para no dejar la pantalla vacía.
   const demoRequests = [
     { id: 'demo-1', titular: 'Juan Pérez', tipo: 'acceso', descripcion: 'Solicita copia de todos sus datos personales.', fecha_solicitud: new Date().toISOString(), fecha_limite: addBusinessDays(new Date(), 28).toISOString(), estado: 'pendiente', responsable: null, respuesta: null },
     { id: 'demo-2', titular: 'María González', tipo: 'cancelacion', descripcion: 'Pide eliminar su cuenta y sus datos asociados.', fecha_solicitud: new Date().toISOString(), fecha_limite: addBusinessDays(new Date(), 2).toISOString(), estado: 'en_proceso', responsable: 'dpo@empresa.cl', respuesta: null },
@@ -87,10 +79,6 @@ const DataRequestsScreen = () => {
     }
   };
 
-  // ==========================================
-  // Cálculo del plazo restante (días de calendario para el semáforo).
-  // La fecha límite oficial (30 días hábiles) la calcula el backend.
-  // ==========================================
   const diasRestantes = (fechaLimite) => {
     const ahora = new Date();
     const limite = parseServerDate(fechaLimite);
@@ -110,7 +98,6 @@ const DataRequestsScreen = () => {
   const tipoLabel = (v) => (TIPOS.find(x => x.value === v) || {}).label || v;
   const estadoLabel = (v) => (ESTADOS.find(x => x.value === v) || {}).label || v;
 
-  // Resumen para las tarjetas superiores
   const total = requests.length;
   const vencidas = requests.filter(r => r.estado !== 'resuelta' && diasRestantes(r.fecha_limite) < 0).length;
   const porVencer = requests.filter(r => r.estado !== 'resuelta' && diasRestantes(r.fecha_limite) >= 0 && diasRestantes(r.fecha_limite) <= 5).length;
@@ -124,23 +111,23 @@ const DataRequestsScreen = () => {
   };
 
   return (
-    <div style={{ padding: '24px', color: t.text, minHeight: '100%' }}>
-      {/* Encabezado */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '20px' }}>
+    <div className="requests-container" style={{ padding: '24px', color: t.text, minHeight: '100%', boxSizing: 'border-box' }}>
+      
+      {/* ENCABEZADO */}
+      <div className="header-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
         <div>
           <h1 style={{ fontSize: '22px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Inbox size={24} /> Solicitudes de Titulares (ARCO+P)
+            <Inbox size={24} color="#004ac6" /> Solicitudes de Titulares (ARCO+P)
           </h1>
           <p style={{ color: t.textMuted, marginTop: '6px', fontSize: '13px', maxWidth: '640px' }}>
-            Obligación O3 · Ley 21.719: toda solicitud de Acceso, Rectificación, Cancelación,
-            Oposición o Portabilidad debe responderse en <strong>30 días hábiles</strong>.
+            Obligación O3 · Ley 21.719: toda solicitud debe responderse en <strong>30 días hábiles</strong>.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={fetchRequests} style={secondaryBtn(t)}>
+        <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
+          <button className="btn-action" onClick={fetchRequests} style={secondaryBtn(t)}>
             <RefreshCw size={16} /> Actualizar
           </button>
-          <button onClick={() => setShowAddModal(true)} style={primaryBtn()}>
+          <button className="btn-action primary-btn-action" onClick={() => setShowAddModal(true)} style={primaryBtn()}>
             <Plus size={16} /> Nueva solicitud
           </button>
         </div>
@@ -152,79 +139,130 @@ const DataRequestsScreen = () => {
         </div>
       )}
 
-      {/* Tarjetas de resumen */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+      {/* TARJETAS DE RESUMEN */}
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <SummaryCard t={t} label="Total" value={total} color={t.text} />
         <SummaryCard t={t} label="Vencidas" value={vencidas} color="#ef4444" />
         <SummaryCard t={t} label="Por vencer (≤5 d)" value={porVencer} color="#f59e0b" />
         <SummaryCard t={t} label="Resueltas" value={resueltas} color="#004ac6" />
       </div>
 
-      {/* Tabla / bandeja */}
-      <div style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+      {/* TABLA / BANDEJA */}
+      <div className="table-container" style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: t.textMuted }}>Cargando solicitudes…</div>
         ) : requests.length === 0 ? (
           <div style={{ padding: '40px', textAlign: 'center', color: t.textMuted }}>No hay solicitudes registradas.</div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ background: t.hoverBg, textAlign: 'left' }}>
-                  <th style={thStyle(t)}>Titular</th>
-                  <th style={thStyle(t)}>Tipo</th>
-                  <th style={thStyle(t)}>Descripción</th>
-                  <th style={thStyle(t)}>Plazo (30 días háb.)</th>
-                  <th style={thStyle(t)}>Estado</th>
-                  <th style={thStyle(t)}>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {requests.map((req) => {
-                  const badge = plazoBadge(req);
-                  const Icon = badge.icon;
-                  return (
-                    <tr key={req.id} style={{ borderTop: `1px solid ${t.border}` }}>
-                      <td style={tdStyle(t)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <User size={14} /> {req.titular}
-                        </div>
-                      </td>
-                      <td style={tdStyle(t)}>{tipoLabel(req.tipo)}</td>
-                      <td style={{ ...tdStyle(t), maxWidth: '260px' }}>{req.descripcion}</td>
-                      <td style={tdStyle(t)}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: badge.color, fontWeight: 600 }}>
+          <>
+            {/* VISTA ESCRITORIO */}
+            <div className="desktop-table" style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: t.hoverBg, textAlign: 'left' }}>
+                    <th style={thStyle(t)}>Titular</th>
+                    <th style={thStyle(t)}>Tipo</th>
+                    <th style={thStyle(t)}>Descripción</th>
+                    <th style={thStyle(t)}>Plazo (30 días háb.)</th>
+                    <th style={thStyle(t)}>Estado</th>
+                    <th style={thStyle(t)}>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {requests.map((req) => {
+                    const badge = plazoBadge(req);
+                    const Icon = badge.icon;
+                    return (
+                      <tr key={req.id} style={{ borderTop: `1px solid ${t.border}` }}>
+                        <td style={tdStyle(t)}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                            <User size={14} color={t.textMuted} /> {req.titular}
+                          </div>
+                        </td>
+                        <td style={tdStyle(t)}>{tipoLabel(req.tipo)}</td>
+                        <td style={{ ...tdStyle(t), maxWidth: '260px' }}>{req.descripcion}</td>
+                        <td style={tdStyle(t)}>
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: badge.color, fontWeight: 600 }}>
+                            <Icon size={14} /> {badge.text}
+                          </span>
+                          <div style={{ color: t.textDim, fontSize: '11px', marginTop: '4px' }}>
+                            Límite: {parseServerDate(req.fecha_limite).toLocaleDateString('es-CL')}
+                          </div>
+                        </td>
+                        <td style={tdStyle(t)}>
+                          <span style={estadoPill(req.estado)}>{estadoLabel(req.estado)}</span>
+                        </td>
+                        <td style={tdStyle(t)}>
+                          <select
+                            value={req.estado}
+                            onChange={(e) => handleChangeEstado(req, e.target.value)}
+                            style={selectStyle(t)}
+                          >
+                            {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                          </select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* VISTA MÓVIL (TARJETAS) */}
+            <div className="mobile-cards-view">
+              {requests.map((req) => {
+                const badge = plazoBadge(req);
+                const Icon = badge.icon;
+                return (
+                  <div key={req.id} style={{ padding: '16px', borderBottom: `1px solid ${t.border}` }}>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '15px' }}>
+                        <User size={16} color={t.textMuted} /> {req.titular}
+                      </div>
+                      <span style={estadoPill(req.estado)}>{estadoLabel(req.estado)}</span>
+                    </div>
+
+                    <div style={{ fontSize: '13px', marginBottom: '8px' }}>
+                      <span style={{ fontWeight: 600, color: t.textDim }}>Tipo: </span>
+                      {tipoLabel(req.tipo)}
+                    </div>
+                    
+                    <div style={{ fontSize: '13px', color: t.text, marginBottom: '12px', background: t.hoverBg, padding: '8px', borderRadius: '8px' }}>
+                      {req.descripcion}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${t.border}`, paddingTop: '12px' }}>
+                      <div>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: badge.color, fontWeight: 600, fontSize: '13px' }}>
                           <Icon size={14} /> {badge.text}
                         </span>
                         <div style={{ color: t.textDim, fontSize: '11px', marginTop: '2px' }}>
-                          Límite: {parseServerDate(req.fecha_limite).toLocaleDateString()}
+                          Límite: {parseServerDate(req.fecha_limite).toLocaleDateString('es-CL')}
                         </div>
-                      </td>
-                      <td style={tdStyle(t)}>
-                        <span style={estadoPill(req.estado)}>{estadoLabel(req.estado)}</span>
-                      </td>
-                      <td style={tdStyle(t)}>
-                        <select
-                          value={req.estado}
-                          onChange={(e) => handleChangeEstado(req, e.target.value)}
-                          style={selectStyle(t)}
-                        >
-                          {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                        </select>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                      
+                      <select
+                        value={req.estado}
+                        onChange={(e) => handleChangeEstado(req, e.target.value)}
+                        style={{ ...selectStyle(t), width: '110px' }}
+                      >
+                        {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                      </select>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Modal de creación */}
+      {/* MODAL DE CREACIÓN */}
       {showAddModal && (
         <div style={modalOverlay}>
-          <div style={modalBox(t)}>
+          <div className="modal-content" style={modalBox(t)}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, fontSize: '17px' }}>Nueva solicitud ARCO+P</h3>
               <button onClick={() => setShowAddModal(false)} style={iconBtn(t)}><X size={18} /></button>
@@ -259,23 +297,42 @@ const DataRequestsScreen = () => {
               El plazo límite (30 días hábiles) se calcula automáticamente al guardar.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
+            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
               <button onClick={() => setShowAddModal(false)} style={secondaryBtn(t)}>Cancelar</button>
-              <button onClick={handleCreate} disabled={isSubmitting} style={primaryBtn()}>
+              <button className="primary-btn-action" onClick={handleCreate} disabled={isSubmitting} style={primaryBtn()}>
                 <Save size={16} /> {isSubmitting ? 'Guardando…' : 'Guardar'}
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* ESTILOS INYECTADOS PARA RESPONSIVE */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .mobile-cards-view { display: none; }
+        
+        @media (max-width: 768px) {
+          .requests-container { padding: 16px !important; }
+          .header-wrapper { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
+          .header-actions { flex-direction: row; width: 100%; justify-content: space-between; gap: 8px; }
+          .btn-action { flex: 1; justify-content: center; }
+          
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          
+          .desktop-table { display: none; }
+          .mobile-cards-view { display: block; }
+          
+          .modal-content { padding: 16px !important; width: 100% !important; margin: 12px; }
+          .form-actions { flex-direction: column-reverse; }
+          .form-actions button { width: 100% !important; justify-content: center; }
+        }
+      `}} />
     </div>
   );
 };
 
 // ==========================================
-// Helper: el backend devuelve fechas en UTC SIN zona horaria; hay que
-// interpretarlas como UTC (si no, JS las toma como local y el plazo se desfasa
-// por el offset del país).
+// Helpers
 // ==========================================
 function parseServerDate(s) {
   if (!s) return new Date(NaN);
@@ -283,9 +340,6 @@ function parseServerDate(s) {
   return new Date(tieneZona ? s : s + 'Z');
 }
 
-// ==========================================
-// Helper: suma días hábiles (solo para datos demo del frontend)
-// ==========================================
 function addBusinessDays(date, days) {
   const result = new Date(date);
   const step = days >= 0 ? 1 : -1;
@@ -310,11 +364,11 @@ const SummaryCard = ({ t, label, value, color }) => (
 
 const thStyle = (t) => ({ padding: '10px 14px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: t.textMuted, fontWeight: 600 });
 const tdStyle = (t) => ({ padding: '12px 14px', color: t.text, verticalAlign: 'top' });
-const labelStyle = (t) => ({ display: 'block', fontSize: '12px', color: t.textMuted, margin: '10px 0 4px' });
+const labelStyle = (t) => ({ display: 'block', fontSize: '12px', color: t.textMuted, margin: '10px 0 4px', fontWeight: 600 });
 const inputStyle = (t) => ({ width: '100%', boxSizing: 'border-box', padding: '9px 11px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '13px', outline: 'none' });
-const selectStyle = (t) => ({ padding: '6px 8px', borderRadius: '6px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px' });
+const selectStyle = (t) => ({ padding: '6px 8px', borderRadius: '6px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px', outline: 'none' });
 
-const primaryBtn = () => ({ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#6366f1', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' });
+const primaryBtn = () => ({ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#004ac6', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' });
 const secondaryBtn = (t) => ({ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontSize: '13px', cursor: 'pointer' });
 const iconBtn = (t) => ({ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer' });
 
@@ -325,6 +379,6 @@ const estadoPill = (estado) => {
 };
 
 const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' };
-const modalBox = (t) => ({ background: t.cardBg, backdropFilter: 'blur(12px)', border: `1px solid ${t.border}`, borderRadius: '14px', padding: '22px', width: '100%', maxWidth: '460px', color: t.text });
+const modalBox = (t) => ({ background: t.cardBg, backdropFilter: 'blur(12px)', border: `1px solid ${t.border}`, borderRadius: '14px', padding: '22px', width: '100%', maxWidth: '460px', color: t.text, boxSizing: 'border-box' });
 
 export default DataRequestsScreen;
