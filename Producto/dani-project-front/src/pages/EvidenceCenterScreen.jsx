@@ -89,27 +89,26 @@ function EvidenceCenterScreen() {
   const [indexingIds, setIndexingIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
 
-  const demoEvidences = [
-    { id: 'd1', name: 'Política de Control de Acceso v2.0', control: 'A.5.15', source: 'Portal', type: 'manual', sourceIcon: '📄', lastUpdated: new Date(Date.now() - 2 * 86400000), validityDays: 365 },
-    { id: 'd2', name: 'Log de Accesos SSH — Junio 2026', control: 'A.8.15', source: 'Network Scan', type: 'automatic', sourceIcon: '🔐', lastUpdated: new Date(Date.now() - 1 * 86400000), validityDays: 90 },
-    { id: 'd3', name: 'Reporte de Vulnerabilidades Q2', control: 'A.8.8', source: 'Jira', type: 'automatic', sourceIcon: '📋', lastUpdated: new Date(Date.now() - 5 * 86400000), validityDays: 30 },
-    { id: 'd4', name: 'Certificado de Backup Exitoso', control: 'A.8.13', source: 'AWS', type: 'automatic', sourceIcon: '☁️', lastUpdated: new Date(Date.now() - 10 * 86400000), validityDays: 7 },
-  ];
+  const [isLoadingEvidences, setIsLoadingEvidences] = useState(true);
+  const [loadError, setLoadError] = useState(null);
 
-  // Cargar evidencias reales
+  // Cargar las evidencias reales de la empresa (incluye los documentos subidos
+  // desde Análisis de Brechas). Antes, si la empresa no tenía evidencias o la
+  // carga fallaba, se mostraban 4 evidencias de ejemplo inventadas; ahora se
+  // muestra la lista vacía o el error, para no confundir con datos falsos.
   const loadEvidences = async () => {
+    setIsLoadingEvidences(true); setLoadError(null);
     try {
       const { evidenceAPI } = await import('../services/api');
       const data = await evidenceAPI.getAll();
-      if (Array.isArray(data) && data.length > 0) {
-        const mapped = data.map(e => ({ ...e, lastUpdated: e.lastUpdated ? new Date(e.lastUpdated) : new Date() }));
-        setEvidences(mapped);
-      } else {
-        setEvidences(demoEvidences);
-      }
+      const mapped = (Array.isArray(data) ? data : []).map(e => ({ ...e, lastUpdated: e.lastUpdated ? new Date(e.lastUpdated) : new Date() }));
+      setEvidences(mapped);
     } catch (error) {
-      console.error("Error loading evidences, using demo data.", error);
-      setEvidences(demoEvidences);
+      console.error("Error loading evidences", error);
+      setEvidences([]);
+      setLoadError('No se pudieron cargar las evidencias. Inténtalo de nuevo.');
+    } finally {
+      setIsLoadingEvidences(false);
     }
   };
 
@@ -295,7 +294,7 @@ function EvidenceCenterScreen() {
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.health}</th>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Evidence</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{language === 'en' ? 'Evidence' : language === 'pt' ? 'Evidência' : 'Evidencia'}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.control}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.source}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.lastUpdated}</th>
@@ -303,6 +302,19 @@ function EvidenceCenterScreen() {
                 </tr>
               </thead>
               <tbody>
+                {filteredEvidences.length === 0 && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '40px 20px', textAlign: 'center', color: loadError ? '#dc2626' : t.textDim, fontSize: '14px' }}>
+                      {isLoadingEvidences
+                        ? 'Cargando evidencias...'
+                        : loadError
+                          ? <>{loadError} <button onClick={loadEvidences} style={{ marginLeft: '8px', padding: '6px 12px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', cursor: 'pointer' }}>Reintentar</button></>
+                          : evidences.length === 0
+                            ? 'Aún no hay evidencias. Los documentos que subas aquí o en Análisis de Brechas aparecerán en esta lista.'
+                            : 'Ninguna evidencia coincide con el filtro o la búsqueda.'}
+                    </td>
+                  </tr>
+                )}
                 {filteredEvidences.map((evidence) => {
                   const freshnessStatus = getFreshnessStatus(evidence);
                   const freshnessColor = getFreshnessColor(freshnessStatus);
@@ -405,7 +417,7 @@ function EvidenceCenterScreen() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Evidence</th>
+                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{language === 'en' ? 'Evidence' : language === 'pt' ? 'Evidência' : 'Evidencia'}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.control}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.assignTo}</th>
                   <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.dueDate}</th>

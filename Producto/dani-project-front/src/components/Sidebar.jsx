@@ -83,7 +83,7 @@ function SidebarProgressRings({ theme: t, language, collapsed }) {
 
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed }) => {
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
@@ -212,18 +212,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
           </div>
         )}
       </div>
-
-      {/* Command Palette Trigger */}
-      {!sidebarCollapsed && setCommandPaletteOpen && (
-        <button 
-          onClick={() => setCommandPaletteOpen(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textDim, fontSize: '13px', cursor: 'pointer', marginBottom: '20px', width: '100%', textAlign: 'left' }}
-        >
-          <Search size={16} />
-          <span style={{ flex: 1 }}>{language === 'es' ? 'Buscar...' : 'Search...'}</span>
-          <kbd style={{ padding: '2px 6px', background: t.hoverBg || 'rgba(0,0,0,0.05)', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>⌘K</kbd>
-        </button>
-      )}
 
       {/* Superadmin dentro de una empresa: banner + botón para volver a plataforma */}
       {superadminEnOrg && (

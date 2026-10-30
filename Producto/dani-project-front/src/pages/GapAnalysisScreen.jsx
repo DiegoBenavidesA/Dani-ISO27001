@@ -1,5 +1,5 @@
 // src/pages/GapAnalysisScreen.jsx
-import React, { useState, useContext, useEffect, useMemo } from 'react';
+import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import {
   Building2, Target, Users, Lock, Sparkles, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
@@ -73,30 +73,106 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { try { localStorage.setItem('dani_gap_answers', JSON.stringify(answers)); } catch {} }, [answers]);
   useEffect(() => { try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {} }, [aiResults]);
 
+  // Si Render está despertando, reintentar sin borrar las preguntas ya cargadas.
   const loadQuestions = async () => {
-    setQuestionsLoading(true); setQuestionsError(null);
-    try {
-      const data = await assessmentQuestionsAPI.getAll();
-      setDbQuestions(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Error al cargar preguntas', err);
-      setQuestionsError('No se pudieron cargar las preguntas desde la base de datos.');
-      setDbQuestions([]);
-    } finally { setQuestionsLoading(false); }
+    setQuestionsLoading(true);
+    setQuestionsError(null);
+    const esperas = [0, 3000, 8000, 15000];
+    for (let i = 0; i < esperas.length; i++) {
+      if (esperas[i]) await new Promise((resolve) => setTimeout(resolve, esperas[i]));
+      try {
+        const data = await assessmentQuestionsAPI.getAll();
+        setDbQuestions(Array.isArray(data) ? data : []);
+        setQuestionsLoading(false);
+        return;
+      } catch (err) {
+        console.warn(`Error al cargar preguntas (intento ${i + 1})`, err);
+      }
+    }
+    setQuestionsError('No se pudieron cargar las preguntas. Revisa tu conexión e inténtalo de nuevo.');
+    setQuestionsLoading(false);
   };
   useEffect(() => { loadQuestions(); }, []);
 
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
-  // Normalizamos las categorías para aceptar distintas importaciones (con o sin tildes).
   const categoryOf = (q) => String(q.categoria || '')
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
+  // Los apartados originales provienen de una guía RGPD (AEPD). La agrupación
+  // es organizativa: NO certifica equivalencia jurídica con la Ley 21.719.
+  const privacyAreaNames = ['Principios del tratamiento', 'Licitud y consentimiento', 'Datos especiales e identificación', 'Derechos de los titulares', 'Responsabilidad y gestión', 'Seguridad y brechas', 'Evaluaciones de impacto', 'Transferencias internacionales', 'Otros temas de privacidad'];
+  const privacySections = [
+    { guiFrom: 1, guiTo: 17, excelFrom: 1, excelTo: 17, area: 0, section: 'Principios relativos al tratamiento' },
+    { guiFrom: 18, guiTo: 23, excelFrom: 18, excelTo: 23, area: 1, section: 'Licitud del tratamiento' },
+    { guiFrom: 24, guiTo: 34, excelFrom: 24, excelTo: 34, area: 1, section: 'Condiciones para el consentimiento' },
+    { guiFrom: 35, guiTo: 36, excelFrom: 35, excelTo: 36, area: 1, section: 'Consentimiento de niños y adolescentes' },
+    { guiFrom: 37, guiTo: 50, excelFrom: 37, excelTo: 49, area: 2, section: 'Datos personales sensibles y especiales' },
+    { guiFrom: 51, guiTo: 53, excelFrom: 50, excelTo: 52, area: 2, section: 'Datos sobre condenas e infracciones penales' },
+    { guiFrom: 54, guiTo: 58, excelFrom: 53, excelTo: 57, area: 2, section: 'Tratamientos que no requieren identificación' },
+    { guiFrom: 59, guiTo: 74, excelFrom: 58, excelTo: 73, area: 3, section: 'Transparencia de la información' },
+    { guiFrom: 75, guiTo: 87, excelFrom: 74, excelTo: 86, area: 3, section: 'Información al obtener datos del titular' },
+    { guiFrom: 88, guiTo: 115, excelFrom: 87, excelTo: 114, area: 3, section: 'Información cuando los datos provienen de terceros' },
+    { guiFrom: 116, guiTo: 127, excelFrom: 115, excelTo: 126, area: 3, section: 'Derecho de acceso' },
+    { guiFrom: 128, guiTo: 129, excelFrom: 127, excelTo: 128, area: 3, section: 'Derecho de rectificación' },
+    { guiFrom: 130, guiTo: 135, excelFrom: 129, excelTo: 134, area: 3, section: 'Derecho de supresión' },
+    { guiFrom: 136, guiTo: 140, excelFrom: 135, excelTo: 139, area: 3, section: 'Limitación del tratamiento' },
+    { guiFrom: 141, guiTo: 141, excelFrom: 140, excelTo: 140, area: 3, section: 'Información ante rectificación, supresión o limitación' },
+    { guiFrom: 142, guiTo: 145, excelFrom: 141, excelTo: 144, area: 3, section: 'Portabilidad de los datos' },
+    { guiFrom: 146, guiTo: 148, excelFrom: 145, excelTo: 147, area: 3, section: 'Derecho de oposición' },
+    { guiFrom: 149, guiTo: 159, excelFrom: 148, excelTo: 158, area: 3, section: 'Decisiones automatizadas y elaboración de perfiles' },
+    { guiFrom: 160, guiTo: 165, excelFrom: 159, excelTo: 164, area: 4, section: 'Responsabilidad del responsable' },
+    { guiFrom: 166, guiTo: 172, excelFrom: 165, excelTo: 171, area: 4, section: 'Protección de datos desde el diseño y por defecto' },
+    { guiFrom: 173, guiTo: 176, excelFrom: 172, excelTo: 175, area: 4, section: 'Corresponsables del tratamiento' },
+    { guiFrom: 177, guiTo: 190, excelFrom: 176, excelTo: 189, area: 4, section: 'Encargados del tratamiento' },
+    { guiFrom: 191, guiTo: 198, excelFrom: 190, excelTo: 197, area: 4, section: 'Registro de actividades de tratamiento (RoPA)' },
+    { guiFrom: 199, guiTo: 205, excelFrom: 198, excelTo: 204, area: 5, section: 'Seguridad del tratamiento' },
+    { guiFrom: 206, guiTo: 213, excelFrom: 205, excelTo: 212, area: 5, section: 'Notificación de brechas a la autoridad' },
+    { guiFrom: 214, guiTo: 215, excelFrom: 213, excelTo: 214, area: 5, section: 'Comunicación de brechas a los titulares' },
+    { guiFrom: 216, guiTo: 233, excelFrom: 215, excelTo: 232, area: 6, section: 'Evaluación de impacto de protección de datos' },
+    { guiFrom: 234, guiTo: 248, excelFrom: 233, excelTo: 247, area: 4, section: 'Delegado de protección de datos' },
+    { guiFrom: 249, guiTo: 268, excelFrom: 248, excelTo: 267, area: 7, section: 'Transferencias internacionales' },
+  ];
+  const pdfExcelTitles = {1: 'Finalidades determinadas', 2: 'Finalidades explícitas', 3: 'Finalidades legítimas', 4: 'Compatibilidad de finalidades', 5: 'Exactitud de los datos', 6: 'Actualización de datos', 7: 'Rectificación de datos inexactos', 8: 'Supresión de datos inexactos', 9: 'Conservación limitada', 10: 'Archivo de interés público', 11: 'Investigación científica', 12: 'Investigación histórica', 13: 'Tratamiento estadístico', 14: 'Integridad y confidencialidad', 15: 'Prevención de accesos ilícitos', 16: 'Prevención de pérdida o daño', 17: 'Trazabilidad de finalidades', 18: 'Consentimiento por finalidad', 19: 'Ejecución contractual', 20: 'Obligación legal', 21: 'Protección de intereses vitales', 22: 'Interés público', 23: 'Intereses legítimos', 24: 'Prueba del consentimiento', 25: 'Prueba de obligación legal', 26: 'Consentimiento separado', 27: 'Consentimiento comprensible', 28: 'Lenguaje claro', 29: 'Información previa', 30: 'Facilidad para retirar consentimiento', 31: 'Retiro en cualquier momento', 32: 'Consentimiento libre', 33: 'Datos mínimos para servicios', 34: 'Datos mínimos para contratos', 35: 'Consentimiento de menores', 36: 'Verificación de autorización parental', 37: 'Excepciones para datos sensibles', 38: 'Consentimiento explícito', 39: 'Obligaciones laborales', 40: 'Convenios colectivos', 41: 'Protección de intereses vitales', 42: 'Actividades legítimas de entidades', 43: 'Comunicación a terceros', 44: 'Datos publicados por el titular', 45: 'Defensa de reclamaciones', 46: 'Tratamientos sanitarios y sociales', 47: 'Interés público en salud', 48: 'Archivo e investigación', 49: 'Datos genéticos, biométricos y salud', 50: 'Datos penales bajo supervisión', 51: 'Habilitación para datos penales', 52: 'Registro de condenas penales', 53: 'Minimización de datos identificativos', 54: 'Evitar identificación innecesaria', 55: 'Verificación de anonimización', 56: 'Información ante reidentificación', 57: 'Supresión tras identificación', 58: 'Facilitar información al titular', 59: 'Transparencia y claridad', 60: 'Lenguaje comprensible', 61: 'Medios de información', 62: 'Información verbal e identidad', 63: 'Facilitar ejercicio de derechos', 64: 'Solicitudes sin identificación previa', 65: 'Respuesta a solicitudes', 66: 'Prórroga por complejidad', 67: 'Comunicación de prórroga', 68: 'Ejercicio electrónico de derechos', 69: 'Respuesta por medios electrónicos', 70: 'Motivos de rechazo y reclamación', 71: 'Gratuidad del ejercicio', 72: 'Verificación de identidad', 73: 'Iconos y lectura automática', 74: 'Identidad del responsable', 75: 'Contacto del delegado', 76: 'Finalidad y base jurídica', 77: 'Información sobre interés legítimo', 78: 'Destinatarios de datos', 79: 'Plazos de conservación', 80: 'Información sobre derechos', 81: 'Retiro del consentimiento', 82: 'Derecho a reclamar', 83: 'Cesiones por requisito legal', 84: 'Cesiones para contratos', 85: 'Decisiones automatizadas', 86: 'Cambios de finalidad', 87: 'Responsable y representante', 88: 'Contacto del delegado', 89: 'Finalidades del tratamiento', 90: 'Base jurídica del tratamiento', 91: 'Categorías de datos', 92: 'Destinatarios y categorías', 93: 'Plazo de conservación', 94: 'Criterios de conservación', 95: 'Intereses legítimos', 96: 'Derecho de acceso', 97: 'Derecho de rectificación', 98: 'Derecho de supresión', 99: 'Derecho de limitación', 100: 'Derecho de oposición', 101: 'Derecho de portabilidad', 102: 'Retiro del consentimiento', 103: 'Derecho a reclamar', 104: 'Origen de los datos', 105: 'Fuentes públicas', 106: 'Plazo para informar', 107: 'Información al contactar', 108: 'Información antes de comunicar', 109: 'Información por nueva finalidad', 110: 'Excepción por información conocida', 111: 'Excepción por imposibilidad', 112: 'Excepción por perjuicio a fines', 113: 'Excepción por habilitación legal', 114: 'Excepción por secreto profesional', 115: 'Acceso a finalidades', 116: 'Acceso a categorías de datos', 117: 'Acceso a destinatarios', 118: 'Acceso a plazos de conservación', 119: 'Acceso a criterios de conservación', 120: 'Acceso a rectificación y supresión', 121: 'Acceso a limitación', 122: 'Acceso a oposición', 123: 'Acceso a reclamación', 124: 'Acceso al origen de datos', 125: 'Entrega de copia de datos', 126: 'Formato electrónico de respuesta', 127: 'Rectificación sin demora', 128: 'Completar datos incompletos', 129: 'Supresión por fin cumplido', 130: 'Supresión tras retirar consentimiento', 131: 'Supresión por oposición', 132: 'Supresión por ilicitud', 133: 'Supresión por obligación legal', 134: 'Supresión de datos de servicios digitales', 135: 'Limitación por exactitud discutida', 136: 'Limitación por tratamiento ilícito', 137: 'Limitación para reclamaciones', 138: 'Limitación por oposición', 139: 'Aviso de levantamiento de limitación', 140: 'Comunicación de rectificación y supresión', 141: 'Portabilidad en formato estructurado', 142: 'Portabilidad por contrato o consentimiento', 143: 'Portabilidad de tratamientos automatizados', 144: 'Transmisión directa de datos', 145: 'Atención al derecho de oposición', 146: 'Excepciones al derecho de oposición', 147: 'Oposición por medios automatizados', 148: 'Límites a decisiones automatizadas', 149: 'Decisiones necesarias para contrato', 150: 'Decisiones con habilitación legal', 151: 'Decisiones con consentimiento explícito', 152: 'Salvaguardas ante automatización', 153: 'Intervención humana y revisión', 154: 'Impugnación de decisiones', 155: 'Perfiles con datos sensibles y consentimiento', 156: 'Perfiles con datos sensibles y habilitación', 157: 'Información sobre decisiones automatizadas', 158: 'Protección en perfiles con datos sensibles', 159: 'Responsabilidad demostrable', 160: 'Evaluación de riesgos de privacidad', 161: 'Medidas técnicas y organizativas', 162: 'Revisión de medidas', 163: 'Políticas de protección de datos', 164: 'Aplicación de políticas', 165: 'Medidas antes del diseño', 166: 'Privacidad desde el diseño', 167: 'Aplicación de medidas', 168: 'Eficacia de las medidas', 169: 'Minimización por defecto', 170: 'Alcance y conservación por defecto', 171: 'Acceso restringido por defecto', 172: 'Acuerdo entre corresponsables', 173: 'Obligaciones de información compartidas', 174: 'Funciones entre corresponsables', 175: 'Disponibilidad del acuerdo', 176: 'Selección de encargados', 177: 'Autorización de subencargados', 178: 'Contrato con el encargado', 179: 'Contenido del contrato', 180: 'Instrucciones documentadas', 181: 'Confidencialidad del personal', 182: 'Medidas de seguridad contractuales', 183: 'Condiciones para subencargados', 184: 'Asistencia en derechos de titulares', 185: 'Devolución o supresión de datos', 186: 'Cooperación en auditorías', 187: 'Obligaciones de subencargados', 188: 'Contrato por escrito', 189: 'Acceso bajo instrucciones', 190: 'Registro de tratamientos', 191: 'Identificación de responsables', 192: 'Finalidades registradas', 193: 'Categorías de titulares y datos', 194: 'Categorías de destinatarios', 195: 'Transferencias internacionales', 196: 'Plazos de supresión', 197: 'Medidas de seguridad registradas', 198: 'Evaluación del riesgo y la tecnología', 199: 'Seguridad proporcional al riesgo', 200: 'Confidencialidad, integridad y disponibilidad', 201: 'Restauración ante incidentes', 202: 'Evaluación periódica de controles', 203: 'Riesgos de destrucción y acceso', 204: 'Instrucciones para personal autorizado', 205: 'Gestión de brechas de seguridad', 206: 'Aviso del encargado al responsable', 207: 'Notificación a autoridad en 72 horas', 208: 'Justificación de retrasos', 209: 'Notificación por etapas', 210: 'Registro de brechas', 211: 'Documentación de efectos y medidas', 212: 'Prueba del procedimiento de aviso', 213: 'Comunicación de brechas de alto riesgo', 214: 'Claridad en aviso de brechas', 215: 'Asesoramiento del delegado', 216: 'Evaluación previa de impacto', 217: 'Impacto en datos sensibles a gran escala', 218: 'Impacto por observación sistemática', 219: 'Impacto en tratamientos señalados', 220: 'Descripción de tratamientos y fines', 221: 'Necesidad y proporcionalidad', 222: 'Riesgos para derechos y libertades', 223: 'Medidas de conformidad', 224: 'Salvaguardas y mitigación', 225: 'Revisión de evaluaciones', 226: 'Consulta previa a autoridad', 227: 'Responsabilidades en la consulta', 228: 'Fines y medios en la consulta', 229: 'Garantías comunicadas a autoridad', 230: 'Contacto del delegado', 231: 'Entrega de evaluación de impacto', 232: 'Información adicional a autoridad', 233: 'Designación legal del delegado', 234: 'Idoneidad del delegado', 235: 'Publicación de contacto del delegado', 236: 'Participación del delegado', 237: 'Respaldo institucional', 238: 'Recursos y acceso del delegado', 239: 'Actualización de conocimientos', 240: 'Independencia del delegado', 241: 'Protección frente a sanciones', 242: 'Reporte a alta dirección', 243: 'Atención a titulares', 244: 'Confidencialidad del delegado', 245: 'Prevención de conflictos de interés', 246: 'Asesoría y formación', 247: 'Cooperación con autoridad', 248: 'Transferencias a países adecuados', 249: 'Vigencia de decisiones de adecuación', 250: 'Garantías exigibles de transferencia', 251: 'Acuerdos vinculantes entre autoridades', 252: 'Normas corporativas vinculantes', 253: 'Cláusulas tipo de la Comisión', 254: 'Cláusulas aprobadas por autoridad', 255: 'Códigos de conducta para transferencias', 256: 'Certificación de garantías', 257: 'Cláusulas con autorización previa', 258: 'Acuerdos administrativos', 259: 'Transferencias sin adecuación', 260: 'Consentimiento informado de transferencia', 261: 'Transferencia por necesidad contractual', 262: 'Transferencia para reclamaciones', 263: 'Transferencia por intereses vitales', 264: 'Intereses legítimos imperiosos', 265: 'Transferencias no repetitivas', 266: 'Evaluación de circunstancias y garantías', 267: 'Información a autoridad de control'};
+
   const isPrivacyQuestion = (q) => {
+    const code = String(q.codigo || '').toUpperCase();
     const category = categoryOf(q);
-    return category.includes('privacidad') || category.includes('proteccion de datos') ||
-      category.includes('datos personales') || category.includes('rgpd') ||
-      category.includes('gdpr') || category.includes('tratamiento') ||
+    return /^(GUIALIST|PRIV|RGPD|GDPR)-\d+$/i.test(code) ||
+      category.includes('privacidad') || category.includes('proteccion de datos') ||
+      category.includes('proteccio n de datos') || category.includes('datos personales') ||
+      category.includes('rgpd') || category.includes('gdpr') ||
+      category.includes('tratamiento') || category.includes('consentimiento') ||
+      category.includes('derechos del interesado') || category.includes('der echos del interesado') ||
+      category.includes('transferencias a paises') ||
       /\bley\s*21[.\s]*719\b/.test(category) || /\bley\s*21719\b/.test(category);
+  };
+
+  const privacyLocation = (q) => {
+    const code = String(q.codigo || '').toUpperCase().trim();
+    const m = code.match(/^(GUIALIST|PRIV|RGPD|GDPR)-(\d+)$/);
+    if (m) {
+      const number = Number(m[2]);
+      // Los códigos GUIALIST saltan números; PRIV y RGPD son secuenciales.
+      const isImportedExcel = m[1] !== 'PRIV' || pdfExcelTitles[number] === String(q.nombre || '').trim();
+      if (!isImportedExcel) return { area: privacyAreaNames[8], section: 'Otras preguntas PRIV (revisar origen)', sectionOrder: 35 };
+      const rangeStart = m[1] === 'GUIALIST' ? 'guiFrom' : 'excelFrom';
+      const rangeEnd = m[1] === 'GUIALIST' ? 'guiTo' : 'excelTo';
+      const index = privacySections.findIndex((s) => number >= s[rangeStart] && number <= s[rangeEnd]);
+      if (index !== -1) return { area: privacyAreaNames[privacySections[index].area], section: privacySections[index].section, sectionOrder: index };
+    }
+    // Preguntas de privacidad que no provienen de las 267/265 del PDF.
+    const cat = categoryOf(q);
+    if (code === 'O1' || cat.includes('registro de actividades') || cat.includes('ropa'))
+      return { area: privacyAreaNames[4], section: 'Registro de actividades de tratamiento (RoPA)', sectionOrder: 22 };
+    if (cat.includes('consentimiento') || cat.includes('licitud'))
+      return { area: privacyAreaNames[1], section: 'Otras preguntas de consentimiento y licitud', sectionOrder: 30 };
+    if (cat.includes('derecho') || cat.includes('transparencia'))
+      return { area: privacyAreaNames[3], section: 'Otros derechos de los titulares', sectionOrder: 31 };
+    if (cat.includes('seguridad') || cat.includes('brecha'))
+      return { area: privacyAreaNames[5], section: 'Otras preguntas de seguridad', sectionOrder: 32 };
+    if (cat.includes('transferencia'))
+      return { area: privacyAreaNames[7], section: 'Otras transferencias', sectionOrder: 33 };
+    return { area: privacyAreaNames[8], section: 'Preguntas adicionales de privacidad', sectionOrder: 34 };
   };
 
   const isISOCategory = (q, fragment) => !isPrivacyQuestion(q) && categoryOf(q).includes(fragment);
@@ -114,27 +190,34 @@ function GapAnalysisScreen({ onNavigate }) {
   ];
 
   const phases = useMemo(() => {
-    // Conserva las fases del equipo, evita preguntas repetidas y mantiene visible Privacidad.
     const matchedIds = new Set();
     const result = phaseDefs.map((def) => {
-      const matched = dbQuestions
-        .filter((q) => !matchedIds.has(q.id) && def.match(q))
-        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+      const matched = dbQuestions.filter((q) => !matchedIds.has(q.id) && def.match(q));
       matched.forEach((q) => matchedIds.add(q.id));
+      if (def.id === 'ley') {
+        matched.sort((a, b) => {
+          const x = privacyLocation(a), y = privacyLocation(b);
+          const ai = privacyAreaNames.indexOf(x.area), bi = privacyAreaNames.indexOf(y.area);
+          if (ai !== bi) return ai - bi;
+          if (x.sectionOrder !== y.sectionOrder) return x.sectionOrder - y.sectionOrder;
+          return (a.orden ?? 0) - (b.orden ?? 0) || String(a.codigo).localeCompare(String(b.codigo), undefined, { numeric: true });
+        });
+      } else matched.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
       return {
         id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
         questions: matched.map((q) => ({
           id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta,
           codigo: q.codigo, options: [tText.yes, tText.partially, tText.no],
           critical: isClause(q), evidencia: q.evidencia_esperada,
+          ...(def.id === 'ley' ? privacyLocation(q) : {}),
         })),
       };
     }).filter((p) => p.id === 'ley' || p.questions.length > 0);
 
-    // Funcionalidad de main: preguntas con categorías desconocidas tienen su propia fase.
-    const unmatchedQuestions = dbQuestions.filter((q) => !matchedIds.has(q.id));
+    // Funcionalidad incorporada desde main: las categorías realmente desconocidas
+    // siguen teniendo una fase propia. Las GUIALIST y PRIV no caen aquí.
     const byCat = {};
-    unmatchedQuestions.forEach((q) => {
+    dbQuestions.filter((q) => !matchedIds.has(q.id)).forEach((q) => {
       const cat = q.categoria || 'General';
       if (!byCat[cat]) byCat[cat] = [];
       byCat[cat].push(q);
@@ -143,10 +226,7 @@ function GapAnalysisScreen({ onNavigate }) {
       qs.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
       result.push({
         id: `extra-${cat.toLowerCase().replace(/\s+/g, '-')}`,
-        name: cat,
-        clause: `${qs.length} preguntas`,
-        icon: FileCheck,
-        color: '#6366f1',
+        name: cat, clause: `${qs.length} preguntas`, icon: FileCheck, color: '#6366f1',
         questions: qs.map((q) => ({
           id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta,
           codigo: q.codigo, options: [tText.yes, tText.partially, tText.no],
@@ -206,8 +286,105 @@ function GapAnalysisScreen({ onNavigate }) {
   const currentPhaseData = phases[currentPhase];
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
 
+  const privacyAreaOptions = useMemo(() => {
+    const ley = phases.find((p) => p.id === 'ley');
+    if (!ley) return [];
+    return privacyAreaNames.map((area) => ({ area, count: ley.questions.filter((q) => q.area === area).length }))
+      .filter((entry) => entry.count > 0);
+  }, [phases]);
+  const activePrivacyArea = currentPhaseData?.id === 'ley' ? currentQuestionData?.area : null;
+  const activePrivacySection = currentPhaseData?.id === 'ley' ? currentQuestionData?.section : null;
+  const privacySectionOptions = useMemo(() => {
+    if (currentPhaseData?.id !== 'ley' || !activePrivacyArea) return [];
+    const counts = new Map();
+    currentPhaseData.questions.filter((q) => q.area === activePrivacyArea).forEach((q) => {
+      counts.set(q.section, (counts.get(q.section) || 0) + 1);
+    });
+    return [...counts].map(([section, count]) => ({ section, count }));
+  }, [currentPhaseData, activePrivacyArea]);
+
+  const jumpToPrivacy = (area, section = null) => {
+    const idx = currentPhaseData?.questions.findIndex((q) => q.area === area && (!section || q.section === section));
+    if (idx >= 0) setCurrentQuestion(idx);
+  };
+
+  // Evita índices obsoletos si las preguntas se cargan o cambian de agrupación.
+  useEffect(() => {
+    if (currentPhase >= phases.length && phases.length > 0) {
+      setCurrentPhase(0);
+      setCurrentQuestion(0);
+    } else if (currentPhaseData && currentQuestion >= currentPhaseData.questions.length) {
+      setCurrentQuestion(0);
+    }
+  }, [phases, currentPhase, currentQuestion, currentPhaseData]);
+
+
+  // Autoguardado de Justo + protección frente a cambios durante una petición.
+  // Se conservan los IDs de preguntas y controles; no se modifican datos en BD al cargar.
+  const [saveStatus, setSaveStatus] = useState('idle');
+  const dirtyVersionRef = useRef(0);
+  const savedVersionRef = useRef(0);
+  const savingPromiseRef = useRef(null);
+  const latestSnapshotRef = useRef({ controls, answers });
+  latestSnapshotRef.current = { controls, answers };
+
+  const markDirty = () => {
+    dirtyVersionRef.current += 1;
+    setSaveStatus('pending');
+  };
+
+  const saveLatestProgress = async () => {
+    if (savingPromiseRef.current) return savingPromiseRef.current;
+    const operation = (async () => {
+      setIsSaving(true);
+      setSaveStatus('saving');
+      try {
+        // Si se responde otra pregunta mientras se guarda, persiste también
+        // el estado más reciente antes de mostrar «Cambios guardados».
+        while (savedVersionRef.current < dirtyVersionRef.current) {
+          const version = dirtyVersionRef.current;
+          const snapshot = latestSnapshotRef.current;
+          await complianceAPI.fullAssessment({ controls: snapshot.controls, answers: snapshot.answers });
+          savedVersionRef.current = version;
+        }
+        setSaveStatus('saved');
+        await loadAnalysis();
+        return true;
+      } catch (err) {
+        console.warn('No se pudo guardar el progreso', err);
+        setSaveStatus('error');
+        return false;
+      } finally {
+        setIsSaving(false);
+      }
+    })();
+    savingPromiseRef.current = operation;
+    try { return await operation; }
+    finally { savingPromiseRef.current = null; }
+  };
+
+  // Esperar 1,5 segundos después de cada edición manual antes de guardar.
+  useEffect(() => {
+    if (dirtyVersionRef.current <= savedVersionRef.current) return;
+    const timer = setTimeout(() => { void saveLatestProgress(); }, 1500);
+    return () => clearTimeout(timer);
+  }, [controls, answers]);
+
+  useEffect(() => {
+    const warnIfPending = (event) => {
+      if (dirtyVersionRef.current > savedVersionRef.current) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warnIfPending);
+    return () => window.removeEventListener('beforeunload', warnIfPending);
+  }, []);
+
   const handleAnswer = (answer) => {
-    setAnswers({ ...answers, [currentQuestionData.id]: answer });
+    if (!currentQuestionData) return;
+    markDirty();
+    setAnswers((prev) => ({ ...prev, [currentQuestionData.id]: answer }));
     setTimeout(() => goToNext(), 300);
   };
   const goToNext = () => {
@@ -219,10 +396,11 @@ function GapAnalysisScreen({ onNavigate }) {
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
     else if (currentPhase > 0) { setCurrentPhase(currentPhase - 1); setCurrentQuestion(phases[currentPhase - 1].questions.length - 1); }
   };
-  
+
   const handleSaveProgress = async () => {
-    setIsSaving(true);
-    try { await complianceAPI.fullAssessment({ controls, answers }); alert("¡Progreso guardado con éxito!"); loadAnalysis(); } catch (e) { alert("Error al guardar"); } finally { setIsSaving(false); }
+    markDirty();
+    const ok = await saveLatestProgress();
+    if (!ok) alert('No se pudo guardar el progreso. Revisa la conexión y vuelve a intentarlo.');
   };
 
   const veredictoToOption = (veredicto) => {
@@ -332,8 +510,11 @@ function GapAnalysisScreen({ onNavigate }) {
       // Activar cambios visuales en React
       setControls(updatedControls);
 
-      // 3. Forzamos el guardado de la SOA y recalcular Resultados inmediatamente
-      try { await complianceAPI.fullAssessment({ controls: updatedControls, answers: newAnswers }); await loadAnalysis(); } catch(e) { console.warn("No se pudo autoguardar", e); }
+      // 3. Guardar la evaluación de IA y los controles SOA con el mismo mecanismo.
+      latestSnapshotRef.current = { controls: updatedControls, answers: newAnswers };
+      markDirty();
+      const aiSaved = await saveLatestProgress();
+      if (!aiSaved) setEvalError('La evaluación terminó, pero no se pudo guardar. Usa «Guardar progreso» para reintentar.');
 
       // 4. Envío masivo automático al Registro RoPA
       let tratamientosAgregados = 0;
@@ -353,8 +534,12 @@ function GapAnalysisScreen({ onNavigate }) {
       let finalMsg = `✅ IA evaluó ${resp.total} preguntas y actualizó los controles de la SOA.\n\n`;
       if (tratamientosAgregados > 0) finalMsg += `🎯 Extrajo ${tratamientosAgregados} tratamientos nuevos y los inyectó en tu registro RoPA!\n`;
       
-      alert(finalMsg);
-      setEvalInfo(finalMsg);
+      if (aiSaved) {
+        alert(finalMsg);
+        setEvalInfo(finalMsg);
+      } else {
+        setEvalInfo('La IA terminó de evaluar, pero hay cambios pendientes de guardar.');
+      }
       
     } catch (e) {
       setEvalError(e.message || 'Error al evaluar con IA.');
@@ -369,9 +554,9 @@ function GapAnalysisScreen({ onNavigate }) {
     setCurrentPage(1);
   };
 
-  const toggleApplicable = (id) => setControls(prev => prev.map(c => c.id === id ? { ...c, applicable: !c.applicable } : c));
-  const updateStatus = (id, status) => setControls(prev => prev.map(c => c.id === id ? { ...c, status } : c));
-  const updateJustification = (id, justification) => { setControls(prev => prev.map(c => c.id === id ? { ...c, justification } : c)); setShowJustificationModal(null); };
+  const toggleApplicable = (id) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, applicable: !c.applicable } : c)); };
+  const updateStatus = (id, status) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, status } : c)); };
+  const updateJustification = (id, justification) => { markDirty(); setControls(prev => prev.map(c => c.id === id ? { ...c, justification } : c)); setShowJustificationModal(null); };
 
   const filteredControls = Array.isArray(controls) ? controls.filter(c => {
     if (filterApplicable === 'applicable') return c.applicable;
@@ -419,7 +604,8 @@ function GapAnalysisScreen({ onNavigate }) {
         </div>
       </div>
       
-      <div className="soa-table-scroll" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '520px' }}>
+      {/* Tabla de escritorio; en móvil los controles se presentan como tarjetas. */}
+      <div className="soa-table-scroll normia-soa-desktop" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '520px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: t.inputBg }}>
@@ -473,15 +659,88 @@ function GapAnalysisScreen({ onNavigate }) {
           </tbody>
         </table>
       </div>
+
+      <div className="normia-soa-mobile" aria-label="Controles SOA en formato móvil">
+        {pagedControls.length === 0 && (
+          <p style={{ padding: '18px', fontSize: '13px', color: t.textDim }}>No hay controles para este filtro.</p>
+        )}
+        {pagedControls.map((control) => (
+          <article key={control.id} style={{ padding: '16px', borderBottom: `1px solid ${t.border}`, background: selectedControls.has(control.id) ? t.inputBg : 'transparent', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '14px' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0, paddingTop: '2px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={selectedControls.has(control.id)} onChange={() => {
+                  setSelectedControls((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(control.id)) next.delete(control.id);
+                    else next.add(control.id);
+                    return next;
+                  });
+                }} aria-label={`Seleccionar control ${control.id}`} style={{ accentColor: '#004ac6', width: '17px', height: '17px' }} />
+              </label>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#8b5cf6', marginBottom: '5px' }}>{control.id}</div>
+                <h4 style={{ fontSize: '14px', fontWeight: 750, lineHeight: 1.4, color: t.text, margin: '0 0 4px', overflowWrap: 'anywhere' }}>{getControlName(control.id, language)}</h4>
+                <span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '7px' }}>{tText.applicable}?</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+                  <button type="button" aria-pressed={control.applicable} onClick={() => { if (!control.applicable) toggleApplicable(control.id); }} style={{ padding: '10px', borderRadius: '8px', border: `1px solid ${control.applicable ? '#004ac6' : t.border}`, background: control.applicable ? '#004ac620' : t.cardBg, color: control.applicable ? '#004ac6' : t.text, fontWeight: 650, cursor: 'pointer' }}>{tText.applicable}</button>
+                  <button type="button" aria-pressed={!control.applicable} onClick={() => { if (control.applicable) toggleApplicable(control.id); }} style={{ padding: '10px', borderRadius: '8px', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, background: !control.applicable ? '#ef444420' : t.cardBg, color: !control.applicable ? '#dc2626' : t.text, fontWeight: 650, cursor: 'pointer' }}>No aplica</button>
+                </div>
+              </div>
+
+              {control.applicable && (
+                <div>
+                  <label htmlFor={`normia-soa-status-${control.id}`} style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '7px' }}>{tText.status}</label>
+                  <select id={`normia-soa-status-${control.id}`} value={control.status} onChange={(e) => updateStatus(control.id, e.target.value)} style={{ width: '100%', minWidth: 0, padding: '11px', border: `1px solid ${t.border}`, borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '13px' }}>
+                    <option value="implemented">{tText.implemented}</option>
+                    <option value="planned">{tText.planned}</option>
+                    <option value="notImplemented">{tText.notImplemented}</option>
+                  </select>
+                </div>
+              )}
+
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '7px' }}>{tText.justification}</div>
+                <p style={{ margin: '0 0 8px', fontSize: '12px', lineHeight: 1.5, color: control.justification ? t.text : '#dc2626', overflowWrap: 'anywhere' }}>{control.justification || tText.required}</p>
+                <button type="button" onClick={() => setShowJustificationModal(control)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 12px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '12px', fontWeight: 650, cursor: 'pointer' }}><Edit3 size={14} /> Editar justificación</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      {/* La paginación funciona en ambas vistas y permite llegar a los 93 controles. */}
+      <div className="normia-soa-pagination" style={{ padding: '14px 16px', borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+        <span style={{ fontSize: '12px', color: t.textDim }}>
+          {sortedFilteredControls.length === 0 ? '0 controles' : `${(currentPage - 1) * pageSize + 1}–${Math.min(currentPage * pageSize, sortedFilteredControls.length)} de ${sortedFilteredControls.length} controles`}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <label htmlFor="normia-soa-page-size" style={{ fontSize: '12px', color: t.textDim }}>Por página</label>
+          <select id="normia-soa-page-size" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} style={{ padding: '7px', border: `1px solid ${t.border}`, borderRadius: '7px', background: t.inputBg, color: t.text }}>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+          </select>
+          <button type="button" disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} style={{ padding: '8px 10px', border: `1px solid ${t.border}`, borderRadius: '7px', background: t.cardBg, color: t.text, opacity: currentPage <= 1 ? 0.4 : 1, cursor: 'pointer' }} aria-label="Página anterior"><ChevronLeft size={15} /></button>
+          <span style={{ fontSize: '12px', color: t.text, whiteSpace: 'nowrap' }}>{currentPage} / {totalPages}</span>
+          <button type="button" disabled={currentPage >= totalPages} onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} style={{ padding: '8px 10px', border: `1px solid ${t.border}`, borderRadius: '7px', background: t.cardBg, color: t.text, opacity: currentPage >= totalPages ? 0.4 : 1, cursor: 'pointer' }} aria-label="Página siguiente"><ChevronRight size={15} /></button>
+        </div>
+      </div>
+
       <div style={{ padding: '10px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#004ac6' }}>
         <CheckCircle2 size={14} /><span>{tText.autoSaved}</span>
       </div>
 
       {showJustificationModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '500px', maxWidth: '90%' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '12px' }}>
+          <div style={{ background: t.cardBg, borderRadius: '16px', padding: 'clamp(14px, 4vw, 24px)', width: '500px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', minWidth: 0 }}>
             <h3 style={{ marginBottom: '16px' }}>{tText.justification}</h3>
-            <textarea defaultValue={showJustificationModal.justification} rows={4} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '14px', marginBottom: '16px' }} id="justification-textarea" />
+            <textarea defaultValue={showJustificationModal.justification} rows={4} style={{ width: '100%', minWidth: 0, padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '14px', marginBottom: '16px' }} id="justification-textarea" />
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowJustificationModal(null)} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', cursor: 'pointer' }}>Cancelar</button>
               <button onClick={() => { const textarea = document.getElementById('justification-textarea'); updateJustification(showJustificationModal.id, textarea.value); }} style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: 'pointer' }}>Guardar</button>
@@ -501,7 +760,7 @@ function GapAnalysisScreen({ onNavigate }) {
     
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="normia-results-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px', minWidth: 0 }}>
           <div style={{ background: t.cardBg, border: `2px solid ${getScoreColor(score)}40`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
             <div style={{ fontSize: '52px', fontWeight: 800, color: getScoreColor(score), lineHeight: 1 }}>{score}%</div>
             <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Cumplimiento General</div>
@@ -532,6 +791,7 @@ function GapAnalysisScreen({ onNavigate }) {
     const [isSavingQ, setIsSavingQ] = useState(false);
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState(null);
+    const [visibleMobileQuestions, setVisibleMobileQuestions] = useState(25);
 
     const handleImportExcel = async (e) => {
       const file = e.target.files && e.target.files[0];
@@ -601,12 +861,12 @@ function GapAnalysisScreen({ onNavigate }) {
 
     return (
       <div style={{ marginTop: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>Configuración del Cuestionario</h2>
+        <div className="normia-admin-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', alignItems: 'flex-start', minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: '1 1 240px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, overflowWrap: 'anywhere' }}>Configuración del Cuestionario</h2>
             <p style={{ fontSize: '13px', color: t.textDim }}>Agrega, edita o elimina preguntas de la base de evaluación ISO 27001 y Ley 21.719.</p>
           </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="normia-admin-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
           <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
             <Download size={16} /> Plantilla
           </button>
@@ -646,7 +906,7 @@ function GapAnalysisScreen({ onNavigate }) {
           </div>
         )}
 
-        <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+        <div className="normia-admin-desktop" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: t.inputBg, fontSize: '12px', color: t.textDim, textTransform: 'uppercase' }}>
@@ -677,13 +937,41 @@ function GapAnalysisScreen({ onNavigate }) {
           </table>
         </div>
 
+        {/* En teléfonos se reemplaza la tabla de cuatro columnas por tarjetas completas. */}
+        <div className="normia-admin-mobile" style={{ display: 'none' }}>
+          <p style={{ fontSize: '12px', color: t.textDim, margin: '0 0 12px' }}>
+            {dbQuestions.length} preguntas registradas · mostrando {Math.min(visibleMobileQuestions, dbQuestions.length)}
+          </p>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {dbQuestions.slice(0, visibleMobileQuestions).map((q) => (
+              <article key={q.id} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '16px', minWidth: 0, overflowWrap: 'anywhere' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 750, color: '#8b5cf6' }}>{q.codigo}</span>
+                  <span style={{ fontSize: '11px', color: t.textMuted, background: t.inputBg, borderRadius: '7px', padding: '5px 8px', maxWidth: '100%', overflowWrap: 'anywhere' }}>{q.categoria}</span>
+                </div>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.45, color: t.text, margin: '0 0 8px', overflowWrap: 'anywhere' }}>{q.nombre}</h3>
+                <p style={{ fontSize: '13px', lineHeight: 1.55, color: t.textDim, margin: '0 0 14px', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{q.pregunta}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+                  <button type="button" onClick={() => handleOpenModal(q)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: `1px solid ${t.border}`, borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Edit3 size={15} /> Editar</button>
+                  <button type="button" onClick={() => handleDeleteQuestion(q.id)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: '1px solid #ef444455', borderRadius: '8px', background: 'transparent', color: '#dc2626', fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Trash2 size={15} /> Eliminar</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          {visibleMobileQuestions < dbQuestions.length && (
+            <button type="button" onClick={() => setVisibleMobileQuestions((n) => n + 25)} style={{ display: 'block', width: '100%', marginTop: '14px', padding: '12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '13px', fontWeight: 650, cursor: 'pointer' }}>
+              Mostrar 25 preguntas más
+            </button>
+          )}
+        </div>
+
         {/* Modal Formulario */}
         {showModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '600px', maxWidth: '90%' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '12px' }}>
+            <div style={{ background: t.cardBg, borderRadius: '16px', padding: 'clamp(14px, 4vw, 24px)', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', minWidth: 0 }}>
               <h3 style={{ marginBottom: '16px', fontSize: '18px', color: t.text }}>{editingQ ? 'Editar Pregunta' : 'Nueva Pregunta'}</h3>
               <form onSubmit={handleSaveQuestion} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="normia-admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
                   <div>
                     <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Código (Ej. 4.1 o A.5.1)</label>
                     <input required value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
@@ -718,7 +1006,7 @@ function GapAnalysisScreen({ onNavigate }) {
                   <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Evidencia Esperada (Instrucción para la IA)</label>
                   <textarea value={formData.evidencia_esperada} onChange={e => setFormData({...formData, evidencia_esperada: e.target.value})} rows="2" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+                <div className="normia-admin-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
                   <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer' }}>Cancelar</button>
                   <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
                 </div>
@@ -733,7 +1021,35 @@ function GapAnalysisScreen({ onNavigate }) {
   return (
     <div className="normia-gap" style={{ maxWidth: '1360px', margin: '-32px auto 0', padding: '10px 28px 48px', width: '100%', minWidth: 0, boxSizing: 'border-box', color: t.text }}>
       <style>{`
+        .normia-admin-header > *, .normia-admin-toolbar > * { min-width: 0; }
+        .normia-admin-mobile { display: none !important; }
+        .normia-admin-desktop { display: block; }
+        @media (max-width: 700px) {
+          .normia-admin-header { flex-direction: column; align-items: stretch !important; }
+          .normia-admin-header > div:first-child { flex: auto !important; }
+          .normia-admin-toolbar { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; justify-content: stretch !important; align-items: stretch !important; }
+          .normia-admin-toolbar > button, .normia-admin-toolbar > label { width: 100%; min-width: 0; padding: 11px 8px !important; font-size: 12px; justify-content: center; text-align: center; overflow-wrap: anywhere; }
+          .normia-admin-desktop { display: none !important; }
+          .normia-admin-mobile { display: block !important; min-width: 0; }
+          .normia-admin-form-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .normia-admin-form-actions > button { flex: 1 1 120px; }
+        }
         .normia-gap, .normia-gap * { box-sizing: border-box; }
+        .normia-gap { max-width: 100%; min-width: 0; }
+        .normia-gap > * { min-width: 0; }
+        .normia-soa-mobile { display: none; }
+        .normia-results-grid > * { min-width: 0; }
+        @media (max-width: 800px) {
+          .normia-results-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .normia-results-grid > * { padding: 22px !important; }
+        }
+        @media (max-width: 640px) {
+          .normia-soa-desktop { display: none !important; }
+          .normia-soa-mobile { display: block; min-width: 0; }
+          .normia-soa-pagination { padding: 12px !important; }
+          .normia-gap { overflow-x: clip; }
+          .normia-gap-nav { min-width: 0; }
+        }
         .normia-gap-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
         .normia-gap-nav { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
         .normia-gap-nav button { white-space: nowrap; }
@@ -787,6 +1103,11 @@ function GapAnalysisScreen({ onNavigate }) {
         <button type="button" onClick={handleSaveProgress} disabled={isSaving} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '9px 14px', background: t.cardBg, color: t.text, border: `1px solid ${t.border}`, borderRadius: '9px', cursor: isSaving ? 'wait' : 'pointer', fontSize: '12px', fontWeight: 650, opacity: isSaving ? .6 : 1 }}>
           <FileCheck size={15} />{isSaving ? 'Guardando...' : 'Guardar progreso'}
         </button>
+        {saveStatus !== 'idle' && (
+          <span role="status" style={{ fontSize: '12px', fontWeight: 650, color: saveStatus === 'error' ? '#dc2626' : t.textDim }}>
+            {saveStatus === 'saved' ? '✓ Cambios guardados' : saveStatus === 'error' ? 'No se pudo guardar · Reintentar con el botón' : saveStatus === 'saving' ? 'Guardando...' : 'Cambios pendientes...'}
+          </span>
+        )}
       </nav>
 
       {activeMainTab === 'assessment' ? (
@@ -806,7 +1127,12 @@ function GapAnalysisScreen({ onNavigate }) {
           </section>
 
           {questionsLoading && <div style={{ padding: '28px', color: t.textDim, textAlign: 'center' }}>Cargando preguntas desde la base de datos...</div>}
-          {!questionsLoading && questionsError && <div role="alert" style={{ padding: '14px', color: '#dc2626', background: 'rgba(239,68,68,.07)', borderRadius: '10px', marginBottom: '16px' }}>{questionsError}</div>}
+          {!questionsLoading && questionsError && (
+            <div role="alert" style={{ padding: '14px', color: '#dc2626', background: 'rgba(239,68,68,.07)', borderRadius: '10px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <span>{questionsError}</span>
+              <button type="button" onClick={loadQuestions} style={{ padding: '8px 14px', border: '1px solid #dc2626', borderRadius: '8px', background: t.cardBg, color: '#dc2626', cursor: 'pointer' }}>Reintentar</button>
+            </div>
+          )}
           {!questionsLoading && phases.length === 0 && !questionsError && <div style={{ padding: '28px', borderRadius: '12px', border: `1px solid ${t.border}`, background: t.cardBg }}>Todavía no hay preguntas configuradas.</div>}
 
           {!questionsLoading && phases.length > 0 && (
@@ -847,6 +1173,34 @@ function GapAnalysisScreen({ onNavigate }) {
                 )}
               </section>
 
+              {currentPhaseData?.id === 'ley' && currentPhaseData.questions.length > 0 && (
+                <section style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '13px', padding: '15px 16px', marginBottom: '16px' }}>
+                  <div style={{ fontWeight: 750, fontSize: '13px', color: t.text, marginBottom: '5px' }}>Áreas y apartados de privacidad</div>
+                  <p style={{ fontSize: '11px', lineHeight: 1.5, color: t.textDim, margin: '0 0 12px' }}>
+                    Los apartados GUIALIST y PRIV provienen de una guía del RGPD europeo; su clasificación aquí no implica equivalencia jurídica con la Ley chilena 21.719.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '12px' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <label htmlFor="normia-privacy-area" style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.text, marginBottom: '5px' }}>Área</label>
+                      <select id="normia-privacy-area" value={activePrivacyArea || ''} onChange={(e) => jumpToPrivacy(e.target.value)}
+                        style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', cursor: 'pointer' }}>
+                        {privacyAreaOptions.map(({ area, count }) => <option key={area} value={area}>{area} ({count})</option>)}
+                      </select>
+                    </div>
+                    <div style={{ minWidth: 0 }}>
+                      <label htmlFor="normia-privacy-section" style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.text, marginBottom: '5px' }}>Apartado</label>
+                      <select id="normia-privacy-section" value={activePrivacySection || ''} onChange={(e) => jumpToPrivacy(activePrivacyArea, e.target.value)}
+                        style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', cursor: 'pointer' }}>
+                        {privacySectionOptions.map(({ section, count }) => <option key={section} value={section}>{section} ({count})</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  {activePrivacySection && <div style={{ marginTop: '10px', fontSize: '12px', color: t.textMuted }}>
+                    Apartado actual: <strong>{activePrivacySection}</strong>
+                  </div>}
+                </section>
+              )}
+
               <div className="normia-gap-workspace">
                 {/* Columna principal: pregunta primero y con espacio suficiente */}
                 <main className="normia-gap-card">
@@ -867,6 +1221,7 @@ function GapAnalysisScreen({ onNavigate }) {
                         <div style={{ color: '#004ac6', fontWeight: 750, fontSize: '12px' }}>Cuestionario de cumplimiento</div>
                         <span style={{ fontSize: '11px', padding: '5px 10px', border: `1px solid ${t.border}`, background: t.inputBg, borderRadius: '20px', color: t.textMuted }}>Pregunta {currentQuestion + 1} de {currentPhaseData.questions.length}</span>
                       </div>
+                      {currentPhaseData.id === 'ley' && <div style={{ fontSize: '12px', color: t.textDim, marginBottom: '8px' }}>{currentQuestionData.area} / {currentQuestionData.section}</div>}
                       <h2 style={{ fontSize: '19px', lineHeight: 1.4, fontWeight: 750, margin: '0 0 12px', color: t.text }}>{currentQuestionData.title}</h2>
                       <p style={{ fontSize: '15px', lineHeight: 1.7, margin: '0 0 22px', color: t.text }}>{currentQuestionData.question}</p>
                       <div className="normia-gap-choices" style={{ marginBottom: '18px' }}>

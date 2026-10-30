@@ -11,7 +11,6 @@ import Sidebar from './components/Sidebar';
 import { useAuth } from './contexts/AuthContext';
 import { useTheme } from './contexts/ThemeContext';
 import NotificationCenter from './components/NotificationCenter';
-import CommandPalette from './components/CommandPalette';
 
 // IMPORTACIÓN DE PÁGINAS
 import DashboardScreen from './pages/Dashboard';
@@ -81,21 +80,8 @@ export default function DaniPlatform() {
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [navParams, setNavParams] = useState(null);
-
-  // Keyboard shortcut para Command Palette (Cmd+K / Ctrl+K)
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen(true);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const languages = [
     { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -114,7 +100,6 @@ export default function DaniPlatform() {
         setActiveScreen={handleNavigate}
         sidebarCollapsed={sidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
-        setCommandPaletteOpen={setCommandPaletteOpen}
       />
 
         <main style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: '100vh' }}>
@@ -191,7 +176,6 @@ export default function DaniPlatform() {
       {/* El Asistente DANI gestiona su propio botón flotante (FAB) y panel. */}
       <ChatDANI activeScreen={activeScreen} />
       
-      {commandPaletteOpen && <CommandPalette isOpen={commandPaletteOpen} darkMode={darkMode} onClose={() => setCommandPaletteOpen(false)} onNavigate={handleNavigate} />}
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
 
     </div>
