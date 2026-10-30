@@ -478,20 +478,96 @@ const DashboardScreen = ({ onNavigate }) => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
+    <div className="normia-dashboard" style={{ animation: 'fadeIn 0.4s ease' }}>
+      {/* Diseño responsive: solo cambia presentación, no los datos ni el PDF */}
+      <style>{`
+        .normia-dashboard { width: 100%; min-width: 0; max-width: 100%; }
+        .normia-dashboard-header { min-width: 0; }
+        .normia-dashboard-heading { min-width: 0; }
+        .normia-dashboard-heading h1 { overflow-wrap: break-word; }
+        .normia-dashboard-actions { min-width: 0; }
+        .normia-dashboard-status { min-width: 0; }
+        .normia-dashboard-grid { min-width: 0; }
+        .normia-dashboard-card { min-width: 0; box-sizing: border-box; overflow-wrap: anywhere; }
+        .normia-dashboard-banner { min-width: 0; box-sizing: border-box; }
+        .normia-dashboard-banner-text { min-width: 0; overflow-wrap: anywhere; }
+        .normia-dashboard-banner-button { justify-content: center; }
+
+        @media (max-width: 1100px) {
+          .normia-dashboard-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+
+        @media (max-width: 700px) {
+          .normia-dashboard-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 16px;
+            margin-bottom: 24px !important;
+          }
+          .normia-dashboard-heading h1 {
+            font-size: clamp(24px, 6vw, 28px) !important;
+            line-height: 1.2;
+          }
+          .normia-dashboard-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch !important;
+            gap: 10px !important;
+          }
+          .normia-dashboard-status {
+            flex: 1 1 145px;
+            justify-content: center;
+          }
+          .normia-dashboard-export {
+            flex: 1 1 160px;
+            justify-content: center;
+            min-height: 44px;
+          }
+          .normia-dashboard-banner {
+            flex-wrap: wrap;
+            gap: 14px !important;
+            padding: 18px !important;
+          }
+          .normia-dashboard-banner-icon { flex: 0 0 48px; }
+          .normia-dashboard-banner-text { flex: 1 1 170px !important; }
+          .normia-dashboard-banner-button { width: 100%; box-sizing: border-box; }
+        }
+
+        @media (max-width: 600px) {
+          .normia-dashboard-grid {
+            grid-template-columns: minmax(0, 1fr) !important;
+            gap: 14px !important;
+            margin-bottom: 20px !important;
+          }
+          .normia-dashboard-card { padding: 20px !important; }
+          .normia-dashboard-actions { flex-direction: column; }
+          .normia-dashboard-status,
+          .normia-dashboard-export {
+            flex: 0 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+          }
+        }
+      `}</style>
+
       {/* HEADER PROFESIONAL */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
-        <div>
+      <div className="normia-dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+        <div className="normia-dashboard-heading">
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: t.text }}>{tr('commandCenter')}</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>{tr('realtimeOverview')}</p>
+          <p style={{ color: t.textDim, fontSize: '15px' }}>
+            Gestión de seguridad de la información y protección de datos personales
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#004ac6' }}>
+        <div className="normia-dashboard-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="normia-dashboard-status" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#004ac6' }}>
             <RefreshCw size={14} />
             {lastSync ? `Actualizado ${lastSync.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}` : 'Cargando...'}
           </div>
           <button
             onClick={generatePDFReport}
+            className="normia-dashboard-export"
             style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
           >
             <Download size={16} /> {tr('exportReport')}
@@ -500,9 +576,9 @@ const DashboardScreen = ({ onNavigate }) => {
       </div>
 
       {/* GRID DE ESTADÍSTICAS CON DISEÑO ORIGINAL */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
+      <div className="normia-dashboard-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
         {/* Salud con Gradiente */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}`, textAlign: 'center' }}>
+        <div className="normia-dashboard-card" style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}`, textAlign: 'center' }}>
           <div style={{ fontSize: '13px', color: t.textDim, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>{tr('healthScore')}</div>
           <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto' }}>
             <svg width="120" height="120" viewBox="0 0 120 120">
@@ -538,7 +614,7 @@ const DashboardScreen = ({ onNavigate }) => {
         </div>
 
         {/* Controles Implementados */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
+        <div className="normia-dashboard-card" style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <div style={{ width: '36px', height: '36px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={18} color="#3b82f6" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('controlsImplemented')}</span>
@@ -553,7 +629,7 @@ const DashboardScreen = ({ onNavigate }) => {
         </div>
 
         {/* Acciones Pendientes */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
+        <div className="normia-dashboard-card" style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <div style={{ width: '36px', height: '36px', background: 'rgba(245, 158, 11, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={18} color="#f59e0b" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('pendingActions')}</span>
@@ -567,7 +643,7 @@ const DashboardScreen = ({ onNavigate }) => {
         </div>
 
         {/* Días para Auditoría */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
+        <div className="normia-dashboard-card" style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
             <div style={{ width: '36px', height: '36px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileCheck size={18} color="#a855f7" /></div>
             <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('daysToAudit')}</span>
@@ -585,14 +661,15 @@ const DashboardScreen = ({ onNavigate }) => {
       {canAccessGapAnalysis && (
         <div
           onClick={() => onNavigate('gap-analysis')}
+          className="normia-dashboard-banner"
           style={{ background: 'linear-gradient(135deg, rgba(0, 74, 198, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(0, 74, 198, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
         >
-          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(0, 74, 198, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#004ac6" /></div>
-          <div style={{ flex: 1 }}>
+          <div className="normia-dashboard-banner-icon" style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(0, 74, 198, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#004ac6" /></div>
+          <div className="normia-dashboard-banner-text" style={{ flex: 1 }}>
             <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>{tr('continueGapAnalysis')}</div>
             <div style={{ fontSize: '14px', color: t.textDim }}>{tr('completeAssessment')} • {isLoading ? '...' : `${healthScore ?? '--'}%`} {tr('complete')}</div>
           </div>
-          <div style={{ padding: '12px 24px', background: '#004ac6', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="normia-dashboard-banner-button" style={{ padding: '12px 24px', background: '#004ac6', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {tr('continue')} <ArrowRight size={16} />
           </div>
         </div>
