@@ -58,7 +58,6 @@ const DashboardScreen = ({ onNavigate }) => {
     try {
       const { jsPDF } = await import('jspdf');
 
-      // Llamar al endpoint que reúne datos reales + análisis IA
       const token = localStorage.getItem('token');
       const { API_URL } = await import('../services/api');
       const res = await fetch(`${API_URL}/api/reports/executive`, {
@@ -70,7 +69,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const W = 210;
-      const M = 18; // margen
+      const M = 18; 
       let y = 0;
       let pageNum = 1;
 
@@ -144,7 +143,6 @@ const DashboardScreen = ({ onNavigate }) => {
       setFill(0, 74, 198);
       doc.rect(0, 0, W, 60, 'F');
 
-      // Logo textual
       doc.setFontSize(32);
       doc.setFont('helvetica', 'bold');
       setColor(255, 255, 255);
@@ -153,7 +151,6 @@ const DashboardScreen = ({ onNavigate }) => {
       doc.setFont('helvetica', 'normal');
       doc.text('Plataforma de Gestión ISO 27001', M, 37);
 
-      // Línea decorativa
       setDraw(255, 255, 255);
       doc.setLineWidth(0.5);
       doc.line(M, 42, W - M, 42);
@@ -172,7 +169,6 @@ const DashboardScreen = ({ onNavigate }) => {
 
       hr([180, 220, 200], 0.5);
 
-      // Metadatos portada
       const meta = [
         ['Fecha de generación', new Date().toLocaleDateString('es', { year:'numeric', month:'long', day:'numeric' })],
         ['Preparado por',       report.generated_by || '—'],
@@ -193,7 +189,6 @@ const DashboardScreen = ({ onNavigate }) => {
       }
       lb(10);
 
-      // Score destacado en portada
       const score = d.overall_score?.overall_score ?? 0;
       const scoreColor = score >= 85 ? [0, 74, 198] : score >= 70 ? [245, 158, 11] : [239, 68, 68];
       setFill(...scoreColor);
@@ -220,20 +215,15 @@ const DashboardScreen = ({ onNavigate }) => {
 
       footer();
 
-      // ════════════════════════════════════════════════════════════════════
       // PÁGINA 2 — RESUMEN EJECUTIVO (IA)
-      // ════════════════════════════════════════════════════════════════════
       newPage();
       sectionHeader('1', 'Resumen Ejecutivo');
       addWrappedText(report.executive_summary, M, W - M * 2, 9.5, 'normal', [30, 30, 50]);
 
-      // ════════════════════════════════════════════════════════════════════
       // PÁGINA 3 — ANÁLISIS POR CLÁUSULA
-      // ════════════════════════════════════════════════════════════════════
       if (y > 180) newPage(); else lb(8);
       sectionHeader('2', 'Análisis de Cumplimiento por Cláusula ISO 27001:2022');
 
-      // Encabezado tabla
       const colCl = [M, M + 18, M + 50, M + 80, M + 108, M + 134, M + 155];
       setFill(0, 74, 198);
       doc.rect(M, y - 4, W - M * 2, 8, 'F');
@@ -262,26 +252,7 @@ const DashboardScreen = ({ onNavigate }) => {
         lb(7);
       }
 
-      // Barra de progreso por cláusula
-      lb(5);
-      txt('Visualización de scores por cláusula:', M, 9, 'bold', [50, 50, 80]);
-      lb(7);
-      for (const c of (d.clause_gaps || [])) {
-        if (y > 265) newPage();
-        const sc = c.current_score ?? 0;
-        const barW = W - M * 2 - 45;
-        const filled = (sc / 100) * barW;
-        const bColor = sc >= 75 ? [0, 74, 198] : sc >= 50 ? [245,158,11] : [239,68,68];
-        txt(`C${c.clause_id}`, M, 8, 'bold', [60,60,80]);
-        setFill(220, 220, 220); doc.rect(M + 12, y - 4, barW, 5, 'F');
-        setFill(...bColor); doc.rect(M + 12, y - 4, filled, 5, 'F');
-        txt(`${sc.toFixed(0)}%`, M + 14 + barW, 7.5, 'normal', [80,80,80]);
-        lb(7);
-      }
-
-      // ════════════════════════════════════════════════════════════════════
       // PÁGINA 4 — ANÁLISIS TÉCNICO (IA) + RIESGOS
-      // ════════════════════════════════════════════════════════════════════
       newPage();
       sectionHeader('3', 'Análisis Técnico de Brechas');
       addWrappedText(report.technical_analysis, M, W - M * 2, 9.5, 'normal', [30, 30, 50]);
@@ -290,7 +261,6 @@ const DashboardScreen = ({ onNavigate }) => {
       sectionHeader('4', 'Mapa de Riesgos');
 
       const rs = d.risk_summary || {};
-      // Resumen numérico
       const riskCols = [
         { label: 'Total', val: rs.total ?? 0, color: [80,80,80] },
         { label: 'Abiertos', val: rs.open ?? 0, color: [245,158,11] },
@@ -312,7 +282,6 @@ const DashboardScreen = ({ onNavigate }) => {
       });
       lb(22);
 
-      // Top riesgos
       if ((rs.top_risks || []).length > 0) {
         txt('Riesgos críticos y altos prioritarios:', M, 9, 'bold', [50, 50, 80]);
         lb(7);
@@ -329,9 +298,7 @@ const DashboardScreen = ({ onNavigate }) => {
         }
       }
 
-      // ════════════════════════════════════════════════════════════════════
       // PÁGINA 5 — NO CONFORMIDADES (CAPA)
-      // ════════════════════════════════════════════════════════════════════
       newPage();
       sectionHeader('5', 'No Conformidades y Acciones Correctivas (CAPA)');
 
@@ -382,13 +349,10 @@ const DashboardScreen = ({ onNavigate }) => {
         addWrappedText('Sin no conformidades registradas en el sistema.', M, W - M * 2, 9, 'italic', [120, 120, 120]);
       }
 
-      // ════════════════════════════════════════════════════════════════════
-      // PÁGINA 6 — RECOMENDACIONES TÉCNICAS (IA) + PLAN DE REMEDIACIÓN
-      // ════════════════════════════════════════════════════════════════════
+      // PÁGINA 6 — RECOMENDACIONES TÉCNICAS (IA)
       newPage();
       sectionHeader('6', 'Recomendaciones Técnicas Prioritarias');
 
-      // Parsear recomendaciones estructuradas del texto IA
       const rawRecs = report.recommendations_raw || '';
       const recBlocks = rawRecs.split(/RECOMENDACION_\d+:/i).filter(b => b.trim());
       if (recBlocks.length > 0) {
@@ -424,7 +388,6 @@ const DashboardScreen = ({ onNavigate }) => {
         addWrappedText(rawRecs, M, W - M * 2, 9, 'normal', [40, 40, 60]);
       }
 
-      // Plan de remediación
       if (d.remediation_plan?.sprint_1) {
         if (y > 220) newPage();
         lb(5);
@@ -457,7 +420,6 @@ const DashboardScreen = ({ onNavigate }) => {
         lb(6);
       }
 
-      // ── Última línea de cierre ──────────────────────────────────────────
       if (y > 265) newPage();
       lb(8);
       hr([0, 74, 198], 0.5);
@@ -478,136 +440,177 @@ const DashboardScreen = ({ onNavigate }) => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      {/* HEADER PROFESIONAL */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+    <div className="dashboard-wrapper" style={{ animation: 'fadeIn 0.4s ease', padding: '0 8px', boxSizing: 'border-box' }}>
+      
+      {/* HEADER ADAPTADO */}
+      <section className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: t.text }}>{tr('commandCenter')}</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>{tr('realtimeOverview')}</p>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '4px', color: t.text }}>{tr('commandCenter')}</h1>
+          <p style={{ color: t.textDim, fontSize: '13px' }}>{tr('realtimeOverview')}</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#004ac6' }}>
-            <RefreshCw size={14} />
+        
+        <div className="dashboard-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '12px', color: '#004ac6' }}>
+            <RefreshCw size={12} />
             {lastSync ? `Actualizado ${lastSync.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}` : 'Cargando...'}
           </div>
           <button
             onClick={generatePDFReport}
-            style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
+            className="btn-export"
+            style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}
           >
-            <Download size={16} /> {tr('exportReport')}
+            <Download size={14} /> {tr('exportReport')}
           </button>
         </div>
-      </div>
+      </section>
 
-      {/* GRID DE ESTADÍSTICAS CON DISEÑO ORIGINAL */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '28px' }}>
-        {/* Salud con Gradiente */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}`, textAlign: 'center' }}>
-          <div style={{ fontSize: '13px', color: t.textDim, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>{tr('healthScore')}</div>
-          <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto' }}>
-            <svg width="120" height="120" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="12" />
-              <circle cx="60" cy="60" r="52" fill="none" stroke="url(#hg)" strokeWidth="12" strokeLinecap="round" strokeDasharray={`${(healthScore ?? 0) * 3.27} 327`} transform="rotate(-90 60 60)" />
+      {/* KPI GRID ADAPTADO PARA MÓVIL Y DESKTOP */}
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+        
+        {/* Puntuación de Salud (Círculo Principal) */}
+        <div style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `1px solid ${t.border}`, textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.04)' }}>
+          <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '16px', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}>{tr('healthScore')}</div>
+          
+          <div style={{ position: 'relative', width: '96px', height: '96px', margin: '0 auto' }}>
+            <svg width="96" height="96" viewBox="0 0 96 96">
+              <circle cx="48" cy="48" r="42" fill="none" stroke={darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'} strokeWidth="10" />
+              <circle cx="48" cy="48" r="42" fill="none" stroke="url(#hg)" strokeWidth="10" strokeLinecap="round" strokeDasharray={`${(healthScore ?? 0) * 2.64} 264`} transform="rotate(-90 48 48)" />
               <defs><linearGradient id="hg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#004ac6" /><stop offset="100%" stopColor="#003ea8" /></linearGradient></defs>
             </svg>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-              <div style={{ fontSize: '32px', fontWeight: 700, color: '#004ac6' }}>
+              <div style={{ fontSize: '24px', fontWeight: 900, color: '#004ac6', lineHeight: 1 }}>
                 {isLoading ? '...' : `${healthScore ?? '--'}%`}
               </div>
-              <div style={{ fontSize: '11px', color: t.textDim }}>{tr('ready')}</div>
+              <div style={{ fontSize: '10px', color: t.textDim, marginTop: '2px', fontWeight: 600 }}>{tr('ready')}</div>
             </div>
           </div>
-          {/* Triple Score */}
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          
+          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', padding: '0 16px' }}>
             {[
               { label: 'Documentado', value: tripleScore?.doc ?? 0, color: '#004ac6' },
               { label: 'Implementado', value: tripleScore?.impl ?? 0, color: '#3b82f6' },
               { label: 'Probado', value: tripleScore?.tested ?? 0, color: '#f59e0b' },
             ].map(({ label, value, color }) => (
               <div key={label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                  <span style={{ fontSize: '11px', color: t.textDim }}>{label}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color }}>{isLoading ? '...' : `${value}%`}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                  <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 500 }}>{label}</span>
+                  <span style={{ fontSize: '11px', fontWeight: 700, color }}>{isLoading ? '...' : `${value}%`}</span>
                 </div>
-                <div style={{ background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', height: '4px', borderRadius: '2px', overflow: 'hidden' }}>
-                  <div style={{ width: `${isLoading ? 0 : value}%`, height: '100%', background: color, borderRadius: '2px', transition: 'width 0.6s ease' }} />
+                <div style={{ background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: `${isLoading ? 0 : value}%`, height: '100%', background: color, borderRadius: '3px', transition: 'width 0.6s ease' }} />
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Controles Implementados */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ width: '36px', height: '36px', background: 'rgba(59, 130, 246, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Shield size={18} color="#3b82f6" /></div>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('controlsImplemented')}</span>
+        {/* Bloque compacto (3 tarjetas secundarias) */}
+        <div className="secondary-kpi-block" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          
+          <div style={{ background: t.cardBg, borderRadius: '12px', padding: '16px', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: t.textMuted, fontWeight: 500, marginBottom: '2px' }}>{tr('controlsImplemented')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, lineHeight: 1 }}>
+                {isLoading ? '...' : controlStats ? controlStats.implemented : '--'}
+                <span style={{ fontSize: '14px', color: t.textDim, fontWeight: 400 }}>/{isLoading ? '' : controlStats ? controlStats.total : '114'}</span>
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Shield size={20} color="#3b82f6" />
+            </div>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, marginBottom: '8px' }}>
-            {isLoading ? '...' : controlStats ? controlStats.implemented : '--'}
-            <span style={{ fontSize: '20px', color: t.textDim }}>/{isLoading ? '' : controlStats ? controlStats.total : '114'}</span>
-          </div>
-          <div style={{ background: darkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{ width: `${controlStats ? (controlStats.implemented / controlStats.total * 100).toFixed(1) : 0}%`, height: '100%', background: 'linear-gradient(90deg, #3b82f6, #60a5fa)', borderRadius: '3px' }} />
-          </div>
-        </div>
 
-        {/* Acciones Pendientes */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ width: '36px', height: '36px', background: 'rgba(245, 158, 11, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Clock size={18} color="#f59e0b" /></div>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('pendingActions')}</span>
+          <div style={{ background: t.cardBg, borderRadius: '12px', padding: '16px', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: t.textMuted, fontWeight: 500, marginBottom: '2px' }}>{tr('pendingActions')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#f59e0b', lineHeight: 1 }}>
+                {isLoading ? '...' : (riskStats?.open_risks ?? '--')}
+              </div>
+              <div style={{ fontSize: '10px', color: t.textDim, marginTop: '2px' }}>
+                {isLoading ? '' : `${(riskStats?.by_level?.critical ?? 0) + (riskStats?.by_level?.high ?? 0)} alto/crítico`}
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', background: 'rgba(245, 158, 11, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={20} color="#f59e0b" />
+            </div>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, color: '#f59e0b', marginBottom: '4px' }}>
-            {isLoading ? '...' : (riskStats?.open_risks ?? '--')}
-          </div>
-          <div style={{ fontSize: '13px', color: t.textDim }}>
-            {isLoading ? '' : `${(riskStats?.by_level?.critical ?? 0) + (riskStats?.by_level?.high ?? 0)} alto/crítico`}
-          </div>
-        </div>
 
-        {/* Días para Auditoría */}
-        <div style={{ background: t.cardBg, backdropFilter: 'blur(10px)', borderRadius: '16px', padding: '24px', border: `1px solid ${t.border}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ width: '36px', height: '36px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileCheck size={18} color="#a855f7" /></div>
-            <span style={{ fontSize: '13px', color: t.textMuted }}>{tr('daysToAudit')}</span>
+          <div style={{ background: t.cardBg, borderRadius: '12px', padding: '16px', border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: t.textMuted, fontWeight: 500, marginBottom: '2px' }}>{tr('daysToAudit')}</div>
+              <div style={{ fontSize: '24px', fontWeight: 700, color: '#a855f7', lineHeight: 1 }}>
+                {isLoading ? '...' : controlStats?.daysTo ?? '--'}
+              </div>
+              <div style={{ fontSize: '10px', color: t.textDim, marginTop: '2px' }}>
+                {isLoading ? '' : controlStats?.certDate ?? 'Calculando...'}
+              </div>
+            </div>
+            <div style={{ width: '40px', height: '40px', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileCheck size={20} color="#a855f7" />
+            </div>
           </div>
-          <div style={{ fontSize: '36px', fontWeight: 700, color: '#a855f7', marginBottom: '4px' }}>
-            {isLoading ? '...' : controlStats?.daysTo ?? '--'}
-          </div>
-          <div style={{ fontSize: '13px', color: t.textDim }}>
-            {isLoading ? '' : controlStats?.certDate ?? 'Calculando...'}
-          </div>
+
         </div>
       </div>
 
-      {/* BANNER DE ACCESO RÁPIDO — solo roles con acceso a Gap Analysis */}
+      {/* BANNER DE ACCESO RÁPIDO ADAPTADO */}
       {canAccessGapAnalysis && (
         <div
+          className="gap-banner"
           onClick={() => onNavigate('gap-analysis')}
-          style={{ background: 'linear-gradient(135deg, rgba(0, 74, 198, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)', border: '1px solid rgba(0, 74, 198, 0.2)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer', marginBottom: '24px' }}
+          style={{ 
+            background: 'linear-gradient(135deg, rgba(0, 74, 198, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%)', 
+            border: '1px solid rgba(0, 74, 198, 0.2)', 
+            borderRadius: '16px', 
+            padding: '20px', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '16px', 
+            cursor: 'pointer', 
+            marginBottom: '24px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+          }}
         >
-          <div style={{ width: '56px', height: '56px', borderRadius: '14px', background: 'rgba(0, 74, 198, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Search size={28} color="#004ac6" /></div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '4px' }}>{tr('continueGapAnalysis')}</div>
-            <div style={{ fontSize: '14px', color: t.textDim }}>{tr('completeAssessment')} • {isLoading ? '...' : `${healthScore ?? '--'}%`} {tr('complete')}</div>
+          <div className="banner-icon" style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(0, 74, 198, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Search size={24} color="#004ac6" />
           </div>
-          <div style={{ padding: '12px 24px', background: '#004ac6', borderRadius: '10px', color: 'white', fontWeight: 600, fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {tr('continue')} <ArrowRight size={16} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '15px', fontWeight: 700, marginBottom: '2px', color: t.text }}>{tr('continueGapAnalysis')}</div>
+            <div style={{ fontSize: '12px', color: t.textDim }}>ISO 27001:2022 • {isLoading ? '...' : `${healthScore ?? '--'}%`} completado</div>
+          </div>
+          <div className="btn-continue" style={{ padding: '8px 16px', background: '#004ac6', borderRadius: '8px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>{tr('continue')}</span> <ArrowRight size={14} />
           </div>
         </div>
       )}
 
-      {/* COMPLIANCE INTEGRITY ALERTS */}
-      {canAccessGapAnalysis && <PriorityActionsPanel onNavigate={onNavigate} darkMode={darkMode} />}
+      {/* MÓDULOS DE ANÁLISIS */}
+      <div className="modules-stack" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        {canAccessGapAnalysis && <PriorityActionsPanel onNavigate={onNavigate} darkMode={darkMode} />}
+        {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
+        {canAccessGapAnalysis && <PreAuditPanel onNavigate={onNavigate} darkMode={darkMode} />}
+        {canAccessGapAnalysis && <CAPATracker />}
+      </div>
 
-      {canAccessGapAnalysis && <ComplianceIntegrityPanel onNavigate={onNavigate} />}
-
-      {/* PRE-AUDIT SELF-ASSESSMENT */}
-      {canAccessGapAnalysis && <PreAuditPanel onNavigate={onNavigate} darkMode={darkMode} />}
-
-      {/* RASTREADOR CAPA MODULAR COMPLETO — solo roles con acceso */}
-      {canAccessGapAnalysis && <CAPATracker />}
+      {/* ESTILOS INYECTADOS PARA RESPONSIVE */}
+      <style dangerouslySetInnerHTML={{__html: `
+        @media (max-width: 768px) {
+          .dashboard-wrapper { padding: 8px !important; }
+          .dashboard-header { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .dashboard-actions { justify-content: space-between; width: 100%; }
+          .dashboard-actions > div { flex: 1; justify-content: center; }
+          .btn-export { flex: 1; justify-content: center; }
+          
+          .kpi-grid { grid-template-columns: 1fr !important; }
+          
+          .gap-banner { flex-direction: column; text-align: center; padding: 16px !important; gap: 12px !important; }
+          .gap-banner > div { align-items: center; }
+          .banner-icon { margin: 0 auto; }
+          .btn-continue { width: 100%; justify-content: center; }
+          
+          .modules-stack { gap: 16px !important; }
+        }
+      `}} />
     </div>
   );
 };

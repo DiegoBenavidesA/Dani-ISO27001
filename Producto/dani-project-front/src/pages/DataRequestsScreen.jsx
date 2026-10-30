@@ -87,85 +87,97 @@ const DataRequestsScreen = () => {
 
   const plazoBadge = (req) => {
     if (req.estado === 'resuelta') {
-      return { text: 'Resuelta', color: '#004ac6', icon: CheckCircle };
+      return { text: 'Resuelta', color: '#2563eb', icon: CheckCircle };
     }
     const dias = diasRestantes(req.fecha_limite);
-    if (dias < 0) return { text: `Vencida hace ${Math.abs(dias)} d`, color: '#ef4444', icon: AlertTriangle };
-    if (dias <= 5) return { text: `${dias} d restantes`, color: '#f59e0b', icon: Clock };
-    return { text: `${dias} d restantes`, color: '#004ac6', icon: Clock };
+    if (dias < 0) return { text: `Vencida hace ${Math.abs(dias)} d`, color: '#e11d48', icon: AlertTriangle };
+    if (dias <= 5) return { text: `${dias} d restantes`, color: '#d97706', icon: Clock };
+    return { text: `${dias} d restantes`, color: '#2563eb', icon: Clock };
   };
 
   const tipoLabel = (v) => (TIPOS.find(x => x.value === v) || {}).label || v;
-  const estadoLabel = (v) => (ESTADOS.find(x => x.value === v) || {}).label || v;
 
   const total = requests.length;
   const vencidas = requests.filter(r => r.estado !== 'resuelta' && diasRestantes(r.fecha_limite) < 0).length;
   const porVencer = requests.filter(r => r.estado !== 'resuelta' && diasRestantes(r.fecha_limite) >= 0 && diasRestantes(r.fecha_limite) <= 5).length;
   const resueltas = requests.filter(r => r.estado === 'resuelta').length;
 
-  const cardStyle = {
-    background: t.cardBg,
-    border: `1px solid ${t.border}`,
-    borderRadius: '12px',
-    padding: '16px',
-  };
-
   return (
-    <div className="requests-container" style={{ padding: '24px', color: t.text, minHeight: '100%', boxSizing: 'border-box' }}>
+    <div className="requests-container" style={{ padding: '0 8px', color: t.text, minHeight: '100%', boxSizing: 'border-box' }}>
       
-      {/* ENCABEZADO */}
-      <div className="header-wrapper" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+      {/* ENCABEZADO ADAPTADO */}
+      <section className="req-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '22px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Inbox size={24} color="#004ac6" /> Solicitudes de Titulares (ARCO+P)
-          </h1>
-          <p style={{ color: t.textMuted, marginTop: '6px', fontSize: '13px', maxWidth: '640px' }}>
-            Obligación O3 · Ley 21.719: toda solicitud debe responderse en <strong>30 días hábiles</strong>.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <div style={{ padding: '6px', background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb', borderRadius: '8px' }}>
+              <Inbox size={20} />
+            </div>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: t.text }}>Solicitudes de Titulares (ARCO+P)</h1>
+          </div>
+          <p style={{ margin: 0, fontSize: '12px', color: t.textDim, paddingLeft: '4px' }}>
+            <span style={{ fontWeight: 600, color: t.text }}>Obligación O3 · Ley 21.719:</span> toda solicitud debe responderse en <span style={{ fontWeight: 700, color: t.text }}>30 días hábiles</span>.
           </p>
         </div>
-        <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn-action" onClick={fetchRequests} style={secondaryBtn(t)}>
-            <RefreshCw size={16} /> Actualizar
+
+        <div className="req-actions" style={{ display: 'flex', gap: '8px', width: '100%' }}>
+          <button className="btn-refresh" onClick={fetchRequests} style={{ padding: '10px 12px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.02)' }}>
+            <RefreshCw size={14} color={t.textDim} /> Actualizar
           </button>
-          <button className="btn-action primary-btn-action" onClick={() => setShowAddModal(true)} style={primaryBtn()}>
-            <Plus size={16} /> Nueva solicitud
+          <button className="btn-new" onClick={() => setShowAddModal(true)} style={{ padding: '10px 12px', background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 2, boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)' }}>
+            <Plus size={16} strokeWidth={2.5} /> Nueva solicitud
           </button>
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div style={{ ...cardStyle, borderColor: '#f59e0b', color: '#f59e0b', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ padding: '12px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '12px', color: '#b45309', marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center', fontSize: '12px', fontWeight: 600 }}>
           <AlertTriangle size={16} /> {error}
         </div>
       )}
 
-      {/* TARJETAS DE RESUMEN */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-        <SummaryCard t={t} label="Total" value={total} color={t.text} />
-        <SummaryCard t={t} label="Vencidas" value={vencidas} color="#ef4444" />
-        <SummaryCard t={t} label="Por vencer (≤5 d)" value={porVencer} color="#f59e0b" />
-        <SummaryCard t={t} label="Resueltas" value={resueltas} color="#004ac6" />
-      </div>
+      {/* MÉTRICAS */}
+      <section className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: t.textDim, lineHeight: 1.1 }}>Total</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, color: t.text, marginTop: '4px' }}>{total}</span>
+        </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: t.textDim, lineHeight: 1.1 }}>Vencidas</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, color: '#e11d48', marginTop: '4px' }}>{vencidas}</span>
+        </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: t.textDim, lineHeight: 1.1 }}>Por vencer (≤5 d)</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, color: '#d97706', marginTop: '4px' }}>{porVencer}</span>
+        </div>
+        <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 500, color: t.textDim, lineHeight: 1.1 }}>Resueltas</span>
+          <span style={{ fontSize: '24px', fontWeight: 900, color: '#2563eb', marginTop: '4px' }}>{resueltas}</span>
+        </div>
+      </section>
 
-      {/* TABLA / BANDEJA */}
-      <div className="table-container" style={{ ...cardStyle, padding: 0, overflow: 'hidden' }}>
+      {/* REGISTROS */}
+      <section aria-label="Lista de solicitudes">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px', marginBottom: '12px' }}>
+          <span style={{ fontSize: '12px', fontWeight: 700, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Registros</span>
+          <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 500 }}>{requests.length} solicitudes</span>
+        </div>
+
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: t.textMuted }}>Cargando solicitudes…</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>Cargando solicitudes…</div>
         ) : requests.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: t.textMuted }}>No hay solicitudes registradas.</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>No hay solicitudes registradas.</div>
         ) : (
           <>
             {/* VISTA ESCRITORIO */}
-            <div className="desktop-table" style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <div className="desktop-table-wrapper" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', overflowX: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ background: t.hoverBg, textAlign: 'left' }}>
-                    <th style={thStyle(t)}>Titular</th>
-                    <th style={thStyle(t)}>Tipo</th>
-                    <th style={thStyle(t)}>Descripción</th>
-                    <th style={thStyle(t)}>Plazo (30 días háb.)</th>
-                    <th style={thStyle(t)}>Estado</th>
-                    <th style={thStyle(t)}>Acción</th>
+                  <tr style={{ background: t.inputBg, borderBottom: `1px solid ${t.border}` }}>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Titular</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Tipo</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Descripción</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Plazo (30 d hábiles)</th>
+                    <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,30 +185,30 @@ const DataRequestsScreen = () => {
                     const badge = plazoBadge(req);
                     const Icon = badge.icon;
                     return (
-                      <tr key={req.id} style={{ borderTop: `1px solid ${t.border}` }}>
-                        <td style={tdStyle(t)}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-                            <User size={14} color={t.textMuted} /> {req.titular}
+                      <tr key={req.id} style={{ borderBottom: `1px solid ${t.border}`, transition: 'background 0.2s' }}>
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: t.inputBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted }}>
+                              <User size={16} />
+                            </div>
+                            <span style={{ fontWeight: 700, fontSize: '13px', color: t.text }}>{req.titular}</span>
                           </div>
                         </td>
-                        <td style={tdStyle(t)}>{tipoLabel(req.tipo)}</td>
-                        <td style={{ ...tdStyle(t), maxWidth: '260px' }}>{req.descripcion}</td>
-                        <td style={tdStyle(t)}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: badge.color, fontWeight: 600 }}>
+                        <td style={{ padding: '16px', fontSize: '13px', fontWeight: 500, color: t.textDim }}>{tipoLabel(req.tipo)}</td>
+                        <td style={{ padding: '16px', fontSize: '12px', color: t.text, maxWidth: '280px', lineHeight: 1.5 }}>{req.descripcion}</td>
+                        <td style={{ padding: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: badge.color, fontWeight: 700, fontSize: '12px' }}>
                             <Icon size={14} /> {badge.text}
-                          </span>
+                          </div>
                           <div style={{ color: t.textDim, fontSize: '11px', marginTop: '4px' }}>
                             Límite: {parseServerDate(req.fecha_limite).toLocaleDateString('es-CL')}
                           </div>
                         </td>
-                        <td style={tdStyle(t)}>
-                          <span style={estadoPill(req.estado)}>{estadoLabel(req.estado)}</span>
-                        </td>
-                        <td style={tdStyle(t)}>
+                        <td style={{ padding: '16px' }}>
                           <select
                             value={req.estado}
                             onChange={(e) => handleChangeEstado(req, e.target.value)}
-                            style={selectStyle(t)}
+                            style={{ padding: '6px 10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer', outline: 'none' }}
                           >
                             {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                           </select>
@@ -209,122 +221,157 @@ const DataRequestsScreen = () => {
             </div>
 
             {/* VISTA MÓVIL (TARJETAS) */}
-            <div className="mobile-cards-view">
+            <div className="mobile-cards-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {requests.map((req) => {
                 const badge = plazoBadge(req);
                 const Icon = badge.icon;
+                
+                // Determinar el estilo de la tarjeta según el estado
+                let cardBorder = t.border;
+                let bgGradient = t.cardBg;
+                if (req.estado !== 'resuelta' && diasRestantes(req.fecha_limite) < 0) {
+                  cardBorder = '#fda4af';
+                  bgGradient = 'linear-gradient(180deg, #ffffff 0%, rgba(225, 29, 72, 0.05) 100%)';
+                }
+
                 return (
-                  <div key={req.id} style={{ padding: '16px', borderBottom: `1px solid ${t.border}` }}>
+                  <article key={req.id} style={{ background: bgGradient, border: `1px solid ${cardBorder}`, borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '15px' }}>
-                        <User size={16} color={t.textMuted} /> {req.titular}
+                    {/* Top Row: Titular & Type */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: t.inputBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textMuted, flexShrink: 0 }}>
+                        <User size={16} />
                       </div>
-                      <span style={estadoPill(req.estado)}>{estadoLabel(req.estado)}</span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: t.text, margin: 0, lineHeight: 1.2 }}>{req.titular}</h3>
+                        <p style={{ fontSize: '11px', color: t.textDim, margin: '2px 0 0' }}>Tipo: <strong style={{ color: t.text }}>{tipoLabel(req.tipo)}</strong></p>
+                      </div>
                     </div>
 
-                    <div style={{ fontSize: '13px', marginBottom: '8px' }}>
-                      <span style={{ fontWeight: 600, color: t.textDim }}>Tipo: </span>
-                      {tipoLabel(req.tipo)}
-                    </div>
-                    
-                    <div style={{ fontSize: '13px', color: t.text, marginBottom: '12px', background: t.hoverBg, padding: '8px', borderRadius: '8px' }}>
+                    {/* Description */}
+                    <div style={{ background: t.inputBg, borderRadius: '12px', padding: '10px', border: `1px solid ${t.border}`, fontSize: '12px', color: t.text, lineHeight: 1.5, marginBottom: '12px' }}>
                       {req.descripcion}
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: `1px solid ${t.border}`, paddingTop: '12px' }}>
+                    {/* Footer: SLA & Action */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: `1px solid ${t.inputBg}`, paddingTop: '12px' }}>
                       <div>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: badge.color, fontWeight: 600, fontSize: '13px' }}>
-                          <Icon size={14} /> {badge.text}
-                        </span>
-                        <div style={{ color: t.textDim, fontSize: '11px', marginTop: '2px' }}>
-                          Límite: {parseServerDate(req.fecha_limite).toLocaleDateString('es-CL')}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 700, color: badge.color }}>
+                          <Icon size={14} /> <span>{badge.text}</span>
+                        </div>
+                        <p style={{ fontSize: '10px', color: t.textDim, margin: '2px 0 0' }}>Límite: {parseServerDate(req.fecha_limite).toLocaleDateString('es-CL')}</p>
+                      </div>
+
+                      <div style={{ position: 'relative' }}>
+                        <select
+                          value={req.estado}
+                          onChange={(e) => handleChangeEstado(req, e.target.value)}
+                          style={{ appearance: 'none', padding: '6px 28px 6px 10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '11px', fontWeight: 600, cursor: 'pointer', outline: 'none' }}
+                        >
+                          {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                        </select>
+                        <div style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: t.textDim }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </div>
                       </div>
-                      
-                      <select
-                        value={req.estado}
-                        onChange={(e) => handleChangeEstado(req, e.target.value)}
-                        style={{ ...selectStyle(t), width: '110px' }}
-                      >
-                        {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-                      </select>
                     </div>
 
-                  </div>
+                  </article>
                 );
               })}
             </div>
           </>
         )}
-      </div>
+      </section>
 
-      {/* MODAL DE CREACIÓN */}
+      {/* FORMULARIO MODAL (ADAPTADO MÓVIL) */}
       {showAddModal && (
-        <div style={modalOverlay}>
-          <div className="modal-content" style={modalBox(t)}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ margin: 0, fontSize: '17px' }}>Nueva solicitud ARCO+P</h3>
-              <button onClick={() => setShowAddModal(false)} style={iconBtn(t)}><X size={18} /></button>
-            </div>
-
-            <label style={labelStyle(t)}>Titular (nombre o identificación)</label>
-            <input
-              value={newRequest.titular}
-              onChange={(e) => setNewRequest({ ...newRequest, titular: e.target.value })}
-              style={inputStyle(t)}
-              placeholder="Ej: Juan Pérez / RUT 12.345.678-9"
-            />
-
-            <label style={labelStyle(t)}>Tipo de solicitud</label>
-            <select
-              value={newRequest.tipo}
-              onChange={(e) => setNewRequest({ ...newRequest, tipo: e.target.value })}
-              style={inputStyle(t)}
-            >
-              {TIPOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
-            </select>
-
-            <label style={labelStyle(t)}>Descripción</label>
-            <textarea
-              value={newRequest.descripcion}
-              onChange={(e) => setNewRequest({ ...newRequest, descripcion: e.target.value })}
-              style={{ ...inputStyle(t), minHeight: '80px', resize: 'vertical' }}
-              placeholder="Detalle de lo que solicita el titular…"
-            />
-
-            <p style={{ color: t.textDim, fontSize: '11px', marginTop: '8px' }}>
-              El plazo límite (30 días hábiles) se calcula automáticamente al guardar.
-            </p>
-
-            <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '16px' }}>
-              <button onClick={() => setShowAddModal(false)} style={secondaryBtn(t)}>Cancelar</button>
-              <button className="primary-btn-action" onClick={handleCreate} disabled={isSubmitting} style={primaryBtn()}>
-                <Save size={16} /> {isSubmitting ? 'Guardando…' : 'Guardar'}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 9999 }}>
+          <div className="modal-content" style={{ width: '100%', maxWidth: '460px', maxHeight: '95vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '20px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: t.text }}>Nueva solicitud ARCO+P</h3>
+              <button type="button" onClick={() => setShowAddModal(false)} style={{ border: 'none', background: t.inputBg, borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, cursor: 'pointer' }}>
+                <X size={18} />
               </button>
             </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: t.textMuted }}>Titular (nombre o identificación)</label>
+                <input
+                  value={newRequest.titular}
+                  onChange={(e) => setNewRequest({ ...newRequest, titular: e.target.value })}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none', fontSize: '13px' }}
+                  placeholder="Ej: Juan Pérez / RUT 12.345.678-9"
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: t.textMuted }}>Tipo de solicitud</label>
+                <select
+                  value={newRequest.tipo}
+                  onChange={(e) => setNewRequest({ ...newRequest, tipo: e.target.value })}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none', fontSize: '13px' }}
+                >
+                  {TIPOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: t.textMuted }}>Descripción</label>
+                <textarea
+                  value={newRequest.descripcion}
+                  onChange={(e) => setNewRequest({ ...newRequest, descripcion: e.target.value })}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none', fontSize: '13px', minHeight: '80px', resize: 'vertical' }}
+                  placeholder="Detalle de lo que solicita el titular…"
+                />
+              </div>
+
+              <p style={{ color: t.textDim, fontSize: '11px', margin: 0, lineHeight: 1.4 }}>
+                El plazo límite (<strong style={{ color: t.text }}>30 días hábiles</strong>) se calcula automáticamente al guardar según la Ley 21.719.
+              </p>
+
+              <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                <button className="btn-cancel" onClick={() => setShowAddModal(false)} style={{ padding: '10px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>Cancelar</button>
+                <button className="btn-save" onClick={handleCreate} disabled={isSubmitting} style={{ padding: '10px 20px', borderRadius: '10px', border: 'none', background: '#2563eb', color: '#ffffff', fontWeight: 600, fontSize: '13px', cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Save size={16} /> {isSubmitting ? 'Guardando…' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
 
-      {/* ESTILOS INYECTADOS PARA RESPONSIVE */}
+      {/* ESTILOS INYECTADOS PARA RESPONSIVE GLOBAL */}
       <style dangerouslySetInnerHTML={{__html: `
-        .mobile-cards-view { display: none; }
+        /* Por defecto (Móvil) */
+        .desktop-table-wrapper { display: none; }
+        .mobile-cards-wrapper { display: flex; }
         
-        @media (max-width: 768px) {
-          .requests-container { padding: 16px !important; }
-          .header-wrapper { flex-direction: column; align-items: stretch !important; gap: 16px !important; }
-          .header-actions { flex-direction: row; width: 100%; justify-content: space-between; gap: 8px; }
-          .btn-action { flex: 1; justify-content: center; }
+        .req-actions { flex-direction: row; }
+        .btn-refresh, .btn-new { width: 100%; justify-content: center; }
+        
+        .metrics-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        
+        .form-actions { flex-direction: column-reverse; }
+        .btn-cancel, .btn-save { width: 100%; justify-content: center; }
+
+        /* Escritorio (> 768px) */
+        @media (min-width: 768px) {
+          .requests-container { padding: 32px 16px !important; }
+          .req-header { display: flex; justify-content: space-between; align-items: flex-end; }
+          .req-actions { width: auto !important; }
           
-          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
-          
-          .desktop-table { display: none; }
-          .mobile-cards-view { display: block; }
-          
-          .modal-content { padding: 16px !important; width: 100% !important; margin: 12px; }
-          .form-actions { flex-direction: column-reverse; }
-          .form-actions button { width: 100% !important; justify-content: center; }
+          .metrics-grid { grid-template-columns: repeat(4, 1fr) !important; }
+
+          .desktop-table-wrapper { display: block; }
+          .mobile-cards-wrapper { display: none; }
+
+          .modal-content { padding: 32px !important; }
+          .form-actions { flex-direction: row; }
+          .btn-cancel, .btn-save { width: auto !important; }
         }
       `}} />
     </div>
@@ -351,34 +398,5 @@ function addBusinessDays(date, days) {
   }
   return result;
 }
-
-// ==========================================
-// Subcomponentes y estilos
-// ==========================================
-const SummaryCard = ({ t, label, value, color }) => (
-  <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '14px' }}>
-    <div style={{ fontSize: '12px', color: t.textMuted }}>{label}</div>
-    <div style={{ fontSize: '26px', fontWeight: 700, color }}>{value}</div>
-  </div>
-);
-
-const thStyle = (t) => ({ padding: '10px 14px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: t.textMuted, fontWeight: 600 });
-const tdStyle = (t) => ({ padding: '12px 14px', color: t.text, verticalAlign: 'top' });
-const labelStyle = (t) => ({ display: 'block', fontSize: '12px', color: t.textMuted, margin: '10px 0 4px', fontWeight: 600 });
-const inputStyle = (t) => ({ width: '100%', boxSizing: 'border-box', padding: '9px 11px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '13px', outline: 'none' });
-const selectStyle = (t) => ({ padding: '6px 8px', borderRadius: '6px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px', outline: 'none' });
-
-const primaryBtn = () => ({ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', border: 'none', background: '#004ac6', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' });
-const secondaryBtn = (t) => ({ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '9px 14px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontSize: '13px', cursor: 'pointer' });
-const iconBtn = (t) => ({ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer' });
-
-const estadoPill = (estado) => {
-  const map = { pendiente: '#f59e0b', en_proceso: '#6366f1', resuelta: '#004ac6' };
-  const c = map[estado] || '#64748b';
-  return { padding: '3px 9px', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: c, background: `${c}22`, whiteSpace: 'nowrap' };
-};
-
-const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '16px' };
-const modalBox = (t) => ({ background: t.cardBg, backdropFilter: 'blur(12px)', border: `1px solid ${t.border}`, borderRadius: '14px', padding: '22px', width: '100%', maxWidth: '460px', color: t.text, boxSizing: 'border-box' });
 
 export default DataRequestsScreen;
