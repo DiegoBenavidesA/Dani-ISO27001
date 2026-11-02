@@ -177,16 +177,23 @@ function QuestionsScreen() {
             <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas en {marcoLabel} · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
-              {importResult.columnas_detectadas && (
-                <span style={{ color: t.textDim, fontSize: '12px' }}>
-                  Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
-                </span>
-              )}
-              {importResult.categorias && (
-                <span style={{ color: t.textDim, fontSize: '12px' }}>
-                  Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
-                </span>
+              <span>
+                <strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas importadas a {marcoLabel}
+                {importResult.categorias ? <> en <strong>{Object.keys(importResult.categorias).length}</strong> temas</> : null}
+                {importResult.omitidas ? <> · {importResult.omitidas} omitidas por estar repetidas o vacías</> : null}.
+              </span>
+              {(importResult.categorias || importResult.columnas_detectadas) && (
+                <details style={{ fontSize: '12px', color: t.textDim }}>
+                  <summary style={{ cursor: 'pointer', width: 'fit-content' }}>Ver detalle</summary>
+                  {importResult.columnas_detectadas && (
+                    <p style={{ margin: '6px 0 0' }}>Columnas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join(' · ')}</p>
+                  )}
+                  {importResult.categorias && (
+                    <ul style={{ margin: '6px 0 0', paddingLeft: '18px', columns: '2 280px', columnGap: '24px' }}>
+                      {Object.entries(importResult.categorias).map(([k, v]) => <li key={k}>{k} ({v})</li>)}
+                    </ul>
+                  )}
+                </details>
               )}
             </div>
           )}

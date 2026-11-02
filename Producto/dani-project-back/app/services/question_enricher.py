@@ -28,6 +28,9 @@ def limpiar_texto_pdf(texto: str) -> str:
     s = re.sub(r"(?<=\d) (?=\d)", "", s)                        # "1 4 años" -> "14 años"
     s = re.sub(r"(\w) ([NS])(?=[\s.,;:)»]|$)", r"\1\2", s)       # "INFORMACIÓ N" -> "INFORMACIÓN"
     s = re.sub(r"\s+([.,;:])", r"\1", s)                         # "INTERESADO ." -> "INTERESADO."
+    s = re.sub(r"\bDER ECHOS\b", "DERECHOS", s)
+    s = re.sub(r"\bINTERESAD O\b", "INTERESADO", s)
+    s = re.sub(r"(INTERESADO) DER$", r"\1", s)                   # inicio del título siguiente que se coló
     return s.strip(" -")
 
 
