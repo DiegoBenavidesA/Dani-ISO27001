@@ -25,6 +25,7 @@ import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
 import OrganizationsScreen from './pages/OrganizationsScreen';
+import QuestionsScreen from './pages/QuestionsScreen';
 
 import BreachesScreen from './pages/BreachesScreen';
 import AssessmentScreen from './pages/AssessmentScreen';
@@ -190,6 +191,7 @@ export default function DaniPlatform() {
           {activeScreen === 'assessment' && <AssessmentScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
           {activeScreen === 'organizations' && <OrganizationsScreen />}
+          {activeScreen === 'questions' && isSuperadmin && <QuestionsScreen />}
           {activeScreen === 'predictive' && <PredictiveScreen />}
         </div>
       </main>

@@ -13,7 +13,7 @@ from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE, require_superadmin
 from app.models.assessment_question import AssessmentQuestion
 from app.models.assessment_answer import AssessmentAnswer
 from app.models.control_status import ControlStatus
@@ -103,7 +103,7 @@ async def get_questions(categoria: Optional[str] = None, marco: Optional[str] = 
     return result.scalars().all()
 
 @router.post("/", response_model=QuestionResponse)
-async def create_question(data: QuestionCreate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def create_question(data: QuestionCreate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     data.marco = _validar_marco(data.marco)
     new_q = AssessmentQuestion(**data.model_dump(exclude_unset=True))
     db.add(new_q)
@@ -112,7 +112,7 @@ async def create_question(data: QuestionCreate, current_user: dict = Depends(Req
     return new_q
 
 @router.put("/{q_id}", response_model=QuestionResponse)
-async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
     cambios = data.model_dump(exclude_unset=True)
@@ -123,7 +123,7 @@ async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = 
     return q
 
 @router.delete("/{q_id}")
-async def delete_question(q_id: str, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def delete_question(q_id: str, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
     # Primero las respuestas de las empresas a esta pregunta (FK); si no, el borrado falla.
@@ -191,7 +191,7 @@ def _mapear_columnas(headers: list) -> dict:
 async def bulk_import_questions(
     file: UploadFile = File(...),
     marco: str = Form(...),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
     """Carga masiva de preguntas desde un Excel (.xlsx) a un marco (ISO o Ley). Tolerante a nombres de columna distintos."""
@@ -366,7 +366,7 @@ async def bulk_import_questions_pdf(
     file: UploadFile = File(...),
     marco: str = Form(...),
     categoria_forzada: Optional[str] = Form(None),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
     """Carga masiva de preguntas desde un PDF (checklist/listado) a un marco (ISO o Ley). Detecta categorías e ítems."""
@@ -413,9 +413,12 @@ async def bulk_import_questions_pdf(
 
     for categoria, texto_item in items:
         indice += 1
-        cat = (categoria_forzada or categoria or "General")[:100]
+        cat = limpiar_texto_pdf(categoria_forzada or categoria or "General")[:100]
         codigo = f"{prefijo}-{indice:03d}"[:50]
-        clave = _normalizar(texto_item)
+        # El PDF trae afirmaciones con texto partido: se limpian y se pasan a pregunta.
+        # La evidencia esperada la completa luego la IA (POST /mejorar).
+        pregunta_txt = a_pregunta(texto_item)
+        clave = _normalizar(pregunta_txt)
         if clave in preguntas_existentes or clave in nuevas:
             omitidas += 1
             continue
@@ -423,8 +426,8 @@ async def bulk_import_questions_pdf(
             marco=marco,
             codigo=codigo,
             categoria=cat,
-            nombre=texto_item[:60],
-            pregunta=texto_item[:1000],
+            nombre=nombre_corto(texto_item),
+            pregunta=pregunta_txt[:1000],
             evidencia_esperada=None,
             orden=indice,
         ))
@@ -445,7 +448,7 @@ async def bulk_import_questions_pdf(
 
 
 @router.get("/bulk-template")
-async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
+async def bulk_template(current_user: dict = Depends(require_superadmin)):
     """Descarga una plantilla .xlsx con las columnas esperadas y 2 ejemplos."""
     try:
         import openpyxl
@@ -487,6 +490,88 @@ async def get_answer_by_question(question_id: str, org_id: str = Depends(get_cur
     if not answer: raise HTTPException(status_code=404, detail="No encontrada")
     return answer
 
+class RespuestaManualRequest(BaseModel):
+    veredicto: str
+
+
+@router.put("/answers/{question_id}", response_model=AnswerResponse)
+async def guardar_respuesta_manual(
+    question_id: str,
+    data: RespuestaManualRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Respuesta dada a mano en el cuestionario (Sí / Parcial / No). Se guarda
+    por empresa, igual que las de la IA, para que el resultado no dependa del
+    navegador. Si cambia el veredicto, se descarta la justificación de la IA."""
+    veredicto = (data.veredicto or "").strip().lower()
+    if veredicto not in ("cumple", "parcial", "no_cumple"):
+        raise HTTPException(status_code=400, detail="Veredicto inválido (cumple, parcial o no_cumple).")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    if answer.veredicto != veredicto:
+        answer.confianza = None
+        answer.justificacion = None
+    answer.veredicto = veredicto
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+
+class NoAplicaRequest(BaseModel):
+    justificacion: str
+
+
+@router.put("/answers/{question_id}/no-aplica", response_model=AnswerResponse)
+async def marcar_no_aplica(
+    question_id: str,
+    data: NoAplicaRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """La empresa declara que una pregunta del catálogo no le aplica, con su
+    justificación (igual que en la SOA). La pregunta no se borra: queda fuera
+    de la evaluación con IA y del cálculo de brechas de esa empresa."""
+    justificacion = (data.justificacion or "").strip()
+    if len(justificacion) < 10:
+        raise HTTPException(status_code=400, detail="Explica en al menos 10 caracteres por qué la pregunta no aplica.")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    answer.veredicto = "no_aplica"
+    answer.confianza = None
+    answer.justificacion = justificacion[:2000]
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+
+@router.delete("/answers/{question_id}/no-aplica")
+async def quitar_no_aplica(
+    question_id: str,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Vuelve a incluir la pregunta en la evaluación de la empresa."""
+    await db.execute(sa_delete(AssessmentAnswer).where(
+        AssessmentAnswer.question_id == question_id,
+        AssessmentAnswer.organization_id == org_id,
+        AssessmentAnswer.veredicto == "no_aplica",
+    ))
+    await db.commit()
+    return {"message": "La pregunta vuelve a aplicar"}
+
+
 # Función para extraer JSON de una cadena de texto (incluso si la IA agrega markdown o comentarios)
 def extract_json_from_text(text: str):
     try:
@@ -519,6 +604,8 @@ def extract_json_from_text(text: str):
 # por fragmentos + reintentos ante el límite de Groq).
 # =====================================================================
 from app.services import question_evaluator as qe
+from app.services.question_enricher import limpiar_texto_pdf, a_pregunta, nombre_corto
+from app.services import question_enricher
 from app.dependencies.database import AsyncSessionLocal
 
 _jobs_en_curso = set()  # referencias para que asyncio no recolecte las tareas
@@ -698,9 +785,14 @@ async def evaluate_with_ai(
     ids = [x.strip() for x in question_ids.split(",") if x.strip()]
     if ids:
         stmt = stmt.where(AssessmentQuestion.id.in_(ids))
+    # Las preguntas que la empresa marcó como "no aplica" no se evalúan.
+    no_aplica = select(AssessmentAnswer.question_id).where(
+        AssessmentAnswer.organization_id == org_id, AssessmentAnswer.veredicto == "no_aplica"
+    )
+    stmt = stmt.where(AssessmentQuestion.id.not_in(no_aplica))
     preguntas = (await db.execute(stmt.order_by(AssessmentQuestion.orden))).scalars().all()
     if not preguntas:
-        raise HTTPException(status_code=400, detail=f"No hay preguntas de {MARCOS[marco]} para evaluar. Cárgalas en la pestaña Preguntas.")
+        raise HTTPException(status_code=400, detail=f"No hay preguntas de {MARCOS[marco]} para evaluar (o todas están marcadas como \"no aplica\").")
 
     job_id = qe.crear_job(org_id, len(preguntas))
     tarea = asyncio.create_task(_ejecutar_job(job_id, org_id, marco, list(preguntas), documentos))
@@ -715,3 +807,75 @@ async def evaluate_status(job_id: str, org_id: str = Depends(get_current_org)):
     if not job:
         raise HTTPException(status_code=404, detail="La evaluación no existe o expiró (el servidor pudo haberse reiniciado).")
     return job
+
+
+# =====================================================================
+# MEJORAR PREGUNTAS CON IA (solo superadmin)
+# POST /mejorar       -> redacta como pregunta, título corto y evidencia
+#                        esperada las preguntas del marco que no la tienen
+# GET  /mejorar/{id}  -> avance del trabajo
+# =====================================================================
+_JOB_PLATAFORMA = "plataforma"  # los jobs del catálogo no son de una empresa
+
+
+@router.post("/mejorar")
+async def mejorar_preguntas(
+    marco: str = Form(...),
+    current_user: dict = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+):
+    marco = _validar_marco(marco)
+    preguntas = (await db.execute(
+        select(AssessmentQuestion)
+        .where(AssessmentQuestion.marco == marco)
+        .where((AssessmentQuestion.evidencia_esperada.is_(None)) | (AssessmentQuestion.evidencia_esperada == ""))
+        .order_by(AssessmentQuestion.orden)
+    )).scalars().all()
+    if not preguntas:
+        return {"job_id": None, "total": 0}
+    datos = [{"id": q.id, "categoria": q.categoria, "texto": q.pregunta} for q in preguntas]
+    job_id = qe.crear_job(_JOB_PLATAFORMA, len(datos))
+    tarea = asyncio.create_task(_ejecutar_mejora(job_id, marco, datos))
+    _jobs_en_curso.add(tarea)
+    tarea.add_done_callback(_jobs_en_curso.discard)
+    return {"job_id": job_id, "total": len(datos)}
+
+
+@router.get("/mejorar/{job_id}")
+async def mejorar_estado(job_id: str, current_user: dict = Depends(require_superadmin)):
+    job = qe.obtener_job(job_id, _JOB_PLATAFORMA)
+    if not job:
+        raise HTTPException(status_code=404, detail="El trabajo no existe o expiró (el servidor pudo haberse reiniciado).")
+    return job
+
+
+async def _ejecutar_mejora(job_id: str, marco: str, datos: list):
+    job = qe.JOBS[job_id]
+    job["stage"] = "Redactando preguntas y evidencia esperada"
+
+    def progreso(hechas: int):
+        job["done"] = hechas
+
+    try:
+        mejoradas = await question_enricher.enriquecer(ai_service, marco, datos, progreso)
+        con_ia = 0
+        async with AsyncSessionLocal() as db:
+            for d, m in zip(datos, mejoradas):
+                q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == d["id"]))).scalar_one_or_none()
+                if not q:
+                    continue
+                q.pregunta = m["pregunta"] or q.pregunta
+                q.nombre = (m["nombre"] or q.nombre)[:255]
+                q.categoria = limpiar_texto_pdf(q.categoria)[:100]
+                if m["evidencia_esperada"]:
+                    q.evidencia_esperada = m["evidencia_esperada"]
+                con_ia += 1 if m["con_ia"] else 0
+            await db.commit()
+        job["result"] = {"marco": marco, "total": len(datos), "con_ia": con_ia}
+        job["done"] = job["total"]
+        job["status"] = "done"
+        job["stage"] = "Listo"
+    except Exception as e:
+        print(f"Error al mejorar preguntas {job_id}: {e}")
+        job["status"] = "error"
+        job["error"] = "No se pudieron mejorar las preguntas. Intenta de nuevo."

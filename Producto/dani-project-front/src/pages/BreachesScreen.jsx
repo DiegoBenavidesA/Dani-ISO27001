@@ -101,7 +101,7 @@ const BreachesScreen = () => {
   };
 
   const handleDelete = async (breachId) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar permanentemente esta brecha de datos?')) return;
+    if (!window.confirm('¿Estás seguro de que deseas eliminar permanentemente esta vulneración?')) return;
     try {
       if (breachesAPI.delete) {
         await breachesAPI.delete(breachId);
@@ -111,12 +111,12 @@ const BreachesScreen = () => {
       }
     } catch (err) {
        console.error('Error al eliminar:', err);
-       alert("No se pudo eliminar la brecha.");
+       alert("No se pudo eliminar la vulneración.");
     }
   };
 
   const handleNotify = async (breach) => {
-    if (!window.confirm('¿Marcar esta brecha como notificada a la Agencia? Esto detiene el reloj de 72h.')) return;
+    if (!window.confirm('¿Marcar esta vulneración como notificada a la Agencia? Esto detiene el reloj de 72h.')) return;
     try {
       await breachesAPI.notify(breach.id);
       await fetchBreaches();
@@ -170,10 +170,10 @@ const BreachesScreen = () => {
             <div style={{ padding: '6px', background: 'rgba(13, 148, 136, 0.1)', color: '#0d9488', borderRadius: '8px' }}>
               <ShieldAlert size={20} />
             </div>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: t.text }}>Gestión de Brechas de Datos</h1>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: t.text }}>Vulneraciones de Seguridad</h1>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim, paddingLeft: '4px' }}>
-            <span style={{ fontWeight: 600, color: t.text }}>Obligación O4 · Ley 21.719:</span> toda brecha debe notificarse a la Agencia en un plazo máximo de <strong style={{ color: t.text, fontWeight: 700 }}>72 horas</strong>.
+            <span style={{ fontWeight: 600, color: t.text }}>Obligación O4 · Ley 21.719:</span> toda vulneración de seguridad que afecte datos personales debe notificarse a la Agencia en un plazo máximo de <strong style={{ color: t.text, fontWeight: 700 }}>72 horas</strong>.
           </p>
         </div>
         
@@ -182,7 +182,7 @@ const BreachesScreen = () => {
             <RefreshCw size={14} color={t.textDim} /> Actualizar
           </button>
           <button className="btn-new" onClick={() => { setCurrentBreach({id: '', descripcion: '', datos_afectados: '', gravedad: 'media', estado: 'detectada', cantidad_afectados: ''}); setShowAddModal(true); }} style={{ padding: '10px 12px', background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 2, boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)' }}>
-            <Plus size={16} strokeWidth={2.5} /> Registrar brecha
+            <Plus size={16} strokeWidth={2.5} /> Registrar vulneración
           </button>
         </div>
       </section>
@@ -214,15 +214,15 @@ const BreachesScreen = () => {
       </section>
 
       {/* REGISTROS DE BRECHAS */}
-      <section aria-label="Lista de brechas">
+      <section aria-label="Lista de vulneraciones">
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>Cargando brechas…</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>Cargando vulneraciones…</div>
         ) : breaches.length === 0 ? (
           <div style={{ padding: '40px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, marginBottom: '12px' }}>
               <ShieldAlert size={24} />
             </div>
-            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: t.text }}>No hay brechas registradas.</p>
+            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: t.text }}>No hay vulneraciones registradas.</p>
             <p style={{ margin: 0, fontSize: '12px', color: t.textDim, maxWidth: '280px' }}>Las alertas y el seguimiento legal de 72h se activarán al reportar una incidencia.</p>
           </div>
         ) : (
@@ -297,7 +297,7 @@ const BreachesScreen = () => {
             </div>
 
             {/* VISTA MÓVIL (TARJETAS) */}
-            <div className="mobile-cards-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="mobile-cards-wrapper" style={{ flexDirection: 'column', gap: '12px' }}>
               {breaches.map((b) => {
                 const badge = plazoBadge(b);
                 const Icon = badge.icon;
@@ -369,7 +369,7 @@ const BreachesScreen = () => {
           <div className="modal-content" style={{ width: '100%', maxWidth: '480px', maxHeight: '95vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '20px', padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: t.text }}>{currentBreach.id ? 'Editar Brecha' : 'Registrar Brecha'}</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: t.text }}>{currentBreach.id ? 'Editar vulneración' : 'Registrar vulneración'}</h3>
               <button type="button" onClick={() => { setShowAddModal(false); setShowEditModal(false); }} style={{ border: 'none', background: t.inputBg, borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, cursor: 'pointer' }}>
                 <X size={18} />
               </button>
@@ -411,7 +411,7 @@ const BreachesScreen = () => {
 
               {currentBreach.id && (
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: t.textMuted }}>Estado de la brecha</label>
+                  <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', fontWeight: 600, color: t.textMuted }}>Estado de la vulneración</label>
                   <select value={currentBreach.estado} onChange={(e) => setCurrentBreach({ ...currentBreach, estado: e.target.value })} style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none', fontSize: '13px' }}>
                     {ESTADOS.map(op => <option key={op.value} value={op.value}>{op.label}</option>)}
                   </select>
