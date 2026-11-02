@@ -46,7 +46,7 @@ const nivel = (score) => (
  * Calcula el resultado a partir de las fases del cuestionario.
  * valorDe(respuesta) -> 1 | 0.5 | 0 | null (null = sin responder)
  */
-export function calcularResultado(phases, answers, noAplica, valorDe) {
+export function calcularResultado(phases, answers, noAplica, valorDe, impactoDe = impactoDeTema) {
   const temas = new Map();
   const grupos = [];
   let suma = 0, respondidas = 0, aplicables = 0, totalNA = 0;
@@ -71,7 +71,7 @@ export function calcularResultado(phases, answers, noAplica, valorDe) {
 
   const evaluados = [...temas.values()].filter((t) => t.respondidas > 0).map((t) => {
     const pct = Math.round((t.suma / t.respondidas) * 100);
-    const impacto = impactoDeTema(t.nombre);
+    const impacto = impactoDe(t.nombre, t.faseId);
     const prob = probabilidad(pct);
     return { ...t, pct, impacto, prob, score: impacto * prob };
   }).sort((a, b) => b.score - a.score || b.fallas.length - a.fallas.length);
@@ -84,9 +84,15 @@ export function calcularResultado(phases, answers, noAplica, valorDe) {
   };
 }
 
-function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marcoLabel, onIrAPregunta, questionsById }) {
+// ISO 27001: el tema es el control y el impacto depende del dominio. Los
+// controles tecnológicos exponen directamente la información; los de contexto,
+// soporte, personas y físicos tienen un efecto más indirecto.
+export const IMPACTO_ISO_POR_FASE = { tech: 5, org: 4, planning: 4, context: 3, support: 3, people: 3, phys: 3 };
+export const impactoISO = (_tema, faseId) => IMPACTO_ISO_POR_FASE[faseId] || IMPACTO_POR_DEFECTO;
+
+function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marcoLabel, onIrAPregunta, questionsById, impactoDe = impactoDeTema, textoImpacto, titulo }) {
   const { theme: t } = useContext(ThemeContext);
-  const r = useMemo(() => calcularResultado(phases, answers, noAplica, valorDe), [phases, answers, noAplica, valorDe]);
+  const r = useMemo(() => calcularResultado(phases, answers, noAplica, valorDe, impactoDe), [phases, answers, noAplica, valorDe, impactoDe]);
   const [celda, setCelda] = useState(null); // {impacto, prob}
   const [abiertos, setAbiertos] = useState({});
   const [verMetodo, setVerMetodo] = useState(false);
@@ -110,6 +116,7 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {titulo && <h2 style={{ fontSize: '15px', margin: '8px 0 -4px', color: t.text }}>{titulo}</h2>}
       {/* RESUMEN */}
       <section style={{ ...card, display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ textAlign: 'center', minWidth: '110px' }}>
@@ -253,7 +260,7 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
           <ul style={{ fontSize: '12px', color: t.textMuted, lineHeight: 1.6, margin: '8px 0 0', paddingLeft: '18px' }}>
             <li><strong>Cumplimiento:</strong> Sí = 1, Parcialmente = 0,5, No o sin evidencia = 0. Las preguntas "No aplica" y las sin responder no cuentan.</li>
             <li><strong>Unidad del mapa:</strong> cada punto es un tema del cuestionario, no una pregunta.</li>
-            <li><strong>Impacto (1–5):</strong> fijo por tema según el daño a los titulares y la gravedad de la infracción. 5: datos sensibles, menores, seguridad y vulneraciones · 4: licitud, consentimiento, derechos, transferencias · 3: encargados, evaluación de impacto, diseño, responsabilidad · 2: registro y delegado.</li>
+            <li><strong>Impacto (1–5):</strong> {textoImpacto || 'fijo por tema según el daño a los titulares y la gravedad de la infracción. 5: datos sensibles, menores, seguridad y vulneraciones · 4: licitud, consentimiento, derechos, transferencias · 3: encargados, evaluación de impacto, diseño, responsabilidad · 2: registro y delegado.'}</li>
             <li><strong>Probabilidad (1–5):</strong> según el cumplimiento del tema. 1: 90% o más · 2: 70–89% · 3: 50–69% · 4: 25–49% · 5: menos de 25%.</li>
             <li><strong>Prioridad:</strong> impacto × probabilidad. Crítico 15–25 · Alto 8–14 · Medio 4–7 · Bajo 1–3.</li>
           </ul>

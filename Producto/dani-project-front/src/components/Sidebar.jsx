@@ -44,7 +44,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
     { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW, group: 'iso' },
-    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
+    { id: 'breaches', label: language === 'es' ? 'Vulneraciones de Seguridad' : 'Security Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
     { id: 'questions', label: language === 'es' ? 'Preguntas' : 'Questions', icon: ListChecks, roles: PLATFORM, group: 'general' },

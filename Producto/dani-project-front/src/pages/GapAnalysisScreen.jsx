@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceAPI } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
-import ResultadoBrechas from '../components/ResultadoBrechas';
+import ResultadoBrechas, { impactoISO } from '../components/ResultadoBrechas';
 
 const sinAcentos = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -178,7 +178,7 @@ function GapAnalysisScreen({ onNavigate }) {
         id: def.id, name: def.name, clause: def.clause, icon: def.icon, color: def.color,
         questions: matched.map((q) => ({
           id: q.id, title: `${q.codigo} — ${q.nombre}`, question: q.pregunta,
-          codigo: q.codigo, options: [tText.yes, tText.partially, tText.no],
+          codigo: q.codigo, subtema: `${q.codigo} ${q.nombre}`, options: [tText.yes, tText.partially, tText.no],
           critical: isClause(q), evidencia: q.evidencia_esperada,
         })),
       };
@@ -609,7 +609,7 @@ function GapAnalysisScreen({ onNavigate }) {
       <div className="resultados-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '16px' }}>
         <div style={{ background: t.cardBg, border: `2px solid ${getScoreColor(score)}40`, borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
           <div style={{ fontSize: '48px', fontWeight: 800, color: getScoreColor(score), lineHeight: 1 }}>{score}%</div>
-          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Cumplimiento General</div>
+          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Cumplimiento según la SOA</div>
         </div>
         <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
           <div style={{ fontSize: '48px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>85%</div>
@@ -915,7 +915,16 @@ function GapAnalysisScreen({ onNavigate }) {
       ) : activeMainTab === 'soa' ? (
         <InteractiveSOA />
       ) : activeMainTab === 'resultados' ? (
+        <>
+        {evalInfo && <div role="status" style={{ marginTop: '16px', padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
         <ResultadosView />
+        <div style={{ marginTop: '20px' }}>
+          <ResultadoBrechas phases={phases} answers={answers} noAplica={noAplica} aiResults={aiResults} valorDe={valorRespuesta}
+            marcoLabel="ISO 27001" questionsById={questionsById} onIrAPregunta={irAPregunta} impactoDe={impactoISO}
+            titulo="Brechas del cuestionario"
+            textoImpacto="según el dominio del control. 5: Anexo A tecnológico · 4: Anexo A organizacional y planificación del riesgo (cláusula 6) · 3: contexto, liderazgo, soporte y mejora, personas y físico." />
+        </div>
+        </>
       ) : activeMainTab === 'resultado' ? (
         <>
         {evalInfo && <div role="status" style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
