@@ -30,7 +30,7 @@ class AssessmentAnswer(Base):
     question_id = Column(String(36), ForeignKey("assessment_questions.id"), nullable=False, index=True)
     organization_id = Column(String(36), ForeignKey("organizations.id"), nullable=False, index=True)
 
-    # cumple / parcial / no_cumple / sin_evidencia
+    # cumple / parcial / no_cumple / sin_evidencia / no_aplica (lo declara la empresa)
     veredicto = Column(String(30), nullable=False, default="sin_evidencia")
     confianza = Column(Float, nullable=True)
     justificacion = Column(Text, nullable=True)

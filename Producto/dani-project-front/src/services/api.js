@@ -410,6 +410,27 @@ export const assessmentQuestionsAPI = {
     return response.json();
   },
 
+  // Respuestas guardadas de la empresa (incluye las marcadas como "no aplica").
+  getAnswers: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return response.json();
+  },
+  // La empresa declara que una pregunta no le aplica, con justificación.
+  setNoAplica: async (questionId, justificacion, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}/no-aplica`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify({ justificacion }) });
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.detail || 'No se pudo marcar como "no aplica"'); }
+    return response.json();
+  },
+  clearNoAplica: async (questionId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}/no-aplica`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error('No se pudo quitar el "no aplica"');
+    return response.json();
+  },
+
   // Carga masiva desde Excel (.xlsx) a un marco ('iso27001' o 'ley21719').
   // Devuelve { marco, creadas, omitidas, columnas_detectadas, ... }
   bulkImport: async (file, marco, token = null) => {

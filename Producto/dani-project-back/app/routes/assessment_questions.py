@@ -13,7 +13,7 @@ from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE, require_superadmin
 from app.models.assessment_question import AssessmentQuestion
 from app.models.assessment_answer import AssessmentAnswer
 from app.models.control_status import ControlStatus
@@ -103,7 +103,7 @@ async def get_questions(categoria: Optional[str] = None, marco: Optional[str] = 
     return result.scalars().all()
 
 @router.post("/", response_model=QuestionResponse)
-async def create_question(data: QuestionCreate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def create_question(data: QuestionCreate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     data.marco = _validar_marco(data.marco)
     new_q = AssessmentQuestion(**data.model_dump(exclude_unset=True))
     db.add(new_q)
@@ -112,7 +112,7 @@ async def create_question(data: QuestionCreate, current_user: dict = Depends(Req
     return new_q
 
 @router.put("/{q_id}", response_model=QuestionResponse)
-async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
     cambios = data.model_dump(exclude_unset=True)
@@ -123,7 +123,7 @@ async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = 
     return q
 
 @router.delete("/{q_id}")
-async def delete_question(q_id: str, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def delete_question(q_id: str, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
     # Primero las respuestas de las empresas a esta pregunta (FK); si no, el borrado falla.
@@ -191,7 +191,7 @@ def _mapear_columnas(headers: list) -> dict:
 async def bulk_import_questions(
     file: UploadFile = File(...),
     marco: str = Form(...),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
     """Carga masiva de preguntas desde un Excel (.xlsx) a un marco (ISO o Ley). Tolerante a nombres de columna distintos."""
@@ -366,7 +366,7 @@ async def bulk_import_questions_pdf(
     file: UploadFile = File(...),
     marco: str = Form(...),
     categoria_forzada: Optional[str] = Form(None),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
     """Carga masiva de preguntas desde un PDF (checklist/listado) a un marco (ISO o Ley). Detecta categorías e ítems."""
@@ -445,7 +445,7 @@ async def bulk_import_questions_pdf(
 
 
 @router.get("/bulk-template")
-async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
+async def bulk_template(current_user: dict = Depends(require_superadmin)):
     """Descarga una plantilla .xlsx con las columnas esperadas y 2 ejemplos."""
     try:
         import openpyxl
@@ -486,6 +486,55 @@ async def get_answer_by_question(question_id: str, org_id: str = Depends(get_cur
     answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
     if not answer: raise HTTPException(status_code=404, detail="No encontrada")
     return answer
+
+class NoAplicaRequest(BaseModel):
+    justificacion: str
+
+
+@router.put("/answers/{question_id}/no-aplica", response_model=AnswerResponse)
+async def marcar_no_aplica(
+    question_id: str,
+    data: NoAplicaRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """La empresa declara que una pregunta del catálogo no le aplica, con su
+    justificación (igual que en la SOA). La pregunta no se borra: queda fuera
+    de la evaluación con IA y del cálculo de brechas de esa empresa."""
+    justificacion = (data.justificacion or "").strip()
+    if len(justificacion) < 10:
+        raise HTTPException(status_code=400, detail="Explica en al menos 10 caracteres por qué la pregunta no aplica.")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    answer.veredicto = "no_aplica"
+    answer.confianza = None
+    answer.justificacion = justificacion[:2000]
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+
+@router.delete("/answers/{question_id}/no-aplica")
+async def quitar_no_aplica(
+    question_id: str,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Vuelve a incluir la pregunta en la evaluación de la empresa."""
+    await db.execute(sa_delete(AssessmentAnswer).where(
+        AssessmentAnswer.question_id == question_id,
+        AssessmentAnswer.organization_id == org_id,
+        AssessmentAnswer.veredicto == "no_aplica",
+    ))
+    await db.commit()
+    return {"message": "La pregunta vuelve a aplicar"}
+
 
 # Función para extraer JSON de una cadena de texto (incluso si la IA agrega markdown o comentarios)
 def extract_json_from_text(text: str):
@@ -698,9 +747,14 @@ async def evaluate_with_ai(
     ids = [x.strip() for x in question_ids.split(",") if x.strip()]
     if ids:
         stmt = stmt.where(AssessmentQuestion.id.in_(ids))
+    # Las preguntas que la empresa marcó como "no aplica" no se evalúan.
+    no_aplica = select(AssessmentAnswer.question_id).where(
+        AssessmentAnswer.organization_id == org_id, AssessmentAnswer.veredicto == "no_aplica"
+    )
+    stmt = stmt.where(AssessmentQuestion.id.not_in(no_aplica))
     preguntas = (await db.execute(stmt.order_by(AssessmentQuestion.orden))).scalars().all()
     if not preguntas:
-        raise HTTPException(status_code=400, detail=f"No hay preguntas de {MARCOS[marco]} para evaluar. Cárgalas en la pestaña Preguntas.")
+        raise HTTPException(status_code=400, detail=f"No hay preguntas de {MARCOS[marco]} para evaluar (o todas están marcadas como \"no aplica\").")
 
     job_id = qe.crear_job(org_id, len(preguntas))
     tarea = asyncio.create_task(_ejecutar_job(job_id, org_id, marco, list(preguntas), documentos))

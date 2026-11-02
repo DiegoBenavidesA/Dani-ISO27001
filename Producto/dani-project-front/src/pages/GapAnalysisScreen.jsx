@@ -11,6 +11,36 @@ import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceA
 import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
+const sinAcentos = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+
+// Los PDF suelen traer títulos en MAYÚSCULAS con palabras partidas
+// ("INFORMACIÓ N", "DER ECHOS", "INTERESADO ."). Los dejamos legibles.
+function limpiarTituloPdf(texto) {
+  let s = String(texto || '').replace(/\s+/g, ' ').trim();
+  if (s !== s.toUpperCase()) return s; // ya viene bien escrito (p. ej. catálogo propio)
+  s = s
+    .replace(/(\p{L}) ([NS])(?=[\s.,;:)»]|$)/gu, '$1$2') // "INFORMACIÓ N" → "INFORMACIÓN"
+    .replace(/\bDER ECHOS\b/g, 'DERECHOS')
+    .replace(/\bINTERESAD O\b/g, 'INTERESADO')
+    .replace(/\s+DER$/, '') // resto del título siguiente que se coló al final
+    .replace(/\s+([.,;:])/g, '$1')
+    .replace(/[.,;:\s]+$/, '');
+  s = s.toLowerCase();
+  return s.replace(/(^|[.!?]\s+|«)(\p{L})/gu, (m, sep, letra) => sep + letra.toUpperCase());
+}
+
+// Obligaciones de la Ley 21.719 en las que se agrupan los temas del cuestionario.
+// El orden importa: gana el primer grupo cuya palabra clave aparece en el tema.
+const LEY_GRUPOS = [
+  { id: 'ley-seguridad', name: 'Seguridad y vulneraciones', icon: Lock, claves: ['brecha', 'vulneracion', 'seguridad'] },
+  { id: 'ley-impacto', name: 'Evaluación de impacto', icon: Target, claves: ['evaluacion de impacto'] },
+  { id: 'ley-registro', name: 'Registro de actividades de tratamiento', icon: FileText, claves: ['registro', 'tratamiento de datos personales'] },
+  { id: 'ley-terceros', name: 'Encargados y transferencias', icon: Globe, claves: ['encargado', 'transferencia'] },
+  { id: 'ley-gobernanza', name: 'Responsabilidad y gobernanza', icon: Building2, claves: ['responsabilidad', 'diseno', 'corresponsable', 'delegado', 'gobernanza'] },
+  { id: 'ley-principios', name: 'Principios y licitud', icon: Shield, claves: ['principio', 'licitud', 'consentimiento', 'categorias especiales', 'condena', 'identificacion'] },
+  { id: 'ley-derechos', name: 'Derechos de los titulares', icon: Users, claves: ['derecho', 'interesado', 'titular'] },
+];
+
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language } = useContext(ThemeContext);
   const { user } = useAuth();
@@ -89,6 +119,27 @@ function GapAnalysisScreen({ onNavigate }) {
   };
   useEffect(() => { loadQuestions(); }, []);
 
+  // "No aplica": la empresa no borra preguntas del catálogo, declara que no le
+  // aplican y por qué. Se guarda en el servidor y la IA ya no las evalúa.
+  const NO_APLICA = language === 'en' ? 'Not applicable' : language === 'pt' ? 'Não se aplica' : 'No aplica';
+  const [noAplica, setNoAplica] = useState({}); // { questionId: justificación }
+  const [naDraft, setNaDraft] = useState(null);  // texto mientras se escribe la justificación
+  const [naSaving, setNaSaving] = useState(false);
+  const [naError, setNaError] = useState(null);
+  useEffect(() => {
+    assessmentQuestionsAPI.getAnswers().then((lista) => {
+      const na = {};
+      (lista || []).forEach((r) => { if (r.veredicto === 'no_aplica') na[r.question_id] = r.justificacion || ''; });
+      setNoAplica(na);
+      setAnswers((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((id) => { if (next[id] === NO_APLICA && !(id in na)) delete next[id]; });
+        Object.keys(na).forEach((id) => { next[id] = NO_APLICA; });
+        return next;
+      });
+    }).catch(() => {});
+  }, []);
+
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
   const categoryOf = (q) => String(q.categoria || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
@@ -121,6 +172,34 @@ function GapAnalysisScreen({ onNavigate }) {
         })),
       };
     }).filter((p) => p.questions.length > 0);
+
+    // Ley: los títulos del PDF (muchos y muy finos) se agrupan en las obligaciones
+    // de la ley; el título original queda como subtema dentro del grupo.
+    if (!esISO) {
+      const grupos = LEY_GRUPOS.map((g) => ({ ...g, qs: [] }));
+      const otros = { id: 'ley-otros', name: 'Otros temas', icon: FileCheck, qs: [] };
+      marcoQuestions.forEach((q) => {
+        const subtema = limpiarTituloPdf(q.categoria) || 'General';
+        const clave = sinAcentos(subtema);
+        (grupos.find((g) => g.claves.some((k) => clave.includes(k))) || otros).qs.push({ q, subtema });
+      });
+      return [...grupos, otros].filter((g) => g.qs.length > 0).map((g) => {
+        g.qs.sort((a, b) => (a.q.orden ?? 0) - (b.q.orden ?? 0));
+        const subtemas = Array.from(new Set(g.qs.map((x) => x.subtema)));
+        return {
+          id: g.id, name: g.name, icon: g.icon, color: '#14b8a6',
+          clause: `${subtemas.length} ${subtemas.length === 1 ? 'tema' : 'temas'} · ${g.qs.length} preguntas`,
+          questions: g.qs.map(({ q, subtema }) => {
+            // Los ítems del PDF repiten la pregunta en "nombre"; en ese caso el título es el subtema.
+            const nombreRepetido = !q.nombre || String(q.pregunta || '').startsWith(String(q.nombre).replace(/…$/, ''));
+            return {
+              id: q.id, title: `${q.codigo} — ${nombreRepetido ? subtema : q.nombre}`, question: q.pregunta,
+              codigo: q.codigo, subtema, options: [tText.yes, tText.partially, tText.no], critical: false, evidencia: q.evidencia_esperada,
+            };
+          }),
+        };
+      });
+    }
 
     const unmatchedQuestions = marcoQuestions.filter((q) => !matchedIds.has(q.id));
     const byCat = {};
@@ -179,8 +258,27 @@ function GapAnalysisScreen({ onNavigate }) {
   
   const currentPhaseData = phases[currentPhase];
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
+  useEffect(() => { setNaDraft(null); setNaError(null); }, [currentQuestionData?.id]);
 
-  const handleAnswer = (answer) => {
+  const guardarNoAplica = async () => {
+    const id = currentQuestionData.id;
+    setNaSaving(true); setNaError(null);
+    try {
+      const r = await assessmentQuestionsAPI.setNoAplica(id, naDraft || '');
+      setNoAplica((prev) => ({ ...prev, [id]: r.justificacion }));
+      setAnswers((prev) => ({ ...prev, [id]: NO_APLICA }));
+      setNaDraft(null);
+    } catch (err) { setNaError(err.message); } finally { setNaSaving(false); }
+  };
+
+  const handleAnswer = async (answer) => {
+    const id = currentQuestionData.id;
+    if (id in noAplica) {
+      // Vuelve a aplicar: se quita la marca en el servidor antes de responder.
+      try { await assessmentQuestionsAPI.clearNoAplica(id); } catch (err) { setNaError(err.message); return; }
+      setNoAplica((prev) => { const next = { ...prev }; delete next[id]; return next; });
+    }
+    setNaDraft(null); setNaError(null);
     markDirty();
     setAnswers({ ...answers, [currentQuestionData.id]: answer });
     setTimeout(() => goToNext(), 300);
@@ -188,7 +286,7 @@ function GapAnalysisScreen({ onNavigate }) {
   const goToNext = () => {
     if (currentQuestion < currentPhaseData.questions.length - 1) setCurrentQuestion(currentQuestion + 1);
     else if (currentPhase < phases.length - 1) { setCurrentPhase(currentPhase + 1); setCurrentQuestion(0); }
-    else setActiveMainTab('soa');
+    else if (esISO) setActiveMainTab('soa');
   };
   const goToPrev = () => {
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
@@ -274,7 +372,7 @@ function GapAnalysisScreen({ onNavigate }) {
     if (!selectedEvidenceIds.length) { setEvalError('Selecciona al menos un documento guardado antes de evaluar.'); return; }
     let ids = [];
     if (revalidate) {
-      phases.forEach((p) => p.questions.forEach((q) => { if (answers[q.id] !== tText.yes) ids.push(q.id); }));
+      phases.forEach((p) => p.questions.forEach((q) => { if (answers[q.id] !== tText.yes && !(q.id in noAplica)) ids.push(q.id); }));
       if (ids.length === 0) { setEvalInfo('No hay preguntas pendientes.'); return; }
     }
 
@@ -487,224 +585,6 @@ function GapAnalysisScreen({ onNavigate }) {
     );
   };
 
-  const QuestionsAdminView = () => {
-    const [showModal, setShowModal] = useState(false);
-    const [editingQ, setEditingQ] = useState(null);
-    const categoriaInicial = esISO ? 'Organizacional' : '';
-    const [formData, setFormData] = useState({ codigo: '', categoria: categoriaInicial, nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
-    const [isSavingQ, setIsSavingQ] = useState(false);
-    const marcoLabel = esISO ? 'ISO 27001:2022' : 'Ley 21.719';
-    const categoriasLey = Array.from(new Set(marcoQuestions.map((q) => q.categoria).filter(Boolean)));
-    const [importing, setImporting] = useState(false);
-    const [importResult, setImportResult] = useState(null);
-
-    const handleImportExcel = async (e) => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      setImporting(true);
-      setImportResult(null);
-      try {
-        const res = await assessmentQuestionsAPI.bulkImport(file, marco);
-        setImportResult(res);
-        await loadQuestions();
-      } catch (err) {
-        setImportResult({ error: err.message });
-      } finally {
-        setImporting(false);
-      }
-    };
-
-    const handleImportPdf = async (e) => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      setImporting(true);
-      setImportResult(null);
-      try {
-        const res = await assessmentQuestionsAPI.bulkImportPdf(file, marco);
-        setImportResult(res);
-        await loadQuestions();
-      } catch (err) {
-        setImportResult({ error: err.message });
-      } finally {
-        setImporting(false);
-      }
-    };
-
-    const handleDownloadTemplate = async () => {
-      try { await assessmentQuestionsAPI.downloadTemplate(); }
-      catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
-    };
-
-    const handleOpenModal = (q = null) => {
-      if (q) {
-        setEditingQ(q.id);
-        setFormData({ codigo: q.codigo, categoria: q.categoria, nombre: q.nombre, pregunta: q.pregunta, evidencia_esperada: q.evidencia_esperada || '', orden: q.orden });
-      } else {
-        setEditingQ(null);
-        setFormData({ codigo: '', categoria: categoriaInicial, nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
-      }
-      setShowModal(true);
-    };
-
-    const handleSaveQuestion = async (e) => {
-      e.preventDefault();
-      setIsSavingQ(true);
-      try {
-        const datos = { ...formData, marco };
-        if (editingQ) await assessmentQuestionsAPI.update(editingQ, datos);
-        else await assessmentQuestionsAPI.create(datos);
-        await loadQuestions();
-        setShowModal(false);
-      } catch (err) { alert("Error al guardar la pregunta: " + err.message); } finally { setIsSavingQ(false); }
-    };
-
-    const handleDeleteQuestion = async (id) => {
-      if (!window.confirm("¿Seguro que deseas eliminar esta pregunta?")) return;
-      try { await assessmentQuestionsAPI.delete(id); await loadQuestions(); } catch (err) { alert("Error al eliminar la pregunta"); }
-    };
-
-    return (
-      <div style={{ marginTop: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>Preguntas de {marcoLabel}</h2>
-            <p style={{ fontSize: '13px', color: t.textDim }}>Lo que importes o crees aquí queda en el banco de <strong>{marcoLabel}</strong>. Para cargar preguntas del otro marco, cámbialo arriba en "Evaluar contra".</p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <Download size={16} /> Plantilla
-          </button>
-          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
-            <FolderUp size={16} /> {importing ? 'Importando…' : `Importar Excel a ${esISO ? 'ISO' : 'Ley'}`}
-            <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
-          </label>
-          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
-            <FileText size={16} /> {importing ? 'Importando…' : `Importar PDF a ${esISO ? 'ISO' : 'Ley'}`}
-            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
-          </label>
-          <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <Plus size={16} /> Nueva Pregunta
-          </button>
-          </div>
-        </div>
-
-        {importResult && (
-          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#004ac6'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
-            {importResult.error ? (
-              <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas en {marcoLabel} · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
-                {importResult.columnas_detectadas && (
-                  <span style={{ color: t.textDim, fontSize: '12px' }}>
-                    Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
-                  </span>
-                )}
-                {importResult.categorias && (
-                  <span style={{ color: t.textDim, fontSize: '12px' }}>
-                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: t.inputBg, fontSize: '12px', color: t.textDim, textTransform: 'uppercase' }}>
-                <th style={{ padding: '14px 20px' }}>Código</th>
-                <th style={{ padding: '14px 20px' }}>Categoría</th>
-                <th style={{ padding: '14px 20px' }}>Pregunta</th>
-                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {marcoQuestions.length === 0 && (
-                <tr><td colSpan={4} style={{ padding: '24px 20px', textAlign: 'center', fontSize: '13px', color: t.textDim }}>Todavía no hay preguntas de {marcoLabel}. Impórtalas desde Excel o PDF, o crea una nueva.</td></tr>
-              )}
-              {marcoQuestions.map(q => (
-                <tr key={q.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600, color: '#8b5cf6', fontSize: '13px' }}>{q.codigo}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.textDim }}>{q.categoria}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.text }}>
-                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.nombre}</div>
-                    <div style={{ color: t.textDim }}>{q.pregunta}</div>
-                  </td>
-                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => handleOpenModal(q)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14} /></button>
-                      <button onClick={() => handleDeleteQuestion(q.id)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Modal Formulario */}
-        {showModal && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-            <div style={{ background: t.cardBg, borderRadius: '16px', padding: '24px', width: '600px', maxWidth: '90%' }}>
-              <h3 style={{ marginBottom: '16px', fontSize: '18px', color: t.text }}>{editingQ ? 'Editar Pregunta' : 'Nueva Pregunta'} · {marcoLabel}</h3>
-              <form onSubmit={handleSaveQuestion} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Código {esISO ? '(Ej. 4.1 o A.5.1)' : '(Ej. L21719-O3)'}</label>
-                    <input required value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Categoría</label>
-                    {esISO ? (
-                    <select required value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }}>
-                      <option value="Cláusula 4">Cláusula 4</option>
-                      <option value="Cláusula 5">Cláusula 5</option>
-                      <option value="Cláusula 6">Cláusula 6</option>
-                      <option value="Cláusula 7">Cláusula 7</option>
-                      <option value="Cláusula 8">Cláusula 8</option>
-                      <option value="Cláusula 9">Cláusula 9</option>
-                      <option value="Cláusula 10">Cláusula 10</option>
-                      <option value="Organizacional">Anexo A - Organizacional</option>
-                      <option value="Personas">Anexo A - Personas</option>
-                      <option value="Físico">Anexo A - Físico</option>
-                      <option value="Tecnológico">Anexo A - Tecnológico</option>
-                    </select>
-                    ) : (
-                      <>
-                        <input required list="categorias-ley" placeholder="Ej. Derechos de los titulares" value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
-                        <datalist id="categorias-ley">{categoriasLey.map((c) => <option key={c} value={c} />)}</datalist>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Nombre Corto</label>
-                  <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Pregunta para el Evaluador</label>
-                  <textarea required value={formData.pregunta} onChange={e => setFormData({...formData, pregunta: e.target.value})} rows="3" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Evidencia Esperada (Instrucción para la IA)</label>
-                  <textarea value={formData.evidencia_esperada} onChange={e => setFormData({...formData, evidencia_esperada: e.target.value})} rows="2" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
-                  <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer' }}>Cancelar</button>
-                  <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div className="normia-gap" style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', color: t.text }}>
       
@@ -738,7 +618,6 @@ function GapAnalysisScreen({ onNavigate }) {
           {[
             { id: 'assessment', label: 'Evaluación' },
             ...(esISO ? [{ id: 'soa', label: 'SOA' }, { id: 'resultados', label: 'Resultados', Icon: Activity }] : []),
-            ...(isAdmin && window.innerWidth > 768 ? [{ id: 'admin-questions', label: 'Preguntas', Icon: Settings }] : []),
           ].map(({ id, label, Icon }) => (
             <button key={id} type="button" onClick={() => setActiveMainTab(id)} aria-current={activeMainTab === id ? 'page' : undefined}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: activeMainTab === id ? '#2563eb' : 'transparent', color: activeMainTab === id ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', border: 'none', transition: 'all 0.2s' }}>
@@ -810,6 +689,7 @@ function GapAnalysisScreen({ onNavigate }) {
                           <Icon size={16} color={idx === currentPhase ? '#2563eb' : t.textDim} />
                           <span style={{ flex: 1, fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.2 }}>{phase.name}</span>
                         </div>
+                        {!esISO && <span style={{ fontSize: '10px', color: t.textDim }}>{phase.clause}</span>}
                         <div style={{ height: '4px', background: idx === currentPhase ? '#dbeafe' : t.inputBg, borderRadius: '2px', overflow: 'hidden', width: '100%' }}>
                           <div style={{ width: `${progress}%`, height: '100%', background: '#2563eb' }} />
                         </div>
@@ -818,6 +698,34 @@ function GapAnalysisScreen({ onNavigate }) {
                   })}
                 </div>
               )}
+
+              {/* TEMAS DEL GRUPO (Ley): saltar a un tema y ver su avance */}
+              {!esISO && currentPhaseData && (() => {
+                const temas = [];
+                currentPhaseData.questions.forEach((q, i) => {
+                  let tema = temas.find((x) => x.nombre === q.subtema);
+                  if (!tema) { tema = { nombre: q.subtema, inicio: i, total: 0, respondidas: 0 }; temas.push(tema); }
+                  tema.total += 1;
+                  if (answers[q.id]) tema.respondidas += 1;
+                });
+                if (temas.length < 2) return null;
+                const temaActual = currentQuestionData?.subtema;
+                return (
+                  <nav aria-label="Temas del grupo" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
+                    {temas.map((tema) => {
+                      const activo = tema.nombre === temaActual;
+                      const completo = tema.respondidas === tema.total;
+                      return (
+                        <button key={tema.nombre} type="button" onClick={() => setCurrentQuestion(tema.inicio)} aria-current={activo ? 'true' : undefined}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '999px', border: `1px solid ${activo ? '#2563eb' : t.border}`, background: activo ? '#eff6ff' : t.cardBg, color: activo ? '#1d4ed8' : t.textMuted, fontSize: '11px', fontWeight: activo ? 700 : 500, cursor: 'pointer', textAlign: 'left', maxWidth: '100%' }}>
+                          <span>{tema.nombre}</span>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: completo ? '#059669' : t.textDim, flexShrink: 0 }}>{tema.respondidas}/{tema.total}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                );
+              })()}
 
               <div className="gap-workspace" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
@@ -845,6 +753,36 @@ function GapAnalysisScreen({ onNavigate }) {
                           );
                         })}
                       </div>
+
+                      {/* NO APLICA: se declara con justificación, no se borra la pregunta */}
+                      {currentQuestionData.id in noAplica ? (
+                        <div style={{ background: t.inputBg, border: `1px dashed ${t.border}`, borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                            <strong style={{ fontSize: '12px', color: t.text }}>Marcada como "No aplica" para tu empresa</strong>
+                            <span style={{ fontSize: '11px', color: t.textDim }}>Responde Sí, Parcialmente o No para volver a incluirla</span>
+                          </div>
+                          <p style={{ fontSize: '12px', lineHeight: 1.5, margin: 0, color: t.textMuted }}>{noAplica[currentQuestionData.id]}</p>
+                        </div>
+                      ) : naDraft !== null ? (
+                        <div style={{ border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
+                          <label htmlFor="na-justificacion" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.text, marginBottom: '6px' }}>¿Por qué esta pregunta no aplica a tu empresa?</label>
+                          <textarea id="na-justificacion" autoFocus rows={2} value={naDraft} onChange={(e) => setNaDraft(e.target.value)} placeholder="Ej.: No tratamos datos de menores de edad."
+                            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px', resize: 'vertical' }} />
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                            <button type="button" onClick={() => { setNaDraft(null); setNaError(null); }} style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.textMuted, fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
+                            <button type="button" onClick={guardarNoAplica} disabled={naSaving || naDraft.trim().length < 10}
+                              style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: naSaving ? 'wait' : 'pointer', opacity: naDraft.trim().length < 10 ? .5 : 1 }}>
+                              {naSaving ? 'Guardando…' : 'Marcar como No aplica'}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => { setNaDraft(''); setNaError(null); }}
+                          style={{ display: 'block', margin: '-8px 0 16px', padding: 0, border: 'none', background: 'none', color: t.textDim, fontSize: '11px', textDecoration: 'underline', cursor: 'pointer' }}>
+                          Esta pregunta no aplica a mi empresa
+                        </button>
+                      )}
+                      {naError && <p role="alert" style={{ fontSize: '12px', color: '#dc2626', margin: '-8px 0 12px' }}>{naError}</p>}
 
                       {/* RESULTADO IA */}
                       {aiResults[currentQuestionData.id] && (
@@ -940,8 +878,6 @@ function GapAnalysisScreen({ onNavigate }) {
         <InteractiveSOA />
       ) : activeMainTab === 'resultados' ? (
         <ResultadosView />
-      ) : activeMainTab === 'admin-questions' ? (
-        <QuestionsAdminView />
       ) : null}
 
       {/* ESTILOS INYECTADOS PARA RESPONSIVE GLOBAL */}

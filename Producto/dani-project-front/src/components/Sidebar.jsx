@@ -1,6 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList, BrainCircuit, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList, BrainCircuit, ListChecks, Menu, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDomainScores, getComplianceScore } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,10 +47,12 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
+    { id: 'questions', label: language === 'es' ? 'Preguntas' : 'Questions', icon: ListChecks, roles: PLATFORM, group: 'general' },
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null, group: 'general' },
   ].filter(item => {
-    if (superadminPlataforma) return ['organizations', 'user-management'].includes(item.id);
-    if (superadminEnOrg) return item.id !== 'organizations';
+    if (superadminPlataforma) return ['organizations', 'questions', 'user-management'].includes(item.id);
+    // El catálogo de preguntas es global: se administra fuera de las empresas.
+    if (superadminEnOrg) return !['organizations', 'questions'].includes(item.id);
     return !item.roles || item.roles.includes(role);
   });
 
