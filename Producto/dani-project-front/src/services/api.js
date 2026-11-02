@@ -197,6 +197,12 @@ export const evidenceAPI = {
     if (!response.ok) throw new Error(await response.text());
     return response.json();
   },
+  delete: async (evidenceId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.detail || 'No se pudo eliminar la evidencia.'); }
+    return response.json();
+  },
   download: async (evidenceId, token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/download`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
