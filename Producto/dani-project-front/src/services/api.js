@@ -410,11 +410,41 @@ export const assessmentQuestionsAPI = {
     return response.json();
   },
 
+  // Superadmin: la IA redacta como pregunta, con título corto y evidencia
+  // esperada, las preguntas del marco que no la tienen (p. ej. las de un PDF).
+  // Corre en segundo plano; onProgress recibe {done, total, stage}.
+  mejorar: async (marco, onProgress = null) => {
+    const token = localStorage.getItem('token');
+    const auth = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const form = new FormData();
+    form.append('marco', marco);
+    const inicio = await fetch(`${API_URL}/api/assessment-questions/mejorar`, { method: 'POST', headers: auth, body: form });
+    if (!inicio.ok) { const err = await inicio.json().catch(() => ({})); throw new Error(err.detail || `Error ${inicio.status}`); }
+    const { job_id, total } = await inicio.json();
+    if (!job_id) return { total: 0, con_ia: 0 };
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 2500));
+      const resp = await fetch(`${API_URL}/api/assessment-questions/mejorar/${job_id}`, { headers: auth });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Error ${resp.status}`); }
+      const job = await resp.json();
+      if (onProgress) onProgress({ done: job.done, total: job.total || total, stage: job.stage });
+      if (job.status === 'done') return job.result;
+      if (job.status === 'error') throw new Error(job.error || 'No se pudieron mejorar las preguntas');
+    }
+  },
+
   // Respuestas guardadas de la empresa (incluye las marcadas como "no aplica").
   getAnswers: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/assessment-questions/answers`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
+    return response.json();
+  },
+  // Respuesta manual (veredicto: 'cumple' | 'parcial' | 'no_cumple').
+  setAnswer: async (questionId, veredicto, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify({ veredicto }) });
+    if (!response.ok) throw new Error('No se pudo guardar la respuesta');
     return response.json();
   },
   // La empresa declara que una pregunta no le aplica, con justificación.

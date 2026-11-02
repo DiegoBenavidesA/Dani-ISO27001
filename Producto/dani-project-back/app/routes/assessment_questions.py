@@ -413,9 +413,12 @@ async def bulk_import_questions_pdf(
 
     for categoria, texto_item in items:
         indice += 1
-        cat = (categoria_forzada or categoria or "General")[:100]
+        cat = limpiar_texto_pdf(categoria_forzada or categoria or "General")[:100]
         codigo = f"{prefijo}-{indice:03d}"[:50]
-        clave = _normalizar(texto_item)
+        # El PDF trae afirmaciones con texto partido: se limpian y se pasan a pregunta.
+        # La evidencia esperada la completa luego la IA (POST /mejorar).
+        pregunta_txt = a_pregunta(texto_item)
+        clave = _normalizar(pregunta_txt)
         if clave in preguntas_existentes or clave in nuevas:
             omitidas += 1
             continue
@@ -423,8 +426,8 @@ async def bulk_import_questions_pdf(
             marco=marco,
             codigo=codigo,
             categoria=cat,
-            nombre=texto_item[:60],
-            pregunta=texto_item[:1000],
+            nombre=nombre_corto(texto_item),
+            pregunta=pregunta_txt[:1000],
             evidencia_esperada=None,
             orden=indice,
         ))
@@ -486,6 +489,39 @@ async def get_answer_by_question(question_id: str, org_id: str = Depends(get_cur
     answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
     if not answer: raise HTTPException(status_code=404, detail="No encontrada")
     return answer
+
+class RespuestaManualRequest(BaseModel):
+    veredicto: str
+
+
+@router.put("/answers/{question_id}", response_model=AnswerResponse)
+async def guardar_respuesta_manual(
+    question_id: str,
+    data: RespuestaManualRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Respuesta dada a mano en el cuestionario (Sí / Parcial / No). Se guarda
+    por empresa, igual que las de la IA, para que el resultado no dependa del
+    navegador. Si cambia el veredicto, se descarta la justificación de la IA."""
+    veredicto = (data.veredicto or "").strip().lower()
+    if veredicto not in ("cumple", "parcial", "no_cumple"):
+        raise HTTPException(status_code=400, detail="Veredicto inválido (cumple, parcial o no_cumple).")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    if answer.veredicto != veredicto:
+        answer.confianza = None
+        answer.justificacion = None
+    answer.veredicto = veredicto
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
 
 class NoAplicaRequest(BaseModel):
     justificacion: str
@@ -568,6 +604,8 @@ def extract_json_from_text(text: str):
 # por fragmentos + reintentos ante el límite de Groq).
 # =====================================================================
 from app.services import question_evaluator as qe
+from app.services.question_enricher import limpiar_texto_pdf, a_pregunta, nombre_corto
+from app.services import question_enricher
 from app.dependencies.database import AsyncSessionLocal
 
 _jobs_en_curso = set()  # referencias para que asyncio no recolecte las tareas
@@ -769,3 +807,75 @@ async def evaluate_status(job_id: str, org_id: str = Depends(get_current_org)):
     if not job:
         raise HTTPException(status_code=404, detail="La evaluación no existe o expiró (el servidor pudo haberse reiniciado).")
     return job
+
+
+# =====================================================================
+# MEJORAR PREGUNTAS CON IA (solo superadmin)
+# POST /mejorar       -> redacta como pregunta, título corto y evidencia
+#                        esperada las preguntas del marco que no la tienen
+# GET  /mejorar/{id}  -> avance del trabajo
+# =====================================================================
+_JOB_PLATAFORMA = "plataforma"  # los jobs del catálogo no son de una empresa
+
+
+@router.post("/mejorar")
+async def mejorar_preguntas(
+    marco: str = Form(...),
+    current_user: dict = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+):
+    marco = _validar_marco(marco)
+    preguntas = (await db.execute(
+        select(AssessmentQuestion)
+        .where(AssessmentQuestion.marco == marco)
+        .where((AssessmentQuestion.evidencia_esperada.is_(None)) | (AssessmentQuestion.evidencia_esperada == ""))
+        .order_by(AssessmentQuestion.orden)
+    )).scalars().all()
+    if not preguntas:
+        return {"job_id": None, "total": 0}
+    datos = [{"id": q.id, "categoria": q.categoria, "texto": q.pregunta} for q in preguntas]
+    job_id = qe.crear_job(_JOB_PLATAFORMA, len(datos))
+    tarea = asyncio.create_task(_ejecutar_mejora(job_id, marco, datos))
+    _jobs_en_curso.add(tarea)
+    tarea.add_done_callback(_jobs_en_curso.discard)
+    return {"job_id": job_id, "total": len(datos)}
+
+
+@router.get("/mejorar/{job_id}")
+async def mejorar_estado(job_id: str, current_user: dict = Depends(require_superadmin)):
+    job = qe.obtener_job(job_id, _JOB_PLATAFORMA)
+    if not job:
+        raise HTTPException(status_code=404, detail="El trabajo no existe o expiró (el servidor pudo haberse reiniciado).")
+    return job
+
+
+async def _ejecutar_mejora(job_id: str, marco: str, datos: list):
+    job = qe.JOBS[job_id]
+    job["stage"] = "Redactando preguntas y evidencia esperada"
+
+    def progreso(hechas: int):
+        job["done"] = hechas
+
+    try:
+        mejoradas = await question_enricher.enriquecer(ai_service, marco, datos, progreso)
+        con_ia = 0
+        async with AsyncSessionLocal() as db:
+            for d, m in zip(datos, mejoradas):
+                q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == d["id"]))).scalar_one_or_none()
+                if not q:
+                    continue
+                q.pregunta = m["pregunta"] or q.pregunta
+                q.nombre = (m["nombre"] or q.nombre)[:255]
+                q.categoria = limpiar_texto_pdf(q.categoria)[:100]
+                if m["evidencia_esperada"]:
+                    q.evidencia_esperada = m["evidencia_esperada"]
+                con_ia += 1 if m["con_ia"] else 0
+            await db.commit()
+        job["result"] = {"marco": marco, "total": len(datos), "con_ia": con_ia}
+        job["done"] = job["total"]
+        job["status"] = "done"
+        job["stage"] = "Listo"
+    except Exception as e:
+        print(f"Error al mejorar preguntas {job_id}: {e}")
+        job["status"] = "error"
+        job["error"] = "No se pudieron mejorar las preguntas. Intenta de nuevo."

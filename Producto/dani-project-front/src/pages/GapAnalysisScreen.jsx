@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceAPI } from '../services/api';
 import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
+import ResultadoBrechas from '../components/ResultadoBrechas';
 
 const sinAcentos = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -94,6 +95,7 @@ function GapAnalysisScreen({ onNavigate }) {
     setEvalError(null); setEvalInfo(null);
     // La Ley 21.719 no tiene SOA ni la vista de Resultados ISO.
     if (!esISO && (activeMainTab === 'soa' || activeMainTab === 'resultados')) setActiveMainTab('assessment');
+    if (esISO && activeMainTab === 'resultado') setActiveMainTab('assessment');
   }, [marco]);
   useEffect(() => { try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {} }, [aiResults]);
 
@@ -127,12 +129,21 @@ function GapAnalysisScreen({ onNavigate }) {
   const [naSaving, setNaSaving] = useState(false);
   const [naError, setNaError] = useState(null);
   useEffect(() => {
+    // Las respuestas guardadas en el servidor (manuales, de la IA y "no aplica")
+    // mandan sobre las del navegador.
     assessmentQuestionsAPI.getAnswers().then((lista) => {
       const na = {};
-      (lista || []).forEach((r) => { if (r.veredicto === 'no_aplica') na[r.question_id] = r.justificacion || ''; });
+      const delServidor = {};
+      const ia = {};
+      (lista || []).forEach((r) => {
+        if (r.veredicto === 'no_aplica') { na[r.question_id] = r.justificacion || ''; return; }
+        delServidor[r.question_id] = r.veredicto === 'cumple' ? tText.yes : r.veredicto === 'parcial' ? tText.partially : tText.no;
+        if (r.confianza !== null && r.confianza !== undefined) ia[r.question_id] = { veredicto: r.veredicto, confianza: r.confianza, justificacion: r.justificacion };
+      });
       setNoAplica(na);
+      setAiResults((prev) => ({ ...prev, ...ia }));
       setAnswers((prev) => {
-        const next = { ...prev };
+        const next = { ...prev, ...delServidor };
         Object.keys(next).forEach((id) => { if (next[id] === NO_APLICA && !(id in na)) delete next[id]; });
         Object.keys(na).forEach((id) => { next[id] = NO_APLICA; });
         return next;
@@ -191,7 +202,8 @@ function GapAnalysisScreen({ onNavigate }) {
           clause: `${subtemas.length} ${subtemas.length === 1 ? 'tema' : 'temas'} · ${g.qs.length} preguntas`,
           questions: g.qs.map(({ q, subtema }) => {
             // Los ítems del PDF repiten la pregunta en "nombre"; en ese caso el título es el subtema.
-            const nombreRepetido = !q.nombre || String(q.pregunta || '').startsWith(String(q.nombre).replace(/…$/, ''));
+            const soloLetras = (x) => sinAcentos(x).replace(/[^a-z0-9]/g, '');
+            const nombreRepetido = !q.nombre || soloLetras(q.pregunta).startsWith(soloLetras(String(q.nombre).replace(/…$/, '')));
             return {
               id: q.id, title: `${q.codigo} — ${nombreRepetido ? subtema : q.nombre}`, question: q.pregunta,
               codigo: q.codigo, subtema, options: [tText.yes, tText.partially, tText.no], critical: false, evidencia: q.evidencia_esperada,
@@ -258,6 +270,24 @@ function GapAnalysisScreen({ onNavigate }) {
   
   const currentPhaseData = phases[currentPhase];
   const currentQuestionData = currentPhaseData?.questions[currentQuestion];
+
+  // Para el Resultado: valor de cada respuesta (null = sin responder o "No aplica").
+  const valorRespuesta = React.useCallback((r) => (
+    r === tText.yes ? 1 : r === tText.partially ? 0.5 : r === tText.no ? 0 : null
+  ), [tText.yes, tText.partially, tText.no]);
+  const questionsById = useMemo(() => {
+    const m = {};
+    phases.forEach((p) => p.questions.forEach((q) => { m[q.id] = q; }));
+    return m;
+  }, [phases]);
+  const irAPregunta = (id) => {
+    const fi = phases.findIndex((p) => p.questions.some((q) => q.id === id));
+    if (fi < 0) return;
+    setCurrentPhase(fi);
+    setCurrentQuestion(phases[fi].questions.findIndex((q) => q.id === id));
+    setActiveMainTab('assessment');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   useEffect(() => { setNaDraft(null); setNaError(null); }, [currentQuestionData?.id]);
 
   const guardarNoAplica = async () => {
@@ -279,6 +309,11 @@ function GapAnalysisScreen({ onNavigate }) {
       setNoAplica((prev) => { const next = { ...prev }; delete next[id]; return next; });
     }
     setNaDraft(null); setNaError(null);
+    const veredicto = answer === tText.yes ? 'cumple' : answer === tText.partially ? 'parcial' : 'no_cumple';
+    assessmentQuestionsAPI.setAnswer(id, veredicto).catch((err) => setNaError(err.message));
+    if (aiResults[id] && aiResults[id].veredicto !== veredicto) {
+      setAiResults((prev) => { const next = { ...prev }; delete next[id]; return next; });
+    }
     markDirty();
     setAnswers({ ...answers, [currentQuestionData.id]: answer });
     setTimeout(() => goToNext(), 300);
@@ -286,7 +321,7 @@ function GapAnalysisScreen({ onNavigate }) {
   const goToNext = () => {
     if (currentQuestion < currentPhaseData.questions.length - 1) setCurrentQuestion(currentQuestion + 1);
     else if (currentPhase < phases.length - 1) { setCurrentPhase(currentPhase + 1); setCurrentQuestion(0); }
-    else if (esISO) setActiveMainTab('soa');
+    else setActiveMainTab(esISO ? 'soa' : 'resultado');
   };
   const goToPrev = () => {
     if (currentQuestion > 0) setCurrentQuestion(currentQuestion - 1);
@@ -424,8 +459,11 @@ function GapAnalysisScreen({ onNavigate }) {
       if (typeof resp.evaluated_with_ai === 'number' && resp.evaluated_with_ai < resp.total) {
         finalMsg += `La IA analizó en detalle ${resp.evaluated_with_ai} preguntas relacionadas con tus documentos; las otras ${resp.total - resp.evaluated_with_ai} quedaron como "sin evidencia".\n`;
       }
-      finalMsg += '\n';
-      alert(finalMsg); setEvalInfo(finalMsg);
+      setEvalInfo(finalMsg.trim());
+      // En vez de un aviso suelto, se abre el resultado: % de cumplimiento,
+      // mapa de calor y brechas priorizadas (ISO sigue en su vista Resultados).
+      setActiveMainTab(esISO ? 'resultados' : 'resultado');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e) {
       setEvalError(e.message || 'Error al evaluar con IA.');
     } finally {
@@ -617,7 +655,7 @@ function GapAnalysisScreen({ onNavigate }) {
         <div className="gap-tabs no-scrollbar" style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', background: t.inputBg, padding: '4px', borderRadius: '12px', border: `1px solid ${t.border}`, flexShrink: 1 }}>
           {[
             { id: 'assessment', label: 'Evaluación' },
-            ...(esISO ? [{ id: 'soa', label: 'SOA' }, { id: 'resultados', label: 'Resultados', Icon: Activity }] : []),
+            ...(esISO ? [{ id: 'soa', label: 'SOA' }, { id: 'resultados', label: 'Resultados', Icon: Activity }] : [{ id: 'resultado', label: 'Resultado', Icon: Activity }]),
           ].map(({ id, label, Icon }) => (
             <button key={id} type="button" onClick={() => setActiveMainTab(id)} aria-current={activeMainTab === id ? 'page' : undefined}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: activeMainTab === id ? '#2563eb' : 'transparent', color: activeMainTab === id ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', border: 'none', transition: 'all 0.2s' }}>
@@ -878,6 +916,12 @@ function GapAnalysisScreen({ onNavigate }) {
         <InteractiveSOA />
       ) : activeMainTab === 'resultados' ? (
         <ResultadosView />
+      ) : activeMainTab === 'resultado' ? (
+        <>
+        {evalInfo && <div role="status" style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
+        <ResultadoBrechas phases={phases} answers={answers} noAplica={noAplica} aiResults={aiResults} valorDe={valorRespuesta}
+          marcoLabel={esISO ? 'ISO 27001' : 'la Ley 21.719'} questionsById={questionsById} onIrAPregunta={irAPregunta} />
+        </>
       ) : null}
 
       {/* ESTILOS INYECTADOS PARA RESPONSIVE GLOBAL */}

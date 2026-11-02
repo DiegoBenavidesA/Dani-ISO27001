@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo } from 'react';
-import { Download, FolderUp, FileText, Plus, Edit3, Trash2, Shield, Eye } from 'lucide-react';
+import { Download, FolderUp, FileText, Plus, Edit3, Trash2, Shield, Eye, Wand2 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { assessmentQuestionsAPI } from '../services/api';
 
@@ -55,6 +55,23 @@ function QuestionsScreen() {
     }
   };
 
+  // Preguntas del marco sin evidencia esperada (típico de un PDF importado).
+  const sinEvidencia = marcoQuestions.filter((q) => !(q.evidencia_esperada || '').trim()).length;
+  const [mejorando, setMejorando] = useState(null); // {done, total, stage} mientras corre
+  const [mejoraMsg, setMejoraMsg] = useState(null);
+
+  const handleMejorar = async () => {
+    setMejoraMsg(null); setMejorando({ done: 0, total: sinEvidencia, stage: 'Iniciando' });
+    try {
+      const r = await assessmentQuestionsAPI.mejorar(marco, setMejorando);
+      await loadQuestions();
+      const fallidas = (r.total || 0) - (r.con_ia || 0);
+      setMejoraMsg({ ok: true, texto: `La IA completó ${r.con_ia || 0} de ${r.total || 0} preguntas.` + (fallidas > 0 ? ` ${fallidas} quedaron sin evidencia esperada (límite de la IA); vuelve a pulsar el botón para reintentarlas.` : '') });
+    } catch (err) {
+      setMejoraMsg({ ok: false, texto: err.message });
+    } finally { setMejorando(null); }
+  };
+
   const handleImportPdf = async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -65,6 +82,8 @@ function QuestionsScreen() {
       const res = await assessmentQuestionsAPI.bulkImportPdf(file, marco);
       setImportResult(res);
       await loadQuestions();
+      // Los PDF no traen evidencia esperada ni vienen redactados como pregunta.
+      if (res.creadas > 0) setTimeout(handleMejorar, 0);
     } catch (err) {
       setImportResult({ error: err.message });
     } finally {
@@ -118,7 +137,7 @@ function QuestionsScreen() {
           const activo = marco === id;
           const n = dbQuestions.filter((q) => (q.marco || 'iso27001') === id).length;
           return (
-            <button key={id} type="button" role="radio" aria-checked={activo} onClick={() => { setMarco(id); setImportResult(null); }}
+            <button key={id} type="button" role="radio" aria-checked={activo} disabled={!!mejorando} onClick={() => { setMarco(id); setImportResult(null); setMejoraMsg(null); }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: 'none', background: activo ? '#004ac6' : 'transparent', color: activo ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}>
               <Icon size={14} />{label}<span style={{ fontWeight: 500, opacity: .8 }}>({n})</span>
             </button>
@@ -174,6 +193,23 @@ function QuestionsScreen() {
         </div>
       )}
 
+      {(sinEvidencia > 0 || mejorando || mejoraMsg) && (
+        <div role="status" style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${mejoraMsg && !mejoraMsg.ok ? '#ef4444' : '#f59e0b'}`, background: t.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', fontSize: '13px', color: t.text }}>
+          <span>
+            {mejorando
+              ? `${mejorando.stage || 'Trabajando'}… ${mejorando.done || 0} de ${mejorando.total || sinEvidencia}`
+              : mejoraMsg
+                ? mejoraMsg.texto
+                : <><strong>{sinEvidencia}</strong> preguntas de {marcoLabel} no tienen evidencia esperada. Sin ella la IA evalúa con menos precisión.</>}
+          </span>
+          {sinEvidencia > 0 && !mejorando && (
+            <button type="button" onClick={handleMejorar} style={{ padding: '8px 14px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Wand2 size={14} /> Completar con IA
+            </button>
+          )}
+        </div>
+      )}
+
       <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
@@ -195,6 +231,9 @@ function QuestionsScreen() {
                 <td style={{ padding: '14px 20px', fontSize: '13px', color: t.text }}>
                   <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.nombre}</div>
                   <div style={{ color: t.textDim }}>{q.pregunta}</div>
+                  <div style={{ marginTop: '4px', fontSize: '12px', color: q.evidencia_esperada ? t.textDim : '#b45309' }}>
+                    <strong>Evidencia esperada:</strong> {q.evidencia_esperada || 'sin definir'}
+                  </div>
                 </td>
                 <td style={{ padding: '14px 20px', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
