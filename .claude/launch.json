@@ -9,6 +9,13 @@
       "port": 3000
     },
     {
+      "name": "frontend-prod-api",
+      "cwd": "Producto/dani-project-front",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set REACT_APP_API_URL=https://dani-iso27001-uldm.onrender.com&& set BROWSER=none&& npm start"],
+      "port": 3000
+    },
+    {
       "name": "backend",
       "cwd": "Producto/dani-project-back",
       "runtimeExecutable": "venv311/Scripts/python.exe",

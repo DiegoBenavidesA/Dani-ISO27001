@@ -3,7 +3,8 @@ import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import {
   Building2, Target, Users, Lock, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2, AlertCircle,
-  Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
+  Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText,
+  ClipboardList, Search, Check, Minus, X, Ban, Zap, RefreshCw, Loader2
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -623,293 +624,373 @@ function GapAnalysisScreen({ onNavigate }) {
     );
   };
 
+  // Temas de la fase activa (columna izquierda) con su avance y filtro.
+  const [temaFiltro, setTemaFiltro] = useState('');
+  const temasFase = useMemo(() => {
+    const lista = [];
+    (currentPhaseData?.questions || []).forEach((q, i) => {
+      const nombre = q.subtema || currentPhaseData.name;
+      let tema = lista.find((x) => x.nombre === nombre);
+      if (!tema) { tema = { nombre, inicio: i, total: 0, respondidas: 0 }; lista.push(tema); }
+      tema.total += 1;
+      if (answers[q.id]) tema.respondidas += 1;
+    });
+    return lista;
+  }, [currentPhaseData, answers]);
+  const temasVisibles = temaFiltro.trim()
+    ? temasFase.filter((x) => sinAcentos(x.nombre).includes(sinAcentos(temaFiltro.trim())))
+    : temasFase;
+
   return (
     <div className="normia-gap" style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', color: t.text }}>
       
-      {/* HEADER MÓVIL-FIRST */}
-      <section className="gap-header" style={{ marginBottom: '16px' }}>
-        <p style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '1px', color: '#2563eb', textTransform: 'uppercase', marginBottom: '2px' }}>Cumplimiento Normativo</p>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, lineHeight: 1.1, margin: 0, color: t.text, letterSpacing: '-0.5px' }}>{tText.gapAnalysis}</h1>
-        <p style={{ margin: '4px 0 0', fontSize: '12px', lineHeight: 1.4, color: t.textDim }}>{esISO ? tText.completeAssessment : 'Evalúa tus documentos contra las obligaciones de la Ley 21.719 de Protección de Datos Personales'}</p>
-      </section>
+      {/* CABECERA: marco, pestañas y avance global */}
+      <header className="gap-top" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '14px 20px', marginBottom: '16px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.6px', textTransform: 'uppercase', padding: '2px 8px', borderRadius: '4px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #dbeafe' }}>Cumplimiento normativo</span>
+              <span style={{ color: t.textDim, fontSize: '12px' }}>/</span>
+              <span style={{ fontSize: '12px', color: t.textDim, fontWeight: 500 }}>{esISO ? 'ISO/IEC 27001:2022' : 'Ley 21.719 de Protección de Datos Personales'}</span>
+            </div>
+            <h1 style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.3px', margin: 0, color: t.text }}>{tText.gapAnalysis}</h1>
+          </div>
 
-      {/* MARCO NORMATIVO: la IA evalúa uno a la vez */}
-      <section aria-label="Marco normativo" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: t.textDim }}>Evaluar contra:</span>
-        <div role="radiogroup" style={{ display: 'inline-flex', gap: '4px', background: t.inputBg, padding: '4px', borderRadius: '12px', border: `1px solid ${t.border}` }}>
-          {[{ id: 'iso27001', label: 'ISO 27001:2022', Icon: Shield }, { id: 'ley21719', label: 'Ley 21.719', Icon: Eye }].map(({ id, label, Icon }) => {
-            const activo = marco === id;
-            const n = dbQuestions.filter((q) => (q.marco || 'iso27001') === id).length;
-            return (
-              <button key={id} type="button" role="radio" aria-checked={activo} disabled={isEvaluating} onClick={() => setMarco(id)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '7px 14px', borderRadius: '9px', border: 'none', background: activo ? '#004ac6' : 'transparent', color: activo ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: 700, cursor: isEvaluating ? 'not-allowed' : 'pointer' }}>
-                <Icon size={14} />{label}<span style={{ fontWeight: 500, opacity: .8 }}>({n})</span>
-              </button>
-            );
-          })}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            {/* Marco normativo: la IA evalúa uno a la vez */}
+            <div role="radiogroup" aria-label="Marco normativo" style={{ display: 'inline-flex', gap: '2px', background: t.inputBg, padding: '4px', borderRadius: '10px', border: `1px solid ${t.border}` }}>
+              {[{ id: 'iso27001', label: 'ISO 27001:2022', Icon: Shield }, { id: 'ley21719', label: 'Ley 21.719', Icon: Eye }].map(({ id, label, Icon }) => {
+                const activo = marco === id;
+                const n = dbQuestions.filter((q) => (q.marco || 'iso27001') === id).length;
+                return (
+                  <button key={id} type="button" role="radio" aria-checked={activo} disabled={isEvaluating} onClick={() => setMarco(id)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '7px', border: 'none', background: activo ? '#2563eb' : 'transparent', color: activo ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: activo ? 600 : 500, cursor: isEvaluating ? 'not-allowed' : 'pointer', boxShadow: activo ? '0 1px 2px rgba(0,0,0,.1)' : 'none' }}>
+                    <Icon size={14} />{label}
+                    <span style={{ fontSize: '10px', padding: '0 6px', borderRadius: '4px', background: activo ? 'rgba(29,78,216,.6)' : 'transparent', color: activo ? '#fff' : t.textDim }}>{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <span className="gap-divider" style={{ width: '1px', height: '24px', background: t.border }} />
+            {/* Pestañas */}
+            <nav aria-label="Vistas" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {[
+                { id: 'assessment', label: 'Evaluación', Icon: ClipboardList },
+                ...(esISO ? [{ id: 'soa', label: 'SOA', Icon: FileCheck }, { id: 'resultados', label: 'Resultados', Icon: Activity }] : [{ id: 'resultado', label: 'Resultado', Icon: Activity }]),
+              ].map(({ id, label, Icon }) => {
+                const activo = activeMainTab === id;
+                return (
+                  <button key={id} type="button" onClick={() => setActiveMainTab(id)} aria-current={activo ? 'page' : undefined}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}`, background: activo ? '#eff6ff' : 'transparent', color: activo ? '#1d4ed8' : t.textMuted, fontSize: '12px', fontWeight: activo ? 600 : 500, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    <Icon size={15} color={activo ? '#2563eb' : undefined} />{label}
+                  </button>
+                );
+              })}
+            </nav>
+            {activeMainTab !== 'assessment' && saveStatus !== 'idle' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: saveStatus === 'error' ? '#dc2626' : t.textDim }}>
+                {saveStatus === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} color={saveStatus === 'saved' ? '#2563eb' : undefined} />}
+                {saveStatus === 'saved' ? 'Cambios guardados' : saveStatus === 'error' ? 'No se pudo guardar' : 'Guardando...'}
+              </span>
+            )}
+          </div>
         </div>
-      </section>
 
-      {/* PESTAÑAS NAVEGABLES (SCROLL HORIZONTAL MÓVIL) */}
-      <div className="gap-tabs-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px' }}>
-        <div className="gap-tabs no-scrollbar" style={{ display: 'flex', alignItems: 'center', gap: '6px', overflowX: 'auto', background: t.inputBg, padding: '4px', borderRadius: '12px', border: `1px solid ${t.border}`, flexShrink: 1 }}>
-          {[
-            { id: 'assessment', label: 'Evaluación' },
-            ...(esISO ? [{ id: 'soa', label: 'SOA' }, { id: 'resultados', label: 'Resultados', Icon: Activity }] : [{ id: 'resultado', label: 'Resultado', Icon: Activity }]),
-          ].map(({ id, label, Icon }) => (
-            <button key={id} type="button" onClick={() => setActiveMainTab(id)} aria-current={activeMainTab === id ? 'page' : undefined}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', background: activeMainTab === id ? '#2563eb' : 'transparent', color: activeMainTab === id ? '#fff' : t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', border: 'none', transition: 'all 0.2s' }}>
-              {Icon && <Icon size={14} />}{label}
-            </button>
-          ))}
-        </div>
-        {saveStatus !== 'idle' && (
-          <span
-            title={saveStatus === 'error' ? 'Se reintentará con tu próximo cambio' : undefined}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, flexShrink: 0, color: saveStatus === 'error' ? '#dc2626' : t.textDim }}
-          >
-            {saveStatus === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} color={saveStatus === 'saved' ? '#004ac6' : undefined} />}
-            {saveStatus === 'saved' ? 'Cambios guardados' : saveStatus === 'error' ? 'No se pudo guardar' : 'Guardando...'}
-          </span>
+        {activeMainTab === 'assessment' && (
+          <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Avance global del cuestionario</span>
+              <span style={{ fontSize: '12px', color: t.textDim, fontWeight: 500 }}>{answeredCount} de {totalQuestions} preguntas respondidas</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '260px', maxWidth: '100%' }}>
+              <div role="progressbar" aria-valuenow={globalProgress} aria-valuemin={0} aria-valuemax={100} aria-label="Avance global" style={{ flex: 1, height: '8px', background: t.inputBg, borderRadius: '999px', overflow: 'hidden' }}>
+                <div style={{ width: `${globalProgress}%`, height: '100%', background: '#2563eb', borderRadius: '999px', transition: 'width .3s' }} />
+              </div>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}>{globalProgress}%</span>
+            </div>
+          </div>
         )}
-      </div>
+      </header>
 
       {activeMainTab === 'assessment' ? (
         <>
-          {/* BARRA DE PROGRESO */}
-          <section style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start' }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: '13px', color: t.text }}>Avance del cuestionario</div>
-                <div style={{ color: t.textDim, fontSize: '11px', marginTop: '2px' }}>{answeredCount} de {totalQuestions} preguntas respondidas</div>
-              </div>
-              <strong style={{ color: '#2563eb', fontSize: '20px', fontWeight: 800, whiteSpace: 'nowrap' }}>{globalProgress}%</strong>
-            </div>
-            <div role="progressbar" aria-valuenow={globalProgress} aria-valuemin={0} aria-valuemax={100} style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden', marginTop: '12px' }}>
-              <div style={{ width: `${globalProgress}%`, height: '100%', background: '#2563eb', borderRadius: '4px', transition: 'width 0.4s ease' }} />
-            </div>
-          </section>
-
           {questionsLoading && <div style={{ padding: '28px', color: t.textDim, textAlign: 'center' }}>Cargando preguntas desde la base de datos...</div>}
           {!questionsLoading && questionsError && <div role="alert" style={{ padding: '14px', color: '#dc2626', background: 'rgba(239,68,68,.07)', borderRadius: '10px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>{questionsError}<button type="button" onClick={loadQuestions} style={{ padding: '7px 14px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Reintentar</button></div>}
           {!questionsLoading && phases.length === 0 && !questionsError && <div style={{ padding: '28px', borderRadius: '12px', border: `1px solid ${t.border}`, background: t.cardBg }}>Todavía no hay preguntas configuradas.</div>}
 
           {!questionsLoading && phases.length > 0 && (
-            <>
-              {/* SELECTOR DE FASE */}
-              <section style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden', flex: 1 }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {currentPhaseData?.icon && <currentPhaseData.icon size={16} />}
+            <div className="gap-3col" style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+
+              {/* IZQUIERDA: fase activa y sus temas */}
+              <aside className="gap-left" aria-label="Fases y temas" style={{ width: '260px', flex: 'none', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ padding: '16px', borderBottom: `1px solid ${t.border}`, background: t.inputBg }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '.6px', textTransform: 'uppercase', color: '#2563eb' }}>Fase activa</span>
+                    <button type="button" onClick={() => setShowAllPhases((v) => !v)} aria-expanded={showAllPhases}
+                      style={{ fontSize: '12px', fontWeight: 600, color: '#1d4ed8', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                      {showAllPhases ? 'Cerrar' : 'Cambiar fase →'}
+                    </button>
                   </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Fase: {currentPhaseData?.name}</span>
-                      <ChevronRight size={14} color={t.textDim} style={{ flexShrink: 0 }} />
-                    </div>
-                    <p style={{ fontSize: '10px', color: '#059669', fontWeight: 600, margin: 0 }}>{currentPhaseData?.questions.length ? `${getPhaseProgress(currentPhase)}% respondida` : ''}</p>
+                  <h2 style={{ fontSize: '14px', fontWeight: 700, color: t.text, margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#dbeafe', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700, flex: 'none' }}>{currentPhase + 1}</span>
+                    {currentPhaseData?.name}
+                  </h2>
+                  <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: t.textDim }}>
+                    <span>Progreso de fase</span>
+                    <span style={{ fontWeight: 600, color: t.textMuted }}>{getPhaseProgress(currentPhase)}% completado</span>
                   </div>
                 </div>
-                <button type="button" onClick={() => setShowAllPhases((v) => !v)} style={{ fontSize: '11px', fontWeight: 600, color: '#334155', background: '#f8fafc', border: `1px solid ${t.border}`, padding: '6px 10px', borderRadius: '8px', flexShrink: 0, cursor: 'pointer' }}>
-                  Ver fases
-                </button>
-              </section>
 
-              {showAllPhases && (
-                <div className="phase-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px', marginBottom: '16px' }}>
-                  {phases.map((phase, idx) => {
-                    const Icon = phase.icon;
-                    const progress = getPhaseProgress(idx);
-                    return (
-                      <button type="button" key={phase.id} onClick={() => { setCurrentPhase(idx); setCurrentQuestion(0); setShowAllPhases(false); }}
-                        style={{ background: idx === currentPhase ? '#eff6ff' : t.cardBg, border: `1px solid ${idx === currentPhase ? '#2563eb' : t.border}`, padding: '12px', borderRadius: '12px', textAlign: 'left', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <Icon size={16} color={idx === currentPhase ? '#2563eb' : t.textDim} />
-                          <span style={{ flex: 1, fontSize: '11px', fontWeight: 700, color: t.text, lineHeight: 1.2 }}>{phase.name}</span>
-                        </div>
-                        {!esISO && <span style={{ fontSize: '10px', color: t.textDim }}>{phase.clause}</span>}
-                        <div style={{ height: '4px', background: idx === currentPhase ? '#dbeafe' : t.inputBg, borderRadius: '2px', overflow: 'hidden', width: '100%' }}>
-                          <div style={{ width: `${progress}%`, height: '100%', background: '#2563eb' }} />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* TEMAS DEL GRUPO (Ley): saltar a un tema y ver su avance */}
-              {!esISO && currentPhaseData && (() => {
-                const temas = [];
-                currentPhaseData.questions.forEach((q, i) => {
-                  let tema = temas.find((x) => x.nombre === q.subtema);
-                  if (!tema) { tema = { nombre: q.subtema, inicio: i, total: 0, respondidas: 0 }; temas.push(tema); }
-                  tema.total += 1;
-                  if (answers[q.id]) tema.respondidas += 1;
-                });
-                if (temas.length < 2) return null;
-                const temaActual = currentQuestionData?.subtema;
-                return (
-                  <nav aria-label="Temas del grupo" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                    {temas.map((tema) => {
-                      const activo = tema.nombre === temaActual;
-                      const completo = tema.respondidas === tema.total;
+                {showAllPhases ? (
+                  <div className="gap-scroll" style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+                    {phases.map((phase, idx) => {
+                      const activo = idx === currentPhase;
+                      const Icon = phase.icon;
                       return (
-                        <button key={tema.nombre} type="button" onClick={() => setCurrentQuestion(tema.inicio)} aria-current={activo ? 'true' : undefined}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 10px', borderRadius: '999px', border: `1px solid ${activo ? '#2563eb' : t.border}`, background: activo ? '#eff6ff' : t.cardBg, color: activo ? '#1d4ed8' : t.textMuted, fontSize: '11px', fontWeight: activo ? 700 : 500, cursor: 'pointer', textAlign: 'left', maxWidth: '100%' }}>
-                          <span>{tema.nombre}</span>
-                          <span style={{ fontSize: '10px', fontWeight: 600, color: completo ? '#059669' : t.textDim, flexShrink: 0 }}>{tema.respondidas}/{tema.total}</span>
+                        <button key={phase.id} type="button" onClick={() => { setCurrentPhase(idx); setCurrentQuestion(0); setShowAllPhases(false); setTemaFiltro(''); }}
+                          style={{ width: '100%', textAlign: 'left', padding: '10px', borderRadius: '8px', border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}`, background: activo ? '#eff6ff' : 'transparent', cursor: 'pointer', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <Icon size={16} color={activo ? '#2563eb' : t.textDim} style={{ flex: 'none' }} />
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: activo ? '#1e3a8a' : t.text }}>{idx + 1}. {phase.name}</span>
+                            <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{phase.clause}</span>
+                          </span>
+                          <span style={{ fontSize: '11px', fontWeight: 600, color: t.textMuted, flex: 'none' }}>{getPhaseProgress(idx)}%</span>
                         </button>
                       );
                     })}
-                  </nav>
-                );
-              })()}
-
-              <div className="gap-workspace" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                
-                {/* ÁREA DE PREGUNTA PRINCIPAL */}
-                <main className="gap-main-card">
-                  {currentQuestionData && (
-                    <section style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <span style={{ color: '#2563eb', fontWeight: 700, fontSize: '11px' }}>Cuestionario de cumplimiento</span>
-                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '4px 8px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.textMuted }}>Pregunta {currentQuestion + 1} de {currentPhaseData.questions.length}</span>
-                      </div>
-                      
-                      <h2 style={{ fontSize: '15px', lineHeight: 1.3, fontWeight: 800, margin: '0 0 8px', color: t.text }}>{currentQuestionData.title}</h2>
-                      <p style={{ fontSize: '13px', lineHeight: 1.5, margin: '0 0 16px', color: t.textMuted }}>{currentQuestionData.question}</p>
-                      
-                      {/* BOTONES DE RESPUESTA */}
-                      <div className="gap-choices" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '16px' }}>
-                        {currentQuestionData.options.map((option) => {
-                          const selected = answers[currentQuestionData.id] === option;
-                          return (
-                            <button key={option} type="button" onClick={() => handleAnswer(option)} aria-pressed={selected}
-                              style={{ padding: '10px 8px', borderRadius: '12px', border: `2px solid ${selected ? '#2563eb' : t.border}`, background: selected ? '#eff6ff' : t.cardBg, color: selected ? '#1d4ed8' : t.text, fontWeight: selected ? 700 : 600, fontSize: '12px', cursor: 'pointer', transition: 'all 0.15s' }}>
-                              {option}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* NO APLICA: se declara con justificación, no se borra la pregunta */}
-                      {currentQuestionData.id in noAplica ? (
-                        <div style={{ background: t.inputBg, border: `1px dashed ${t.border}`, borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                            <strong style={{ fontSize: '12px', color: t.text }}>Marcada como "No aplica" para tu empresa</strong>
-                            <span style={{ fontSize: '11px', color: t.textDim }}>Responde Sí, Parcialmente o No para volver a incluirla</span>
-                          </div>
-                          <p style={{ fontSize: '12px', lineHeight: 1.5, margin: 0, color: t.textMuted }}>{noAplica[currentQuestionData.id]}</p>
-                        </div>
-                      ) : naDraft !== null ? (
-                        <div style={{ border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-                          <label htmlFor="na-justificacion" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.text, marginBottom: '6px' }}>¿Por qué esta pregunta no aplica a tu empresa?</label>
-                          <textarea id="na-justificacion" autoFocus rows={2} value={naDraft} onChange={(e) => setNaDraft(e.target.value)} placeholder="Ej.: No tratamos datos de menores de edad."
-                            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px', resize: 'vertical' }} />
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
-                            <button type="button" onClick={() => { setNaDraft(null); setNaError(null); }} style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.textMuted, fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
-                            <button type="button" onClick={guardarNoAplica} disabled={naSaving || naDraft.trim().length < 10}
-                              style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: naSaving ? 'wait' : 'pointer', opacity: naDraft.trim().length < 10 ? .5 : 1 }}>
-                              {naSaving ? 'Guardando…' : 'Marcar como No aplica'}
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <button type="button" onClick={() => { setNaDraft(''); setNaError(null); }}
-                          style={{ display: 'block', margin: '-8px 0 16px', padding: 0, border: 'none', background: 'none', color: t.textDim, fontSize: '11px', textDecoration: 'underline', cursor: 'pointer' }}>
-                          Esta pregunta no aplica a mi empresa
-                        </button>
-                      )}
-                      {naError && <p role="alert" style={{ fontSize: '12px', color: '#dc2626', margin: '-8px 0 12px' }}>{naError}</p>}
-
-                      {/* RESULTADO IA */}
-                      {aiResults[currentQuestionData.id] && (
-                        <div style={{ background: '#eff6ff', border: `1px solid #bfdbfe`, borderRadius: '12px', padding: '12px', marginBottom: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#2563eb', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Wand2 size={12} /></div>
-                              <strong style={{ fontSize: '11px', color: t.text }}>Análisis IA</strong>
-                              {(() => {
-                                const v = aiResults[currentQuestionData.id].veredicto;
-                                const map = { cumple: ['Cumple', '#1d4ed8', '#dbeafe'], parcial: ['Parcial', '#b45309', '#fef3c7'], no_cumple: ['No cumple', '#dc2626', '#fee2e2'], sin_evidencia: ['Sin evidencia', '#475569', '#f1f5f9'] };
-                                const [label, color, bg] = map[v] || ['Sin clasificar', t.textDim, 'transparent'];
-                                return <span style={{ fontSize: '10px', color, background: bg, fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>{label}</span>;
-                              })()}
-                            </div>
-                            {typeof aiResults[currentQuestionData.id].confianza === 'number' && <span style={{ fontSize: '10px', color: t.textDim, fontWeight: 600 }}>Confianza: <span style={{ color: '#2563eb' }}>{Math.round(aiResults[currentQuestionData.id].confianza * 100)}%</span></span>}
-                          </div>
-                          <p style={{ color: t.textMuted, fontSize: '11px', lineHeight: 1.5, margin: 0 }}>{aiResults[currentQuestionData.id].justificacion}</p>
-                        </div>
-                      )}
-                      
-                      {/* NAVEGACIÓN DE PREGUNTAS */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', borderTop: `1px solid ${t.border}` }}>
-                        <button type="button" onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 12px', borderRadius: '10px', border: 'none', background: t.inputBg, color: t.textMuted, cursor: 'pointer', fontSize: '12px', fontWeight: 600, opacity: currentPhase === 0 && currentQuestion === 0 ? .4 : 1 }}>
-                          <ChevronLeft size={16} /> Anterior
-                        </button>
-                        <button type="button" onClick={goToNext} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '8px 16px', borderRadius: '10px', border: 'none', background: '#2563eb', color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '12px', boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' }}>
-                          Continuar <ChevronRight size={16} />
-                        </button>
-                      </div>
-                    </section>
-                  )}
-                </main>
-
-                {/* COLUMNA LATERAL DE EVIDENCIAS */}
-                <aside className="gap-side-card" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <FileCheck size={18} color="#2563eb" />
-                    <h2 style={{ fontSize: '14px', fontWeight: 800, color: t.text, margin: 0 }}>Evidencias</h2>
                   </div>
-                  <p style={{ fontSize: '11px', color: t.textDim, margin: '0 0 12px' }}>{savedDocs.length} documentos disponibles para IA.</p>
-                  
-                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', padding: '10px', border: `1px dashed #93c5fd`, borderRadius: '10px', background: '#eff6ff', color: '#2563eb', fontSize: '11px', fontWeight: 700, cursor: uploadingDocs ? 'wait' : 'pointer', marginBottom: '12px', transition: 'all 0.2s' }}>
-                    <FolderUp size={14} />{uploadingDocs ? 'Guardando...' : 'Agregar documentos'}
-                    <input type="file" multiple accept=".pdf,.txt,.docx" disabled={uploadingDocs} style={{ display: 'none' }} onChange={(e) => { handleUploadDocs(e.target.files); e.target.value = ''; }} />
-                  </label>
-
-                  {savedDocs.length === 0 ? (
-                    <div style={{ padding: '12px', fontSize: '11px', color: t.textDim, borderRadius: '8px', background: t.inputBg, textAlign: 'center' }}>Sube evidencias para evaluarlas.</div>
-                  ) : (
-                    <div className="no-scrollbar" style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '180px', overflowY: 'auto' }}>
-                      {savedDocs.map((d) => {
-                        const checked = selectedEvidenceIds.includes(d.id);
+                ) : (
+                  <>
+                    <div style={{ padding: '12px', borderBottom: `1px solid ${t.border}` }}>
+                      <div style={{ position: 'relative' }}>
+                        <Search size={15} color={t.textDim} style={{ position: 'absolute', left: '10px', top: '9px', pointerEvents: 'none' }} />
+                        <input type="search" value={temaFiltro} onChange={(e) => setTemaFiltro(e.target.value)} placeholder="Filtrar temas de esta fase..." aria-label="Filtrar temas"
+                          style={{ width: '100%', boxSizing: 'border-box', fontSize: '12px', padding: '7px 10px 7px 32px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
+                      </div>
+                    </div>
+                    <div className="gap-scroll" style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto' }}>
+                      {temasVisibles.length === 0 && <p style={{ fontSize: '12px', color: t.textDim, padding: '8px', margin: 0 }}>Ningún tema coincide.</p>}
+                      {temasVisibles.map((tema) => {
+                        const activo = tema.nombre === currentQuestionData?.subtema;
+                        const completo = tema.respondidas === tema.total;
                         return (
-                          <label key={d.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', borderRadius: '10px', background: checked ? 'white' : t.inputBg, border: `1px solid ${checked ? '#2563eb' : t.border}`, cursor: 'pointer', transition: 'all 0.2s' }}>
-                            <input type="checkbox" checked={checked} onChange={() => toggleEvidence(d.id)} style={{ accentColor: '#2563eb', width: '14px', height: '14px', flexShrink: 0 }} />
-                            <span style={{ fontSize: '11px', color: t.text, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name || d.title || 'Documento'}</span>
-                          </label>
+                          <button key={tema.nombre} type="button" onClick={() => setCurrentQuestion(tema.inicio)} aria-current={activo ? 'true' : undefined}
+                            style={{ width: '100%', textAlign: 'left', padding: '10px', borderRadius: '8px', border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}`, background: activo ? '#eff6ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                            <span style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', minWidth: 0 }}>
+                              {activo && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#2563eb', flex: 'none', marginTop: '6px' }} />}
+                              <span style={{ fontSize: '12px', fontWeight: activo ? 600 : 500, color: activo ? '#1e3a8a' : t.text, lineHeight: 1.35 }}>{tema.nombre}</span>
+                            </span>
+                            <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '999px', flex: 'none', background: activo ? t.cardBg : t.inputBg, color: completo ? '#059669' : (activo ? '#1d4ed8' : t.textDim), border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}` }}>
+                              {tema.respondidas}/{tema.total}
+                            </span>
+                          </button>
                         );
                       })}
                     </div>
-                  )}
+                  </>
+                )}
+                <div style={{ padding: '10px', borderTop: `1px solid ${t.border}`, background: t.inputBg, textAlign: 'center' }}>
+                  <p style={{ fontSize: '11px', color: t.textDim, margin: 0 }}>
+                    {showAllPhases ? `${phases.length} fases en ${esISO ? 'ISO 27001' : 'la Ley 21.719'}` : `${temasFase.length} ${temasFase.length === 1 ? 'tema' : 'temas'} en esta fase`}
+                  </p>
+                </div>
+              </aside>
 
-                  <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button type="button" onClick={() => handleEvaluateWithAI(false)} disabled={isEvaluating || selectedEvidenceIds.length === 0} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', padding: '10px', borderRadius: '10px', border: 'none', background: '#2563eb', color: 'white', fontWeight: 700, fontSize: '12px', cursor: 'pointer', opacity: isEvaluating || !selectedEvidenceIds.length ? .5 : 1, boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' }}>
-                      <Wand2 size={14} />{isEvaluating ? 'Evaluando...' : 'Evaluar con IA'}
-                    </button>
-                    <button type="button" onClick={() => handleEvaluateWithAI(true)} disabled={isEvaluating || selectedEvidenceIds.length === 0} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', padding: '10px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontWeight: 600, fontSize: '11px', cursor: 'pointer', opacity: isEvaluating || !selectedEvidenceIds.length ? .5 : 1 }}>
-                      <Activity size={14} /> Revalidar pendientes
-                    </button>
-                  </div>
-                  {isEvaluating && (
-                    <div style={{ marginTop: '12px' }}>
-                      <p style={{ margin: 0, fontSize: '12px', color: '#004ac6' }}>
-                        {evalProgress ? `${evalProgress.stage || 'Evaluando'} · ${evalProgress.done} de ${evalProgress.total} preguntas` : 'La IA está analizando los documentos...'}
-                      </p>
-                      {evalProgress && evalProgress.total > 0 && (
-                        <div role="progressbar" aria-valuenow={evalProgress.done} aria-valuemin={0} aria-valuemax={evalProgress.total} style={{ marginTop: '6px', height: '6px', background: t.inputBg, borderRadius: '10px', overflow: 'hidden' }}>
-                          <div style={{ width: `${Math.round((evalProgress.done / evalProgress.total) * 100)}%`, height: '100%', background: '#004ac6', transition: 'width .3s' }} />
+              {/* CENTRO: la pregunta */}
+              <section className="gap-center" aria-label="Pregunta" style={{ flex: 1, minWidth: 0, background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflow: 'hidden' }}>
+                {currentQuestionData && (() => {
+                  const q = currentQuestionData;
+                  const sub = (q.title || '').split(' — ').slice(1).join(' — ');
+                  const etiqueta = sub && sub !== q.subtema ? sub : '';
+                  const meta = [
+                    { Icon: Check, sub: 'Implementado totalmente', on: '#10b981' },
+                    { Icon: Minus, sub: 'En proceso o incompleto', on: '#f59e0b' },
+                    { Icon: X, sub: 'No implementado', on: '#f43f5e' },
+                  ];
+                  return (
+                    <>
+                      <div style={{ padding: '12px 24px', borderBottom: `1px solid ${t.border}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: t.textDim, minWidth: 0, flexWrap: 'wrap' }}>
+                          <span style={{ color: '#1d4ed8', fontWeight: 600 }}>{currentPhaseData.name}</span>
+                          {q.subtema && q.subtema !== currentPhaseData.name && <><span>›</span><span style={{ fontWeight: 500, color: t.textMuted }}>{q.subtema}</span></>}
                         </div>
-                      )}
-                    </div>
-                  )}
-                  {evalError && <div role="alert" style={{ marginTop: '12px', padding: '10px', borderRadius: '8px', background: 'rgba(239,68,68,.08)', color: '#dc2626', fontSize: '12px', overflowWrap: 'anywhere' }}>{evalError}</div>}
-                  {evalInfo && <div style={{ marginTop: '12px', padding: '10px', borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
-                </aside>
+                        <span style={{ fontSize: '12px', fontWeight: 600, padding: '4px 10px', borderRadius: '999px', background: t.cardBg, color: t.textMuted, border: `1px solid ${t.border}`, whiteSpace: 'nowrap' }}>
+                          Pregunta {currentQuestion + 1} de {currentPhaseData.questions.length}
+                        </span>
+                      </div>
 
-              </div>
-            </>
+                      <div className="gap-qbody" style={{ padding: '32px 40px', maxWidth: '860px', margin: '0 auto', boxSizing: 'border-box' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '12px' }}>
+                          <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: '12px', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', background: t.inputBg, color: t.textMuted, border: `1px solid ${t.border}`, flex: 'none' }}>{q.codigo}</span>
+                          {etiqueta && <><span style={{ color: t.textDim, fontSize: '12px' }}>|</span><span style={{ fontSize: '12px', color: t.textDim, fontWeight: 500, minWidth: 0, lineHeight: 1.4 }}>{etiqueta}</span></>}
+                        </div>
+
+                        <h3 className="gap-qtitle" style={{ fontSize: '20px', fontWeight: 700, lineHeight: 1.35, color: t.text, margin: 0 }}>{q.question}</h3>
+                        {q.evidencia && (
+                          <p style={{ fontSize: '14px', color: t.textDim, lineHeight: 1.6, margin: '8px 0 0' }}>
+                            <strong style={{ color: t.textMuted, fontWeight: 600 }}>Evidencia esperada:</strong> {q.evidencia}
+                          </p>
+                        )}
+
+                        <div style={{ marginTop: '28px' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '.6px', textTransform: 'uppercase', color: t.textDim, margin: '0 0 12px' }}>Seleccione el grado de implementación:</p>
+                          <div className="gap-options" role="radiogroup" aria-label="Grado de implementación" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
+                            {q.options.map((option, i) => {
+                              const m = meta[i] || meta[2];
+                              const sel = answers[q.id] === option;
+                              return (
+                                <button key={option} type="button" role="radio" aria-checked={sel} onClick={() => handleAnswer(option)}
+                                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px', borderRadius: '12px', border: `2px solid ${sel ? '#2563eb' : t.border}`, background: sel ? 'rgba(37,99,235,.06)' : t.cardBg, boxShadow: sel ? '0 0 0 3px rgba(59,130,246,.15)' : 'none', cursor: 'pointer', textAlign: 'center', transition: 'all .15s' }}>
+                                  <span style={{ width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px', background: sel ? m.on : t.inputBg, color: sel ? '#fff' : t.textDim }}>
+                                    <m.Icon size={16} strokeWidth={2.5} />
+                                  </span>
+                                  <span style={{ fontSize: '14px', fontWeight: 600, color: sel ? '#1d4ed8' : t.text }}>{option}</span>
+                                  <span style={{ fontSize: '11px', color: t.textDim, marginTop: '2px' }}>{m.sub}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* NO APLICA: se declara con justificación, no se borra la pregunta */}
+                        <div style={{ marginTop: '16px' }}>
+                          {q.id in noAplica ? (
+                            <div style={{ background: t.inputBg, border: `1px dashed ${t.border}`, borderRadius: '12px', padding: '12px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
+                                <strong style={{ fontSize: '12px', color: t.text }}>Marcada como "No aplica" para tu empresa</strong>
+                                <span style={{ fontSize: '11px', color: t.textDim }}>Responde Sí, Parcialmente o No para volver a incluirla</span>
+                              </div>
+                              <p style={{ fontSize: '12px', lineHeight: 1.5, margin: 0, color: t.textMuted }}>{noAplica[q.id]}</p>
+                            </div>
+                          ) : naDraft !== null ? (
+                            <div style={{ border: `1px solid ${t.border}`, borderRadius: '12px', padding: '12px' }}>
+                              <label htmlFor="na-justificacion" style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: t.text, marginBottom: '6px' }}>¿Por qué esta pregunta no aplica a tu empresa?</label>
+                              <textarea id="na-justificacion" autoFocus rows={2} value={naDraft} onChange={(e) => setNaDraft(e.target.value)} placeholder="Ej.: No tratamos datos de menores de edad."
+                                style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '12px', resize: 'vertical' }} />
+                              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
+                                <button type="button" onClick={() => { setNaDraft(null); setNaError(null); }} style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${t.border}`, background: 'transparent', color: t.textMuted, fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
+                                <button type="button" onClick={guardarNoAplica} disabled={naSaving || naDraft.trim().length < 10}
+                                  style={{ padding: '6px 12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: naSaving ? 'wait' : 'pointer', opacity: naDraft.trim().length < 10 ? .5 : 1 }}>
+                                  {naSaving ? 'Guardando…' : 'Marcar como No aplica'}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button type="button" onClick={() => { setNaDraft(''); setNaError(null); }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: 0, border: 'none', background: 'none', color: t.textDim, fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>
+                              <Ban size={14} /> Esta pregunta no aplica a mi empresa
+                            </button>
+                          )}
+                          {naError && <p role="alert" style={{ fontSize: '12px', color: '#dc2626', margin: '8px 0 0' }}>{naError}</p>}
+                        </div>
+
+                        {/* RESULTADO IA */}
+                        {aiResults[q.id] && (
+                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '12px', marginTop: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px', marginBottom: '6px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div style={{ width: '20px', height: '20px', borderRadius: '6px', background: '#2563eb', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Wand2 size={12} /></div>
+                                <strong style={{ fontSize: '11px', color: '#1e3a8a' }}>Análisis IA</strong>
+                                {(() => {
+                                  const v = aiResults[q.id].veredicto;
+                                  const map = { cumple: ['Cumple', '#1d4ed8', '#dbeafe'], parcial: ['Parcial', '#b45309', '#fef3c7'], no_cumple: ['No cumple', '#dc2626', '#fee2e2'], sin_evidencia: ['Sin evidencia', '#475569', '#f1f5f9'] };
+                                  const [label, color, bg] = map[v] || ['Sin clasificar', '#475569', 'transparent'];
+                                  return <span style={{ fontSize: '10px', color, background: bg, fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>{label}</span>;
+                                })()}
+                              </div>
+                              {typeof aiResults[q.id].confianza === 'number' && <span style={{ fontSize: '10px', color: '#475569', fontWeight: 600 }}>Confianza: <span style={{ color: '#2563eb' }}>{Math.round(aiResults[q.id].confianza * 100)}%</span></span>}
+                            </div>
+                            <p style={{ color: '#334155', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{aiResults[q.id].justificacion}</p>
+                          </div>
+                        )}
+
+                        {/* NAVEGACIÓN */}
+                        <div style={{ marginTop: '32px', paddingTop: '20px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <button type="button" onClick={goToPrev} disabled={currentPhase === 0 && currentQuestion === 0}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.textMuted, fontSize: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,.04)', opacity: currentPhase === 0 && currentQuestion === 0 ? .4 : 1 }}>
+                            <ChevronLeft size={16} /> Anterior
+                          </button>
+                          <button type="button" onClick={goToNext}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 24px', borderRadius: '8px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 1px 2px rgba(37,99,235,.3)' }}>
+                            Continuar <ChevronRight size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </section>
+
+              {/* DERECHA: evidencias y evaluación con IA */}
+              <aside className="gap-right" aria-label="Evidencias" style={{ width: '270px', flex: 'none', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ padding: '16px', borderBottom: `1px solid ${t.border}`, background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ width: '28px', height: '28px', borderRadius: '8px', background: '#eef2ff', border: '1px solid #e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={16} /></span>
+                    <div>
+                      <h2 style={{ fontSize: '12px', fontWeight: 700, color: t.text, margin: 0 }}>Evidencias</h2>
+                      <p style={{ fontSize: '11px', color: t.textDim, margin: 0 }}>{selectedEvidenceIds.length} de {savedDocs.length} documentos para IA</p>
+                    </div>
+                  </div>
+                  {saveStatus === 'error'
+                    ? <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>Sin guardar</span>
+                    : <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 8px', borderRadius: '4px', background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Sincronizado</span>}
+                </div>
+
+                {(saveStatus === 'pending' || saveStatus === 'saving' || isEvaluating) && (
+                  <div role="status" style={{ padding: '10px 16px', background: 'rgba(239,246,255,.7)', borderBottom: '1px solid #dbeafe' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 500, color: '#1d4ed8' }}>
+                      <Loader2 size={14} className="gap-spin" />
+                      {isEvaluating
+                        ? (evalProgress ? `${evalProgress.stage || 'Evaluando'} · ${evalProgress.done} de ${evalProgress.total}` : 'La IA está analizando los documentos...')
+                        : 'Guardando respuestas...'}
+                    </div>
+                    {isEvaluating && evalProgress && evalProgress.total > 0 && (
+                      <div role="progressbar" aria-valuenow={evalProgress.done} aria-valuemin={0} aria-valuemax={evalProgress.total} style={{ marginTop: '6px', height: '4px', background: '#dbeafe', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div style={{ width: `${Math.round((evalProgress.done / evalProgress.total) * 100)}%`, height: '100%', background: '#2563eb', transition: 'width .3s' }} />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="gap-scroll" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto' }}>
+                  <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '.6px', textTransform: 'uppercase', color: t.textDim, margin: 0 }}>Documentos vinculados</p>
+                  {savedDocs.length === 0 && <div style={{ padding: '12px', fontSize: '11px', color: t.textDim, borderRadius: '8px', background: t.inputBg, textAlign: 'center' }}>Sube evidencias para evaluarlas.</div>}
+                  {savedDocs.map((d) => {
+                    const checked = selectedEvidenceIds.includes(d.id);
+                    const nombre = d.name || d.title || 'Documento';
+                    return (
+                      <label key={d.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px', borderRadius: '8px', border: `1px solid ${checked ? '#bfdbfe' : t.border}`, background: checked ? 'rgba(239,246,255,.5)' : 'transparent', cursor: 'pointer' }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleEvidence(d.id)} style={{ accentColor: '#2563eb', width: '14px', height: '14px', marginTop: '2px', flex: 'none' }} />
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <FileText size={14} color="#f43f5e" style={{ flex: 'none' }} />
+                            <span title={nombre} style={{ fontSize: '12px', fontWeight: 500, color: t.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{nombre}</span>
+                          </span>
+                          <span style={{ display: 'block', fontSize: '10px', color: t.textDim, paddingLeft: '20px', marginTop: '2px' }}>{checked ? 'Se usará en la evaluación' : 'No seleccionado'}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '9px', border: '1px dashed #93c5fd', borderRadius: '8px', color: '#2563eb', fontSize: '11px', fontWeight: 600, cursor: uploadingDocs ? 'wait' : 'pointer' }}>
+                    <FolderUp size={14} />{uploadingDocs ? 'Guardando...' : 'Agregar documentos'}
+                    <input type="file" multiple accept=".pdf,.txt,.docx" disabled={uploadingDocs} style={{ display: 'none' }} onChange={(e) => { handleUploadDocs(e.target.files); e.target.value = ''; }} />
+                  </label>
+                  {evalError && <div role="alert" style={{ padding: '10px', borderRadius: '8px', background: 'rgba(239,68,68,.08)', color: '#dc2626', fontSize: '12px', overflowWrap: 'anywhere' }}>{evalError}</div>}
+                  {evalInfo && <div role="status" style={{ padding: '10px', borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
+                </div>
+
+                <div style={{ padding: '16px', background: t.inputBg, borderTop: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button type="button" onClick={() => handleEvaluateWithAI(false)} disabled={isEvaluating || selectedEvidenceIds.length === 0}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%', padding: '10px 16px', borderRadius: '8px', border: 'none', background: 'linear-gradient(90deg, #2563eb, #4f46e5)', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: isEvaluating || !selectedEvidenceIds.length ? 'not-allowed' : 'pointer', opacity: isEvaluating || !selectedEvidenceIds.length ? .5 : 1, boxShadow: '0 1px 2px rgba(0,0,0,.08)' }}>
+                    <Zap size={15} color="#bfdbfe" />{isEvaluating ? 'Evaluando...' : 'Evaluar con IA'}
+                  </button>
+                  <button type="button" onClick={() => handleEvaluateWithAI(true)} disabled={isEvaluating || selectedEvidenceIds.length === 0}
+                    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', padding: '8px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.textMuted, fontSize: '12px', fontWeight: 500, cursor: isEvaluating || !selectedEvidenceIds.length ? 'not-allowed' : 'pointer', opacity: isEvaluating || !selectedEvidenceIds.length ? .5 : 1 }}>
+                    <RefreshCw size={14} /> Revalidar pendientes
+                  </button>
+                </div>
+              </aside>
+            </div>
           )}
         </>
       ) : activeMainTab === 'soa' ? (
@@ -938,11 +1019,31 @@ function GapAnalysisScreen({ onNavigate }) {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* En escritorio mantenemos columnas */
-        @media (min-width: 1024px) {
-          .gap-workspace { flex-direction: row !important; align-items: flex-start; }
-          .gap-main-card { flex: 1; min-width: 0; }
-          .gap-side-card { width: 320px; flex-shrink: 0; position: sticky; top: 24px; }
+        @keyframes gap-spin { to { transform: rotate(360deg); } }
+        .gap-spin { animation: gap-spin 1s linear infinite; }
+
+        /* Escritorio ancho: tres columnas, laterales fijas al hacer scroll */
+        .gap-left, .gap-right { position: sticky; top: 16px; max-height: calc(100vh - 32px); }
+        .gap-scroll { flex: 1; min-height: 0; }
+
+        /* Hasta 1279px: las evidencias bajan bajo la pregunta */
+        @media (max-width: 1279px) {
+          .gap-3col { flex-wrap: wrap; }
+          .gap-center { flex: 1 1 calc(100% - 320px) !important; }
+          .gap-right { width: 100% !important; position: static; max-height: none; }
+        }
+
+        /* Móvil y tablet: una sola columna */
+        @media (max-width: 767px) {
+          .gap-3col { flex-direction: column; align-items: stretch !important; }
+          .gap-left { width: 100% !important; position: static; max-height: none; }
+          .gap-left .gap-scroll { max-height: 220px; }
+          .gap-center { flex: 1 1 auto !important; }
+          .gap-qbody { padding: 20px 16px !important; }
+          .gap-qtitle { font-size: 18px !important; }
+          .gap-options { grid-template-columns: 1fr !important; }
+          .gap-divider { display: none; }
+          .gap-top { padding: 12px 14px !important; }
         }
       `}} />
     </div>
