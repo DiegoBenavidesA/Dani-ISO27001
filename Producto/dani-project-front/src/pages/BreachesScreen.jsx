@@ -304,7 +304,7 @@ const BreachesScreen = () => {
                 const yaNotificada = b.estado === 'notificada' || b.estado === 'cerrada';
                 
                 // Determinar borde de la tarjeta según vencimiento
-                const isVencida = !yaNotificada && diasRestantes(b.fecha_limite_notificacion) < 0;
+                const isVencida = !yaNotificada && (b.alerta_vencida || horasRestantes(b.fecha_limite_notificacion) < 0);
                 const cardStyle = { background: isVencida ? 'linear-gradient(180deg, #ffffff 0%, rgba(225, 29, 72, 0.05) 100%)' : t.cardBg, border: `1px solid ${isVencida ? '#fda4af' : t.border}`, borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' };
 
                 return (
