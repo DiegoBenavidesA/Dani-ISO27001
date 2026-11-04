@@ -190,12 +190,26 @@ export const evidenceAPI = {
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
-  upload: async (fileOrFormData, token) => {
+  // Render suspende el backend sin tráfico: mientras despierta responde 502/503/504
+  // o la conexión falla ("Failed to fetch"). En esos casos se reintenta.
+  upload: async (fileOrFormData, token, onRetry) => {
     const resolvedToken = token || localStorage.getItem('token');
     const body = fileOrFormData instanceof FormData ? fileOrFormData : (() => { const fd = new FormData(); fd.append('file', fileOrFormData); return fd; })();
-    const response = await fetch(`${API_URL}/api/evidence/upload`, { method: 'POST', headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
+    const esperas = [5000, 15000, 30000];
+    for (let intento = 0; ; intento++) {
+      let response;
+      try {
+        response = await fetch(`${API_URL}/api/evidence/upload`, { method: 'POST', headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body });
+      } catch (e) {
+        if (intento >= esperas.length) throw new Error('No se pudo conectar con el servidor. Intenta de nuevo en un minuto.');
+      }
+      if (response) {
+        if (response.ok) return response.json();
+        if (![502, 503, 504].includes(response.status) || intento >= esperas.length) throw new Error(await response.text());
+      }
+      if (onRetry) onRetry(intento + 1, esperas.length);
+      await new Promise(r => setTimeout(r, esperas[intento]));
+    }
   },
   delete: async (evidenceId, token) => {
     const activeToken = token || localStorage.getItem('token');

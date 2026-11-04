@@ -390,7 +390,7 @@ function GapAnalysisScreen({ onNavigate }) {
         const fd = new FormData();
         fd.append('file', file);
         fd.append('source', 'Evaluación IA');
-        await evidenceAPI.upload(fd);
+        await evidenceAPI.upload(fd, null, (n, total) => setEvalInfo(`El servidor se está activando, reintentando (${n}/${total})…`));
       }
       await loadSavedDocs();
       setEvalInfo(`${nuevos.length} documento(s) guardado(s) en el Centro de Evidencias.`);
