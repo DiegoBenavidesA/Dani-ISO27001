@@ -260,9 +260,8 @@ async def bulk_audit(
     from app.models.evidence import Evidence
     from app.models.evidence_chunk import EvidenceChunk
     from app.models.document import Document, DocumentStatus
-    from app.services.embedding_service import EmbeddingService
+    from app.services.embedding_service import embedding_service as embedder
 
-    embedder = EmbeddingService()
     results = []
     controls = [c for c in await _catalog_with_status(db, org_id) if c.applies]
 
@@ -289,8 +288,8 @@ async def bulk_audit(
         context_parts = []
         try:
             if has_chunks:
-                query_vector = embedder.generate_single_embedding(
-                    f"{control.title}. {control.description}"
+                query_vector = await asyncio.to_thread(
+                    embedder.generate_single_embedding, f"{control.title}. {control.description}"
                 )
                 chunk_stmt = (
                     select(EvidenceChunk)

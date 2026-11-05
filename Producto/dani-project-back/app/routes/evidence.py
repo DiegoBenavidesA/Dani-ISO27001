@@ -15,11 +15,10 @@ from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
 from app.models.evidence_chunk import EvidenceChunk
-from app.services.embedding_service import EmbeddingService
+from app.services.embedding_service import embedding_service
 from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
-embedding_service = EmbeddingService()
 
 TMP_DIR = "/tmp"
 
@@ -34,11 +33,13 @@ async def _index_evidence_background(evidence_id: str, org_id: str, file_bytes: 
             with open(tmp_path, "wb") as f:
                 f.write(file_bytes)
 
-            extracted_text = embedding_service.extract_text_from_file(tmp_path, mime_type)
+            # Extraer y generar embeddings usa CPU por casi un minuto: en un hilo
+            # aparte, para que el servidor siga atendiendo las demás páginas.
+            extracted_text = await asyncio.to_thread(embedding_service.extract_text_from_file, tmp_path, mime_type)
             if extracted_text:
                 chunks = embedding_service.chunk_text(extracted_text)
                 if chunks:
-                    embeddings = embedding_service.generate_embeddings(chunks)
+                    embeddings = await asyncio.to_thread(embedding_service.generate_embeddings, chunks)
                     from app.models.evidence_chunk import EvidenceChunk
                     for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
                         db.add(EvidenceChunk(
