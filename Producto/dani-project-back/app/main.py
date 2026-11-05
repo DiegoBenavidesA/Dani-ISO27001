@@ -129,6 +129,28 @@ async def lifespan(app: FastAPI):
             ))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_assessment_questions_marco ON assessment_questions (marco);"))
 
+        # Vulneraciones: quien reporta solo describe lo ocurrido; la IA propone
+        # la gravedad y owner/admin la confirma y registra el cierre.
+        await conn.execute(text("ALTER TABLE data_breaches ALTER COLUMN gravedad DROP NOT NULL;"))
+        await conn.execute(text("ALTER TABLE data_breaches ALTER COLUMN datos_afectados DROP NOT NULL;"))
+        for _col in (
+            "reportado_por VARCHAR(255)",
+            "afectados_estimacion VARCHAR(20)",
+            "analisis_ia JSON",
+            "analisis_estado VARCHAR(20)",
+            "gravedad_confirmada BOOLEAN NOT NULL DEFAULT FALSE",
+            "notificacion_requerida BOOLEAN",
+            "confirmada_por VARCHAR(255)",
+            "fecha_confirmacion TIMESTAMP",
+            "causa_raiz TEXT",
+            "resolucion TEXT",
+            "resuelta_por VARCHAR(255)",
+            "fecha_resolucion TIMESTAMP",
+        ):
+            await conn.execute(text(f"ALTER TABLE data_breaches ADD COLUMN IF NOT EXISTS {_col};"))
+        # Las registradas antes de este cambio ya traían la gravedad puesta a mano.
+        await conn.execute(text("UPDATE data_breaches SET gravedad_confirmada = TRUE WHERE gravedad IS NOT NULL AND confirmada_por IS NULL AND analisis_estado IS NULL;"))
+
     logger.info("✅ Database tables created/verified")
 
     async with engine.connect() as conn:

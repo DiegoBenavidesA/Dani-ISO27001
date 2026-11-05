@@ -311,38 +311,33 @@ export const capaAPI = {
   }
 };
 
+// Vulneraciones: cualquiera reporta; owner/admin/DPO revisan, notifican y cierran.
+const breachRequest = async (path, method = 'GET', body) => {
+  const activeToken = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/breaches/${path}`, {
+    method,
+    headers: { ...(body && { 'Content-Type': 'application/json' }), ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail = Array.isArray(err.detail) ? err.detail.map(d => d.msg).join('; ') : err.detail;
+    throw new Error(detail || `Error ${response.status}`);
+  }
+  return response.json();
+};
+
 export const breachesAPI = {
-  getAll: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    const data = await response.json();
+  getAll: async () => {
+    const data = await breachRequest('');
     return Array.isArray(data) ? data : [];
   },
-  create: async (breachData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(breachData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  update: async (breachId, updateData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(updateData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  notify: async (breachId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  delete: async (breachId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  }
+  create: (breachData) => breachRequest('', 'POST', breachData),
+  analizar: (breachId) => breachRequest(`${breachId}/analizar`, 'POST'),
+  revisar: (breachId, data) => breachRequest(`${breachId}/revision`, 'PUT', data),
+  notify: (breachId) => breachRequest(`${breachId}/notify`, 'POST'),
+  resolver: (breachId, data) => breachRequest(`${breachId}/resolver`, 'POST', data),
+  delete: (breachId) => breachRequest(breachId, 'DELETE'),
 };
 
 export const authFetch = async (endpoint, options = {}) => {
