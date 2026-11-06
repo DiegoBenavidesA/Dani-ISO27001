@@ -266,7 +266,10 @@ classDiagram
         +String descripcion
         +String datos_afectados
         +Boolean gravedad_confirmada
-        +DateTime fecha_ocurrencia
+        +DateTime fecha_deteccion
+        +DateTime fecha_limite_notificacion
+        +String causa_raiz
+        +String resolucion
     }
 
     class Vendor {

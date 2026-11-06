@@ -113,7 +113,6 @@ erDiagram
         string id PK
         string document_id FK
         string user_id FK
-        boolean acknowledged
         datetime acknowledged_at
     }
 
@@ -205,10 +204,11 @@ erDiagram
         string id PK
         string organization_id FK
         string nombre
-        text finalidades
-        text categorias_datos
-        string base_legal
-        string estado
+        text finalidad
+        string base_licitud
+        json categorias_datos
+        string plazo_conservacion
+        string responsable
     }
 
     CONSENTS {
@@ -216,8 +216,11 @@ erDiagram
         string organization_id FK
         string treatment_id FK
         string estado
-        string titular_nombre
+        string titular
         string titular_email
+        json finalidades_consentidas
+        datetime fecha_otorgado
+        datetime fecha_revocado
         string acceptance_token_hash
     }
 
@@ -225,8 +228,9 @@ erDiagram
         string id PK
         string consent_id FK
         string organization_id FK
-        string accion
-        string realizado_por
+        string action
+        string actor_type
+        string actor_identifier
         datetime created_at
     }
 
@@ -243,11 +247,20 @@ erDiagram
     DATA_BREACHES {
         string id PK
         string organization_id FK
-        string gravedad
-        string estado
+        datetime fecha_deteccion
         text descripcion
-        string datos_afectados
+        string reportado_por
+        string gravedad
+        json analisis_ia
+        string analisis_estado
         boolean gravedad_confirmada
+        boolean notificacion_requerida
+        datetime fecha_limite_notificacion
+        datetime fecha_notificacion
+        string estado
+        text causa_raiz
+        text resolucion
+        string resuelta_por
     }
 
     VENDORS {
@@ -287,10 +300,12 @@ erDiagram
 
     LAW_OBLIGATIONS {
         string id PK
-        string ley
-        string articulo
-        text titulo
+        string codigo
+        string categoria
+        string nombre
+        string referencia_legal
         text descripcion
+        string modulo
     }
 ```
 
