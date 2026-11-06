@@ -236,15 +236,93 @@ const RiskMapScreen = () => {
   // 5. DISEÑO VISUAL (JSX)
   // ==========================================
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease', color: t.text, display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="normia-riskmap" style={{ animation: 'fadeIn 0.4s ease', color: t.text, display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', minWidth: 0 }}>
+      {/* Estilos exclusivos de esta pantalla: no alteran la lógica ni otros módulos. */}
+      <style>{`
+        .normia-riskmap, .normia-riskmap * { box-sizing: border-box; }
+        .normia-riskmap .riskmap-asset-header { gap: 16px; }
+        .normia-riskmap .riskmap-header-title,
+        .normia-riskmap .riskmap-header-actions,
+        .normia-riskmap .riskmap-matrix,
+        .normia-riskmap .riskmap-simulator { min-width: 0; }
+        .normia-riskmap .riskmap-header-title h2,
+        .normia-riskmap .riskmap-risk-title { overflow-wrap: anywhere; }
+        .normia-riskmap .riskmap-asset-filters {
+          overflow-x: auto;
+          max-width: 100%;
+          scrollbar-width: thin;
+          -webkit-overflow-scrolling: touch;
+        }
+        .normia-riskmap .riskmap-asset-filters > button { flex: 0 0 auto; white-space: nowrap; }
+        .normia-riskmap .riskmap-asset-cards {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 16px;
+        }
+        .normia-riskmap .riskmap-asset-card { min-width: 0; overflow-wrap: anywhere; }
+        .normia-riskmap .riskmap-main-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+          gap: 24px;
+          min-width: 0;
+        }
+        .normia-riskmap .riskmap-matrix-grid { min-width: 0; }
+        .normia-riskmap .riskmap-control-row { gap: 12px; }
+        .normia-riskmap .riskmap-control-name { min-width: 0; overflow-wrap: anywhere; }
+        .normia-riskmap .riskmap-control-score { flex-shrink: 0; }
+        .normia-riskmap .riskmap-modal-backdrop {
+          padding: 16px;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        .normia-riskmap .riskmap-modal-dialog {
+          width: 100%;
+          max-width: 480px;
+          max-height: calc(100dvh - 32px);
+          overflow-y: auto;
+          margin: auto;
+        }
+        .normia-riskmap .riskmap-modal-dialog input,
+        .normia-riskmap .riskmap-modal-dialog textarea { min-width: 0; max-width: 100%; }
+        @media (max-width: 1180px) {
+          .normia-riskmap .riskmap-main-grid { grid-template-columns: minmax(0, 1fr); }
+          .normia-riskmap .riskmap-asset-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 640px) {
+          .normia-riskmap { gap: 16px !important; }
+          .normia-riskmap .riskmap-asset-header { flex-direction: column; align-items: stretch !important; padding: 16px !important; }
+          .normia-riskmap .riskmap-header-title { gap: 12px !important; }
+          .normia-riskmap .riskmap-header-title > div:first-child { width: 42px !important; height: 42px !important; flex-shrink: 0; }
+          .normia-riskmap .riskmap-header-actions { justify-content: space-between; flex-wrap: wrap; gap: 12px !important; }
+          .normia-riskmap .riskmap-add-button { width: 100%; justify-content: center; min-height: 40px; }
+          .normia-riskmap .riskmap-asset-content { padding: 16px !important; }
+          .normia-riskmap .riskmap-asset-cards { gap: 10px; }
+          .normia-riskmap .riskmap-asset-card { padding: 12px !important; }
+          .normia-riskmap .riskmap-main-grid { gap: 18px; }
+          .normia-riskmap .riskmap-matrix-legend { padding-left: 0 !important; }
+          .normia-riskmap .riskmap-matrix-legend > div { gap: 8px 12px !important; justify-content: center; }
+          .normia-riskmap .riskmap-matrix-grid { gap: 4px !important; }
+          .normia-riskmap .riskmap-risk-header { padding: 16px !important; }
+          .normia-riskmap .riskmap-simulation-panel,
+          .normia-riskmap .riskmap-controls-panel { padding: 16px !important; }
+          .normia-riskmap .riskmap-simulation-header { flex-wrap: wrap; gap: 12px; }
+          .normia-riskmap .riskmap-control-row { padding: 12px !important; }
+          .normia-riskmap .riskmap-modal-dialog { padding: 20px !important; border-radius: 16px !important; }
+          .normia-riskmap .riskmap-modal-actions { flex-wrap: wrap; }
+        }
+        @media (max-width: 350px) {
+          .normia-riskmap .riskmap-asset-cards { grid-template-columns: minmax(0, 1fr); }
+          .normia-riskmap .riskmap-modal-number-fields { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
       
       {/* 1. SECCIÓN: DESCUBRIMIENTO DE ACTIVOS */}
       <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-        <div 
+        <div className="riskmap-asset-header"
           onClick={() => setShowAssetDiscovery(!showAssetDiscovery)}
           style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: showAssetDiscovery ? `1px solid ${t.border}` : 'none' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="riskmap-header-title" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Database size={24} color="white" />
             </div>
@@ -253,8 +331,8 @@ const RiskMapScreen = () => {
               <p style={{ fontSize: '13px', color: t.textDim }}>12 activos • 4 sincronizado de</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
-            <button 
+          <div className="riskmap-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
+            <button className="riskmap-add-button"
               onClick={(e) => { e.stopPropagation(); setShowAddModal(true); }}
               style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
             >
@@ -271,9 +349,9 @@ const RiskMapScreen = () => {
         </div>
 
         {showAssetDiscovery && (
-          <div style={{ padding: '24px' }}>
+          <div className="riskmap-asset-content" style={{ padding: '24px' }}>
             {/* Filtros */}
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+            <div className="riskmap-asset-filters" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
               {[
                 { key: 'all',     label: 'Todas las Fuentes', count: assets.length, icon: null },
                 { key: 'cloud',   label: 'AWS',         count: assets.filter(a => a.source === 'cloud').length,   icon: <Cloud size={14} /> },
@@ -295,9 +373,9 @@ const RiskMapScreen = () => {
             </div>
 
             {/* Tarjetas de Activos */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            <div className="riskmap-asset-cards">
               {assets.filter(a => activeAssetSource === 'all' || a.source === activeAssetSource).map((asset, idx) => (
-                <div key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
+                <div className="riskmap-asset-card" key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                     <Globe size={16} color="#06b6d4" />
                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: asset.criticality === 'Critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: asset.criticality === 'Critical' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase' }}>{asset.criticality}</span>
@@ -312,13 +390,13 @@ const RiskMapScreen = () => {
       </div>
 
       {/* 2. SECCIÓN: MATRIZ Y SIMULADOR */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '24px' }}>
+      <div className="riskmap-main-grid">
         
         {/* MATRIZ 5x5 CON EJES EXPLÍCITOS Y LEYENDA ARRIBA */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div className="riskmap-matrix" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
           {/* FILA 1: Leyenda de colores — encima del mapa, alineada a la derecha */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '56px', paddingBottom: '2px' }}>
+          <div className="riskmap-matrix-legend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '56px', paddingBottom: '2px' }}>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
                 { label: 'Bajo',    color: '#004ac6', range: '1\u20134' },
@@ -396,9 +474,9 @@ const RiskMapScreen = () => {
               </div>
 
               {/* La cuadrícula — gap 8px: respira sin fragmentarse ni solaparse en hover */}
-              <div style={{ 
+              <div className="riskmap-matrix-grid" style={{ 
                 display: 'grid', 
-                gridTemplateColumns: 'repeat(5, 1fr)', 
+                gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', 
                 gridTemplateRows: 'repeat(5, 1fr)', 
                 gap: '8px',
                 flex: 1,
@@ -490,7 +568,7 @@ const RiskMapScreen = () => {
         </div>
 
         {/* PANEL DE SIMULACIÓN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="riskmap-simulator" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {!selectedRisk && (
             <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '48px 24px', textAlign: 'center', color: t.textDim }}>
@@ -502,19 +580,19 @@ const RiskMapScreen = () => {
 
           {selectedRisk && <>
           {/* Header del Riesgo */}
-          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <div className="riskmap-risk-header" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', gap: '16px', alignItems: 'center', minWidth: 0 }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <AlertTriangle size={24} color="white" />
             </div>
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
+              <h2 className="riskmap-risk-title" style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
               <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'General'}</span>
             </div>
           </div>
 
           {/* CAMBIO 4: Caja de Simulación adaptativa al tema */}
-          <div style={getSimulationPanelStyle()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+          <div className="riskmap-simulation-panel" style={getSimulationPanelStyle()}>
+            <div className="riskmap-simulation-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Sparkles size={16} color={getSimulationTextColor()} />
                 <span style={{ fontSize: '12px', fontWeight: 700, color: getSimulationTextColor(), textTransform: 'uppercase', letterSpacing: '1px' }}>Modo Simulación</span>
@@ -557,7 +635,7 @@ const RiskMapScreen = () => {
           </div>
 
           {/* Controles de Mitigación */}
-          <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', flex: 1 }}>
+          <div className="riskmap-controls-panel" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', flex: 1 }}>
             <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>Controles de Mitigación Sugeridos</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -574,7 +652,7 @@ const RiskMapScreen = () => {
               {!isAnalyzing && selectedRisk.controls && selectedRisk.controls.map(control => {
                 const isApplied = appliedControls.includes(control.id);
                 return (
-                  <div 
+                  <div className="riskmap-control-row"
                     key={control.id} 
                     onClick={() => toggleControl(control.id)}
                     style={{ 
@@ -588,9 +666,9 @@ const RiskMapScreen = () => {
                       <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#004ac6' : t.textDim}`, background: isApplied ? '#004ac6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {isApplied && <Check size={14} color="white" />}
                       </div>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
+                      <span className="riskmap-control-name" style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
                     </div>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#004ac6', background: 'rgba(0, 74, 198, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
+                    <span className="riskmap-control-score" style={{ fontSize: '12px', fontWeight: 700, color: '#004ac6', background: 'rgba(0, 74, 198, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
                       -{control.reduction}
                     </span>
                   </div>
@@ -605,8 +683,8 @@ const RiskMapScreen = () => {
 
       {/* MODAL NUEVO RIESGO */}
       {showAddModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '32px', width: '480px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+        <div className="riskmap-modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div className="riskmap-modal-dialog" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '32px', boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <AlertTriangle size={24} color="#f59e0b" /> Identificar Nuevo Riesgo
             </h2>
@@ -622,7 +700,7 @@ const RiskMapScreen = () => {
                 <textarea required value={newRisk.description} onChange={e => setNewRisk({...newRisk, description: e.target.value})} placeholder="Detalle qué podría pasar..." rows={3} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none', resize: 'none' }} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="riskmap-modal-number-fields" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px' }}>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Probabilidad (1-5)</label>
                   <input type="number" min="1" max="5" required value={newRisk.likelihood} onChange={e => setNewRisk({...newRisk, likelihood: parseInt(e.target.value)})} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
@@ -633,7 +711,7 @@ const RiskMapScreen = () => {
                 </div>
               </div>
 
-              <div style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <div className="riskmap-modal-actions" style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '12px 20px', background: 'transparent', border: 'none', color: t.textDim, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={isSubmitting} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
                   {isSubmitting ? 'Guardando...' : 'Añadir Riesgo'}

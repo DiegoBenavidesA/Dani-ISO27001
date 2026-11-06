@@ -83,29 +83,63 @@ export default function TreatmentsScreen({ onNavigate }) {
   );
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
-        <div>
+    <div className="normia-treatments" style={{ animation: 'fadeIn 0.4s ease', width: '100%', minWidth: 0 }}>
+      <style>{`
+        .normia-treatments { box-sizing: border-box; }
+        .normia-treatments *, .normia-treatments *::before, .normia-treatments *::after { box-sizing: border-box; }
+        .normia-treatments .tr-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 28px; }
+        .normia-treatments .tr-heading { flex: 1 1 auto; min-width: 0; }
+        .normia-treatments .tr-new-btn { flex: 0 0 auto; justify-content: center; white-space: nowrap; }
+        .normia-treatments .tr-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; }
+        .normia-treatments .tr-search { position: relative; flex: 0 1 290px; min-width: 0; }
+        .normia-treatments .tr-search-input { display: block; width: 100%; min-width: 0; }
+        .normia-treatments .tr-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+        .normia-treatments .tr-table { width: 100%; min-width: 780px; }
+        .normia-treatments .tr-table-hint { display: none; }
+        .normia-treatments .tr-modal-backdrop { box-sizing: border-box; }
+        .normia-treatments .tr-modal { box-sizing: border-box; width: 100%; min-width: 0; max-width: 560px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
+        .normia-treatments .tr-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+        @media (max-width: 900px) {
+          .normia-treatments .tr-header { flex-wrap: wrap; }
+        }
+        @media (max-width: 640px) {
+          .normia-treatments .tr-header { flex-direction: column; align-items: stretch; gap: 16px; margin-bottom: 20px; }
+          .normia-treatments .tr-heading h1 { font-size: 23px !important; line-height: 1.25; }
+          .normia-treatments .tr-heading p { font-size: 14px !important; line-height: 1.5; }
+          .normia-treatments .tr-new-btn { width: 100%; min-height: 44px; }
+          .normia-treatments .tr-toolbar { flex-direction: column; align-items: stretch; padding: 14px; gap: 14px; }
+          .normia-treatments .tr-search { flex: none; width: 100%; }
+          .normia-treatments .tr-table-hint { display: block; font-size: 12px; padding: 10px 14px 0; }
+          .normia-treatments .tr-modal-backdrop { padding: 12px !important; align-items: center; }
+          .normia-treatments .tr-modal { padding: 18px !important; border-radius: 12px !important; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+          .normia-treatments .tr-form-actions { flex-direction: column-reverse; }
+          .normia-treatments .tr-form-actions button { width: 100%; min-height: 42px; justify-content: center; }
+        }
+      `}</style>
+      <div className="tr-header">
+        <div className="tr-heading">
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: t.text }}>Registro de Tratamientos (RoPA)</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Inventario de actividades de tratamiento de datos personales - Ley N° 21.719</p>
         </div>
-        <button onClick={() => setShowForm(true)} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+        <button className="tr-new-btn" onClick={() => setShowForm(true)} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
           <Plus size={16} /> Nuevo Tratamiento
         </button>
       </div>
 
       <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between' }}>
+        <div className="tr-toolbar" style={{ borderBottom: `1px solid ${t.border}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: t.textDim, fontWeight: 600 }}>
             <Database size={18} /> Total registrados: {treatments.length}
           </div>
-          <div style={{ position: 'relative' }}>
+          <div className="tr-search">
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
-            <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar tratamientos..." style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, outline: 'none' }} />
+            <input className="tr-search-input" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar tratamientos..." style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, outline: 'none' }} />
           </div>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="tr-table-hint" style={{ color: t.textDim }}>Desliza la tabla hacia los lados para ver todas las columnas.</div>
+        <div className="tr-table-scroll" role="region" aria-label="Tabla de tratamientos, desplazable horizontalmente" tabIndex={0}>
+        <table className="tr-table" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
               <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', color: t.textDim, textTransform: 'uppercase' }}>Nombre y Finalidad</th>
@@ -138,12 +172,13 @@ export default function TreatmentsScreen({ onNavigate }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* MODAL NUEVO TRATAMIENTO */}
       {showForm && (
-        <div onClick={() => !saving && setShowForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: '560px', maxHeight: '90vh', overflowY: 'auto', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
+        <div className="tr-modal-backdrop" onClick={() => !saving && setShowForm(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 9999 }}>
+          <div className="tr-modal" onClick={(e) => e.stopPropagation()} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ margin: 0, fontSize: '20px', color: t.text }}>Nuevo Tratamiento</h2>
               <button type="button" onClick={() => setShowForm(false)} style={{ border: 'none', background: 'transparent', color: t.textDim, cursor: 'pointer' }}><X size={22} /></button>
@@ -177,7 +212,7 @@ export default function TreatmentsScreen({ onNavigate }) {
                     style={{ width: '100%', boxSizing: 'border-box', padding: '11px 12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, outline: 'none' }} />
                 </div>
               ))}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+              <div className="tr-form-actions" style={{ marginTop: '20px' }}>
                 <button type="button" onClick={() => setShowForm(false)} disabled={saving} style={{ padding: '10px 16px', borderRadius: '9px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={saving} style={{ padding: '10px 18px', borderRadius: '9px', border: 'none', background: '#004ac6', color: '#fff', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>{saving ? 'Guardando...' : 'Crear Tratamiento'}</button>
               </div>

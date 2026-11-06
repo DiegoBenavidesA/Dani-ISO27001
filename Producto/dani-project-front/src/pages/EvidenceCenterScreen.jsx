@@ -226,14 +226,59 @@ function EvidenceCenterScreen() {
   });
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+    <div className="evidence-center-responsive" style={{ animation: 'fadeIn 0.4s ease' }}>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .evidence-center-responsive { width: 100%; max-width: 100%; min-width: 0; }
+        @media (max-width: 1100px) {
+          .evidence-center-responsive .evidence-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+          .evidence-center-responsive .evidence-connectors { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+        }
+        @media (max-width: 700px) {
+          .evidence-center-responsive, .evidence-center-responsive * { box-sizing: border-box; }
+          .evidence-center-responsive .evidence-header { flex-direction: column !important; gap: 18px; min-width: 0; }
+          .evidence-center-responsive .evidence-header > div:first-child { min-width: 0; width: 100%; }
+          .evidence-center-responsive .evidence-header h1 { font-size: 25px !important; overflow-wrap: anywhere; }
+          .evidence-center-responsive .evidence-header-actions { width: 100%; min-width: 0; display: grid !important; grid-template-columns: 1fr; gap: 10px !important; }
+          .evidence-center-responsive .evidence-header-actions button { width: 100%; min-width: 0; justify-content: center; text-align: center; white-space: normal; padding: 11px 12px !important; }
+          .evidence-center-responsive .evidence-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+          .evidence-center-responsive .evidence-stat-card { min-width: 0; padding: 14px !important; }
+          .evidence-center-responsive .evidence-stat-card > div:first-child { align-items: flex-start !important; }
+          .evidence-center-responsive .evidence-stat-card span { min-width: 0; overflow-wrap: anywhere; }
+          .evidence-center-responsive .evidence-tabs { width: 100%; min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding-bottom: 7px; }
+          .evidence-center-responsive .evidence-tabs button { flex: 0 0 auto; white-space: nowrap; }
+          .evidence-center-responsive .evidence-evidences-panel,
+          .evidence-center-responsive .evidence-requests-panel { width: 100%; max-width: 100%; min-width: 0; }
+          .evidence-center-responsive .evidence-filter-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 12px; padding: 14px !important; }
+          .evidence-center-responsive .evidence-filter-list { width: 100%; min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+          .evidence-center-responsive .evidence-filter-list > span,
+          .evidence-center-responsive .evidence-filter-list button { flex: 0 0 auto; white-space: nowrap; }
+          .evidence-center-responsive .evidence-search-box { width: 100%; min-width: 0; }
+          .evidence-center-responsive .evidence-search-box input { width: 100% !important; min-width: 0; }
+          .evidence-center-responsive .evidence-table-scroll { width: 100%; max-width: 100%; overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+          .evidence-center-responsive .evidence-table-scroll table { min-width: 780px; }
+          .evidence-center-responsive .evidence-connectors { grid-template-columns: minmax(0, 1fr) !important; }
+          .evidence-center-responsive .evidence-upload-zone { padding: 28px 16px !important; margin: 12px !important; }
+          .evidence-center-responsive .evidence-requests-header { flex-direction: column !important; align-items: stretch !important; gap: 12px; }
+          .evidence-center-responsive .evidence-requests-header button { justify-content: center; }
+          .evidence-center-responsive .evidence-modal-backdrop { padding: 12px !important; }
+          .evidence-center-responsive .evidence-modal-panel { width: 100% !important; max-width: 500px; max-height: calc(100dvh - 24px); overflow-y: auto !important; padding: 16px !important; }
+          .evidence-center-responsive .evidence-modal-grid { grid-template-columns: minmax(0, 1fr) !important; }
+          .evidence-center-responsive .evidence-modal-panel input,
+          .evidence-center-responsive .evidence-modal-panel select { min-width: 0; max-width: 100%; }
+          .evidence-center-responsive .evidence-modal-actions { flex-wrap: wrap; }
+          .evidence-center-responsive .evidence-modal-actions button { flex: 1 1 120px; justify-content: center; }
+        }
+        @media (max-width: 350px) {
+          .evidence-center-responsive .evidence-stats { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+      `}</style>
+      <div className="evidence-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>{l.title}</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>{l.subtitle}</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="evidence-header-actions" style={{ display: 'flex', gap: '12px' }}>
           <button onClick={() => setShowRequestModal(true)} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, cursor: 'pointer', fontSize: '14px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Send size={16} /> {l.requestEvidence}
           </button>
@@ -244,11 +289,11 @@ function EvidenceCenterScreen() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+      <div className="evidence-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
         {[{ label: l.totalEvidences, value: evidences.length, color: '#004ac6', icon: Database }, { label: l.autoCollected, value: evidences.filter(e => e.type === 'automatic').length, color: '#3b82f6', icon: Zap }, { label: l.manualUpload, value: evidences.filter(e => e.type === 'manual').length, color: '#f59e0b', icon: Upload }, { label: l.pendingRequests, value: requests.filter(r => r.status === 'pending' || r.status === 'overdue').length, color: '#ef4444', icon: Clock }].map((stat, idx) => {
           const Icon = stat.icon;
           return (
-            <div key={idx} style={{ background: t.cardBg, borderRadius: '14px', padding: '18px', border: `1px solid ${t.border}` }}>
+            <div key={idx} className="evidence-stat-card" style={{ background: t.cardBg, borderRadius: '14px', padding: '18px', border: `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: `${stat.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={18} color={stat.color} /></div>
                 <span style={{ fontSize: '12px', color: t.textDim }}>{stat.label}</span>
@@ -260,7 +305,7 @@ function EvidenceCenterScreen() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      <div className="evidence-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         {[{ id: 'evidences', label: l.evidences, icon: Database }, { id: 'upload', label: l.upload, icon: Upload }, { id: 'requests', label: l.requests, icon: Send }, { id: 'connectors', label: l.connectors, icon: Zap }].map((tab) => {
           const Icon = tab.icon; const isActive = activeTab === tab.id;
           return (
@@ -276,20 +321,20 @@ function EvidenceCenterScreen() {
 
       {/* Evidences Tab */}
       {activeTab === 'evidences' && (
-        <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="evidence-evidences-panel" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+          <div className="evidence-filter-toolbar" style={{ padding: '16px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="evidence-filter-list" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '12px', color: t.textDim }}>{l.filterBy}:</span>
               {[{ id: 'all', label: l.all }, { id: 'automatic', label: l.automatic }, { id: 'manual', label: l.manual }, { id: 'expired', label: l.expired }, { id: 'expiring', label: l.expiringSoon }].map((filter) => (
                 <button key={filter.id} onClick={() => setFilterStatus(filter.id)} style={{ padding: '6px 12px', background: filterStatus === filter.id ? '#004ac620' : t.inputBg, border: `1px solid ${filterStatus === filter.id ? '#004ac6' : t.border}`, borderRadius: '6px', color: filterStatus === filter.id ? '#004ac6' : t.textMuted, fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{filter.label}</button>
               ))}
             </div>
-            <div style={{ position: 'relative' }}>
+            <div className="evidence-search-box" style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
               <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={l.searchEvidences} style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', width: '250px', outline: 'none' }} />
             </div>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="evidence-table-scroll" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
@@ -367,7 +412,7 @@ function EvidenceCenterScreen() {
       {/* Upload Tab */}
       {activeTab === 'upload' && (
         <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <label style={{ padding: '60px 40px', textAlign: 'center', cursor: 'pointer', display: 'block' }}
+          <label className="evidence-upload-zone"
             onDrop={handleFileUpload}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
@@ -385,7 +430,7 @@ function EvidenceCenterScreen() {
 
       {/* Connectors Tab */}
       {activeTab === 'connectors' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+        <div className="evidence-connectors" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
           {connectors.map((connector) => (
             <div key={connector.id} style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: connector.status === 'error' ? '1px solid rgba(239, 68, 68, 0.3)' : `1px solid ${t.border}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
@@ -408,12 +453,12 @@ function EvidenceCenterScreen() {
 
       {/* Requests Tab */}
       {activeTab === 'requests' && (
-        <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <div style={{ padding: '20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="evidence-requests-panel" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+          <div className="evidence-requests-header" style={{ padding: '20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{l.requests}</h3>
             <button onClick={() => setShowRequestModal(true)} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}><Plus size={16} /> {l.requestEvidence}</button>
           </div>
-          <div style={{ overflowX: 'auto' }}>
+          <div className="evidence-table-scroll" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
@@ -450,8 +495,8 @@ function EvidenceCenterScreen() {
 
       {/* Request Evidence Modal */}
       {showRequestModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-          <div style={{ width: '500px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px' }}>
+        <div className="evidence-modal-backdrop" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
+          <div className="evidence-modal-panel" style={{ width: '500px', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#8b5cf6' }}>
                 <Send size={20} />
@@ -496,7 +541,7 @@ function EvidenceCenterScreen() {
                 <input name="title" placeholder="e.g. NDA Signed Logs" style={{ width: '100%', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '14px', outline: 'none' }} required />
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="evidence-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
                     {language === 'es' ? 'Control ISO' : 'ISO Control'}
@@ -556,7 +601,7 @@ function EvidenceCenterScreen() {
                 </div>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
+              <div className="evidence-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '12px', color: t.textDim, marginBottom: '6px', fontWeight: 500 }}>
                     {language === 'es' ? 'Responsable (Asignar a)' : 'Assignee'}
@@ -571,7 +616,7 @@ function EvidenceCenterScreen() {
                 </div>
               </div>
               
-              <div style={{ marginTop: '12px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <div className="evidence-modal-actions" style={{ marginTop: '12px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowRequestModal(false)} style={{ padding: '10px 20px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textMuted, fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>
                   {language === 'es' ? 'Cancelar' : 'Cancel'}
                 </button>

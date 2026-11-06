@@ -11,6 +11,240 @@ import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceA
 import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
+function QuestionsAdminView({ t, dbQuestions, loadQuestions }) {
+    const [showModal, setShowModal] = useState(false);
+    const [editingQ, setEditingQ] = useState(null);
+    const [formData, setFormData] = useState({ codigo: '', categoria: 'Organizacional', nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
+    const [isSavingQ, setIsSavingQ] = useState(false);
+    const [importing, setImporting] = useState(false);
+    const [importResult, setImportResult] = useState(null);
+    const [visibleMobileQuestions, setVisibleMobileQuestions] = useState(25);
+
+    const handleImportExcel = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImport(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
+    const handleImportPdf = async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      setImporting(true);
+      setImportResult(null);
+      try {
+        const res = await assessmentQuestionsAPI.bulkImportPdf(file);
+        setImportResult(res);
+        await loadQuestions();
+      } catch (err) {
+        setImportResult({ error: err.message });
+      } finally {
+        setImporting(false);
+      }
+    };
+
+    const handleDownloadTemplate = async () => {
+      try { await assessmentQuestionsAPI.downloadTemplate(); }
+      catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
+    };
+
+    const handleOpenModal = (q = null) => {
+      if (q) {
+        setEditingQ(q.id);
+        setFormData({ codigo: q.codigo, categoria: q.categoria, nombre: q.nombre, pregunta: q.pregunta, evidencia_esperada: q.evidencia_esperada || '', orden: q.orden });
+      } else {
+        setEditingQ(null);
+        setFormData({ codigo: '', categoria: 'Organizacional', nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
+      }
+      setShowModal(true);
+    };
+
+    const handleSaveQuestion = async (e) => {
+      e.preventDefault();
+      setIsSavingQ(true);
+      try {
+        if (editingQ) await assessmentQuestionsAPI.update(editingQ, formData);
+        else await assessmentQuestionsAPI.create(formData);
+        await loadQuestions();
+        setShowModal(false);
+      } catch (err) { alert("Error al guardar la pregunta: " + err.message); } finally { setIsSavingQ(false); }
+    };
+
+    const handleDeleteQuestion = async (id) => {
+      if (!window.confirm("¿Seguro que deseas eliminar esta pregunta?")) return;
+      try { await assessmentQuestionsAPI.delete(id); await loadQuestions(); } catch (err) { alert("Error al eliminar la pregunta"); }
+    };
+
+    return (
+      <div style={{ marginTop: '24px' }}>
+        <div className="normia-admin-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', alignItems: 'flex-start', minWidth: 0 }}>
+          <div style={{ minWidth: 0, flex: '1 1 240px' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, overflowWrap: 'anywhere' }}>Configuración del Cuestionario</h2>
+            <p style={{ fontSize: '13px', color: t.textDim }}>Agrega, edita o elimina preguntas de la base de evaluación ISO 27001 y Ley 21.719.</p>
+          </div>
+          <div className="normia-admin-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
+          <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <Download size={16} /> Plantilla
+          </button>
+          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
+            <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
+          </label>
+          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
+            <FileText size={16} /> {importing ? 'Importando…' : 'Importar PDF'}
+            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
+          </label>
+          <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+            <Plus size={16} /> Nueva Pregunta
+          </button>
+          </div>
+        </div>
+
+        {importResult && (
+          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#004ac6'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
+            {importResult.error ? (
+              <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
+                {importResult.columnas_detectadas && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
+                  </span>
+                )}
+                {importResult.categorias && (
+                  <span style={{ color: t.textDim, fontSize: '12px' }}>
+                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="normia-admin-desktop" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: t.inputBg, fontSize: '12px', color: t.textDim, textTransform: 'uppercase' }}>
+                <th style={{ padding: '14px 20px' }}>Código</th>
+                <th style={{ padding: '14px 20px' }}>Categoría</th>
+                <th style={{ padding: '14px 20px' }}>Pregunta</th>
+                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dbQuestions.map(q => (
+                <tr key={q.id} style={{ borderBottom: `1px solid ${t.border}` }}>
+                  <td style={{ padding: '14px 20px', fontWeight: 600, color: '#8b5cf6', fontSize: '13px' }}>{q.codigo}</td>
+                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.textDim }}>{q.categoria}</td>
+                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.text }}>
+                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.nombre}</div>
+                    <div style={{ color: t.textDim }}>{q.pregunta}</div>
+                  </td>
+                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                      <button onClick={() => handleOpenModal(q)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14} /></button>
+                      <button onClick={() => handleDeleteQuestion(q.id)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14} /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* En teléfonos se reemplaza la tabla de cuatro columnas por tarjetas completas. */}
+        <div className="normia-admin-mobile" style={{ display: 'none' }}>
+          <p style={{ fontSize: '12px', color: t.textDim, margin: '0 0 12px' }}>
+            {dbQuestions.length} preguntas registradas · mostrando {Math.min(visibleMobileQuestions, dbQuestions.length)}
+          </p>
+          <div style={{ display: 'grid', gap: '12px' }}>
+            {dbQuestions.slice(0, visibleMobileQuestions).map((q) => (
+              <article key={q.id} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '16px', minWidth: 0, overflowWrap: 'anywhere' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 750, color: '#8b5cf6' }}>{q.codigo}</span>
+                  <span style={{ fontSize: '11px', color: t.textMuted, background: t.inputBg, borderRadius: '7px', padding: '5px 8px', maxWidth: '100%', overflowWrap: 'anywhere' }}>{q.categoria}</span>
+                </div>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.45, color: t.text, margin: '0 0 8px', overflowWrap: 'anywhere' }}>{q.nombre}</h3>
+                <p style={{ fontSize: '13px', lineHeight: 1.55, color: t.textDim, margin: '0 0 14px', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{q.pregunta}</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
+                  <button type="button" onClick={() => handleOpenModal(q)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: `1px solid ${t.border}`, borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Edit3 size={15} /> Editar</button>
+                  <button type="button" onClick={() => handleDeleteQuestion(q.id)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: '1px solid #ef444455', borderRadius: '8px', background: 'transparent', color: '#dc2626', fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Trash2 size={15} /> Eliminar</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          {visibleMobileQuestions < dbQuestions.length && (
+            <button type="button" onClick={() => setVisibleMobileQuestions((n) => n + 25)} style={{ display: 'block', width: '100%', marginTop: '14px', padding: '12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '13px', fontWeight: 650, cursor: 'pointer' }}>
+              Mostrar 25 preguntas más
+            </button>
+          )}
+        </div>
+
+        {/* Modal Formulario */}
+        {showModal && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '12px' }}>
+            <div style={{ background: t.cardBg, borderRadius: '16px', padding: 'clamp(14px, 4vw, 24px)', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', minWidth: 0 }}>
+              <h3 style={{ marginBottom: '16px', fontSize: '18px', color: t.text }}>{editingQ ? 'Editar Pregunta' : 'Nueva Pregunta'}</h3>
+              <form onSubmit={handleSaveQuestion} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="normia-admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Código (Ej. 4.1 o A.5.1)</label>
+                    <input required value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Categoría</label>
+                    <select required value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }}>
+                      <option value="Cláusula 4">Cláusula 4</option>
+                      <option value="Cláusula 5">Cláusula 5</option>
+                      <option value="Cláusula 6">Cláusula 6</option>
+                      <option value="Cláusula 7">Cláusula 7</option>
+                      <option value="Cláusula 8">Cláusula 8</option>
+                      <option value="Cláusula 9">Cláusula 9</option>
+                      <option value="Cláusula 10">Cláusula 10</option>
+                      <option value="Organizacional">Anexo A - Organizacional</option>
+                      <option value="Personas">Anexo A - Personas</option>
+                      <option value="Físico">Anexo A - Físico</option>
+                      <option value="Tecnológico">Anexo A - Tecnológico</option>
+                      <option value="Privacidad">Ley 21.719 - Privacidad</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Nombre Corto</label>
+                  <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Pregunta para el Evaluador</label>
+                  <textarea required value={formData.pregunta} onChange={e => setFormData({...formData, pregunta: e.target.value})} rows="3" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Evidencia Esperada (Instrucción para la IA)</label>
+                  <textarea value={formData.evidencia_esperada} onChange={e => setFormData({...formData, evidencia_esperada: e.target.value})} rows="2" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
+                </div>
+                <div className="normia-admin-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer' }}>Cancelar</button>
+                  <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+}
+
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language, setLanguage } = useContext(ThemeContext);
   const { user } = useAuth();
@@ -26,6 +260,8 @@ function GapAnalysisScreen({ onNavigate }) {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showAllPhases, setShowAllPhases] = useState(false);
+  // PENDIENTE: vincular estas claves a empresa/usuario usando IDs verificados del AuthContext.
+  // No migrar ni borrar datos locales sin confirmar cómo se recuperan del backend.
   const [answers, setAnswers] = useState(() => { try { return JSON.parse(localStorage.getItem('dani_gap_answers') || '{}'); } catch { return {}; } });
   const [controls, setControls] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -404,9 +640,12 @@ function GapAnalysisScreen({ onNavigate }) {
   };
 
   const veredictoToOption = (veredicto) => {
-    if (veredicto === 'cumple') return tText.yes;
-    if (veredicto === 'parcial') return tText.partially;
-    return tText.no;
+    // No confundir un veredicto desconocido o sin evidencia con incumplimiento.
+    const value = String(veredicto ?? '').trim().toLowerCase();
+    if (value === 'cumple') return tText.yes;
+    if (value === 'parcial') return tText.partially;
+    if (['no_cumple', 'no cumple', 'no-cumple', 'incumple'].includes(value)) return tText.no;
+    return null;
   };
 
   // Documentos guardados (Centro de Evidencias) para evaluar desde ahí.
@@ -466,7 +705,8 @@ function GapAnalysisScreen({ onNavigate }) {
       const newAnswers = { ...answers };
       const newAI = { ...aiResults };
       (resp.results || []).forEach((r) => {
-        newAnswers[r.id] = veredictoToOption(r.veredicto);
+        const option = veredictoToOption(r.veredicto);
+        if (option !== null) newAnswers[r.id] = option;
         newAI[r.id] = { veredicto: r.veredicto, confianza: r.confianza, justificacion: r.justificacion };
       });
       setAnswers(newAnswers);
@@ -477,24 +717,25 @@ function GapAnalysisScreen({ onNavigate }) {
       phases.forEach(p => p.questions.forEach(q => { questionMap[q.id] = q.codigo; }));
       
       const updatedControls = [...controls];
+      let soaUpdatedCount = 0;
       (resp.results || []).forEach(r => {
-        const ctrlCode = questionMap[r.id];
-        if (!ctrlCode) return;
-        
-        // Match exacto ignorando letras (ej. "A.5.1" -> "51", "5.1" -> "51")
-        const normCode = ctrlCode.replace(/[^0-9]/g, ''); 
-        
+        const ctrlCode = String(questionMap[r.id] || '').trim();
+        // Solo códigos ISO reconocibles: jamás asociar PRIV-51 o GUIALIST-51 a A.5.1.
+        const isAnnexQuestion = /^A\.?\d+\.\d+$/i.test(ctrlCode);
+        const isClauseQuestion = /^\d+\.\d+(?:\.\d+)*$/.test(ctrlCode);
+        if ((!isAnnexQuestion && !isClauseQuestion) || veredictoToOption(r.veredicto) === null) return;
+
+        const normCode = ctrlCode.replace(/[^0-9]/g, '');
         const cIdx = updatedControls.findIndex(c => {
-            const normCId = c.id.replace(/[^0-9]/g, '');
-            // Para evitar cruces, validamos si la pregunta trae una 'A' al principio (Anexo A)
-            const isAnnexQuestion = ctrlCode.toLowerCase().includes('a');
-            const isAnnexControl = c.id.toLowerCase().includes('a');
-            if (isAnnexQuestion !== isAnnexControl) return false;
-            
-            return normCId === normCode;
+          const controlId = String(c.id || '').trim();
+          const isAnnexControl = /^A\.?\d+\.\d+$/i.test(controlId);
+          const isClauseControl = /^\d+\.\d+(?:\.\d+)*$/.test(controlId);
+          if (isAnnexQuestion !== isAnnexControl || isClauseQuestion !== isClauseControl) return false;
+          return controlId.replace(/[^0-9]/g, '') === normCode;
         });
 
         if (cIdx !== -1) {
+            soaUpdatedCount += 1;
             let newStatus = 'notImplemented';
             if (r.veredicto === 'cumple') newStatus = 'implemented';
             else if (r.veredicto === 'parcial') newStatus = 'planned';
@@ -518,21 +759,28 @@ function GapAnalysisScreen({ onNavigate }) {
 
       // 4. Envío masivo automático al Registro RoPA
       let tratamientosAgregados = 0;
+      let ropaError = false;
       if (resp.extracted_treatments && resp.extracted_treatments.length > 0) {
         try {
             const token = localStorage.getItem('token');
-            await fetch(`${API_URL}/api/treatments/bulk`, {
+             const ropaResponse = await fetch(`${API_URL}/api/treatments/bulk`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(resp.extracted_treatments)
             });
+             if (!ropaResponse.ok) throw new Error(`HTTP ${ropaResponse.status}`);
             tratamientosAgregados = resp.extracted_treatments.length;
-        } catch(e) { console.error("Error guardando RoPA", e); }
+         } catch(e) {
+           ropaError = true;
+           console.error('Error guardando RoPA', e);
+           setEvalError('La evaluación terminó, pero no se pudo confirmar el registro en RoPA. Verifica los tratamientos antes de reintentar.');
+         }
       }
 
       // 5. Informe final visual
-      let finalMsg = `✅ IA evaluó ${resp.total} preguntas y actualizó los controles de la SOA.\n\n`;
-      if (tratamientosAgregados > 0) finalMsg += `🎯 Extrajo ${tratamientosAgregados} tratamientos nuevos y los inyectó en tu registro RoPA!\n`;
+      let finalMsg = `IA procesó ${resp.total ?? (resp.results || []).length} resultados. Se actualizaron ${soaUpdatedCount} coincidencias en la SOA.\n\n`;
+      if (tratamientosAgregados > 0) finalMsg += `Se enviaron ${tratamientosAgregados} tratamientos a RoPA.\n`;
+      if (ropaError) finalMsg += 'No se pudo confirmar el guardado en RoPA; verifica el registro antes de reintentar.\n';
       
       if (aiSaved) {
         alert(finalMsg);
@@ -635,8 +883,8 @@ function GapAnalysisScreen({ onNavigate }) {
                 <td style={{ padding: '11px 16px' }}><div style={{ fontSize: '13px', color: t.text, lineHeight: 1.35 }}>{getControlName(control.id, language)}</div><span style={{ fontSize: '11px', color: t.textDim }}>{control.category}</span></td>
                 <td style={{ padding: '11px 16px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', gap: '3px', justifyContent: 'center' }}>
-                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: control.applicable ? '#004ac620' : 'transparent', border: `1px solid ${control.applicable ? '#004ac6' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#004ac6' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
-                    <button onClick={() => toggleApplicable(control.id)} style={{ padding: '5px 10px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 5px 5px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>No</button>
+                    <button onClick={() => { if (!control.applicable) toggleApplicable(control.id); }} style={{ padding: '5px 10px', background: control.applicable ? '#004ac620' : 'transparent', border: `1px solid ${control.applicable ? '#004ac6' : t.border}`, borderRadius: '5px 0 0 5px', color: control.applicable ? '#004ac6' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>{tText.applicable}</button>
+                    <button onClick={() => { if (control.applicable) toggleApplicable(control.id); }} style={{ padding: '5px 10px', background: !control.applicable ? '#ef444420' : 'transparent', border: `1px solid ${!control.applicable ? '#ef4444' : t.border}`, borderRadius: '0 5px 5px 0', color: !control.applicable ? '#ef4444' : t.textDim, fontSize: '11px', cursor: 'pointer' }}>No</button>
                   </div>
                 </td>
                 <td style={{ padding: '11px 16px' }}>
@@ -767,11 +1015,11 @@ function GapAnalysisScreen({ onNavigate }) {
           </div>
           <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
             <div style={{ fontSize: '52px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>85%</div>
-            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Meta ISO 27001</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Meta interna orientativa (no certificación)</div>
           </div>
           <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '28px', textAlign: 'center' }}>
             <div style={{ fontSize: '52px', fontWeight: 800, color: '#ef4444', lineHeight: 1 }}>{gap}%</div>
-            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Brecha restante</div>
+            <div style={{ fontSize: '13px', color: t.textDim, marginTop: '10px' }}>Brecha estimada</div>
           </div>
         </div>
       </div>
@@ -784,239 +1032,7 @@ function GapAnalysisScreen({ onNavigate }) {
     </div>
   );
 
-  const QuestionsAdminView = () => {
-    const [showModal, setShowModal] = useState(false);
-    const [editingQ, setEditingQ] = useState(null);
-    const [formData, setFormData] = useState({ codigo: '', categoria: 'Organizacional', nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
-    const [isSavingQ, setIsSavingQ] = useState(false);
-    const [importing, setImporting] = useState(false);
-    const [importResult, setImportResult] = useState(null);
-    const [visibleMobileQuestions, setVisibleMobileQuestions] = useState(25);
 
-    const handleImportExcel = async (e) => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      setImporting(true);
-      setImportResult(null);
-      try {
-        const res = await assessmentQuestionsAPI.bulkImport(file);
-        setImportResult(res);
-        await loadQuestions();
-      } catch (err) {
-        setImportResult({ error: err.message });
-      } finally {
-        setImporting(false);
-      }
-    };
-
-    const handleImportPdf = async (e) => {
-      const file = e.target.files && e.target.files[0];
-      e.target.value = '';
-      if (!file) return;
-      setImporting(true);
-      setImportResult(null);
-      try {
-        const res = await assessmentQuestionsAPI.bulkImportPdf(file);
-        setImportResult(res);
-        await loadQuestions();
-      } catch (err) {
-        setImportResult({ error: err.message });
-      } finally {
-        setImporting(false);
-      }
-    };
-
-    const handleDownloadTemplate = async () => {
-      try { await assessmentQuestionsAPI.downloadTemplate(); }
-      catch (err) { alert('No se pudo descargar la plantilla: ' + err.message); }
-    };
-
-    const handleOpenModal = (q = null) => {
-      if (q) {
-        setEditingQ(q.id);
-        setFormData({ codigo: q.codigo, categoria: q.categoria, nombre: q.nombre, pregunta: q.pregunta, evidencia_esperada: q.evidencia_esperada || '', orden: q.orden });
-      } else {
-        setEditingQ(null);
-        setFormData({ codigo: '', categoria: 'Organizacional', nombre: '', pregunta: '', evidencia_esperada: '', orden: 0 });
-      }
-      setShowModal(true);
-    };
-
-    const handleSaveQuestion = async (e) => {
-      e.preventDefault();
-      setIsSavingQ(true);
-      try {
-        if (editingQ) await assessmentQuestionsAPI.update(editingQ, formData);
-        else await assessmentQuestionsAPI.create(formData);
-        await loadQuestions();
-        setShowModal(false);
-      } catch (err) { alert("Error al guardar la pregunta: " + err.message); } finally { setIsSavingQ(false); }
-    };
-
-    const handleDeleteQuestion = async (id) => {
-      if (!window.confirm("¿Seguro que deseas eliminar esta pregunta?")) return;
-      try { await assessmentQuestionsAPI.delete(id); await loadQuestions(); } catch (err) { alert("Error al eliminar la pregunta"); }
-    };
-
-    return (
-      <div style={{ marginTop: '24px' }}>
-        <div className="normia-admin-header" style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', marginBottom: '20px', alignItems: 'flex-start', minWidth: 0 }}>
-          <div style={{ minWidth: 0, flex: '1 1 240px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text, overflowWrap: 'anywhere' }}>Configuración del Cuestionario</h2>
-            <p style={{ fontSize: '13px', color: t.textDim }}>Agrega, edita o elimina preguntas de la base de evaluación ISO 27001 y Ley 21.719.</p>
-          </div>
-          <div className="normia-admin-toolbar" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end', minWidth: 0 }}>
-          <button onClick={handleDownloadTemplate} title="Descargar plantilla Excel" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <Download size={16} /> Plantilla
-          </button>
-          <label title="Importar preguntas desde Excel (.xlsx)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
-            <FolderUp size={16} /> {importing ? 'Importando…' : 'Importar Excel'}
-            <input type="file" accept=".xlsx,.xlsm" onChange={handleImportExcel} disabled={importing} style={{ display: 'none' }} />
-          </label>
-          <label title="Importar preguntas desde un PDF (checklist/listado)" style={{ padding: '10px 16px', background: 'transparent', border: `1px solid #004ac6`, borderRadius: '8px', color: '#004ac6', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: importing ? 'wait' : 'pointer' }}>
-            <FileText size={16} /> {importing ? 'Importando…' : 'Importar PDF'}
-            <input type="file" accept=".pdf" onChange={handleImportPdf} disabled={importing} style={{ display: 'none' }} />
-          </label>
-          <button onClick={() => handleOpenModal()} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-            <Plus size={16} /> Nueva Pregunta
-          </button>
-          </div>
-        </div>
-
-        {importResult && (
-          <div style={{ marginBottom: '20px', padding: '14px 18px', borderRadius: '12px', border: `1px solid ${importResult.error ? '#ef4444' : '#004ac6'}`, background: t.cardBg, color: t.text, fontSize: '13px' }}>
-            {importResult.error ? (
-              <span style={{ color: '#ef4444' }}>❌ {importResult.error}</span>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <span><strong style={{ color: '#004ac6' }}>✓ {importResult.creadas}</strong> preguntas creadas · <strong>{importResult.omitidas}</strong> omitidas (de {importResult.total_filas_datos ?? importResult.total_detectadas} detectadas).</span>
-                {importResult.columnas_detectadas && (
-                  <span style={{ color: t.textDim, fontSize: '12px' }}>
-                    Columnas detectadas: {Object.entries(importResult.columnas_detectadas).map(([k, v]) => `${k} ← "${v}"`).join('  ·  ')}
-                  </span>
-                )}
-                {importResult.categorias && (
-                  <span style={{ color: t.textDim, fontSize: '12px' }}>
-                    Categorías detectadas: {Object.entries(importResult.categorias).map(([k, v]) => `${k} (${v})`).join('  ·  ')}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="normia-admin-desktop" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ background: t.inputBg, fontSize: '12px', color: t.textDim, textTransform: 'uppercase' }}>
-                <th style={{ padding: '14px 20px' }}>Código</th>
-                <th style={{ padding: '14px 20px' }}>Categoría</th>
-                <th style={{ padding: '14px 20px' }}>Pregunta</th>
-                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dbQuestions.map(q => (
-                <tr key={q.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-                  <td style={{ padding: '14px 20px', fontWeight: 600, color: '#8b5cf6', fontSize: '13px' }}>{q.codigo}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.textDim }}>{q.categoria}</td>
-                  <td style={{ padding: '14px 20px', fontSize: '13px', color: t.text }}>
-                    <div style={{ fontWeight: 600, marginBottom: '4px' }}>{q.nombre}</div>
-                    <div style={{ color: t.textDim }}>{q.pregunta}</div>
-                  </td>
-                  <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                      <button onClick={() => handleOpenModal(q)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: t.textMuted, padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Edit3 size={14} /></button>
-                      <button onClick={() => handleDeleteQuestion(q.id)} style={{ background: 'transparent', border: `1px solid ${t.border}`, color: '#ef4444', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}><Trash2 size={14} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* En teléfonos se reemplaza la tabla de cuatro columnas por tarjetas completas. */}
-        <div className="normia-admin-mobile" style={{ display: 'none' }}>
-          <p style={{ fontSize: '12px', color: t.textDim, margin: '0 0 12px' }}>
-            {dbQuestions.length} preguntas registradas · mostrando {Math.min(visibleMobileQuestions, dbQuestions.length)}
-          </p>
-          <div style={{ display: 'grid', gap: '12px' }}>
-            {dbQuestions.slice(0, visibleMobileQuestions).map((q) => (
-              <article key={q.id} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '14px', padding: '16px', minWidth: 0, overflowWrap: 'anywhere' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 750, color: '#8b5cf6' }}>{q.codigo}</span>
-                  <span style={{ fontSize: '11px', color: t.textMuted, background: t.inputBg, borderRadius: '7px', padding: '5px 8px', maxWidth: '100%', overflowWrap: 'anywhere' }}>{q.categoria}</span>
-                </div>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, lineHeight: 1.45, color: t.text, margin: '0 0 8px', overflowWrap: 'anywhere' }}>{q.nombre}</h3>
-                <p style={{ fontSize: '13px', lineHeight: 1.55, color: t.textDim, margin: '0 0 14px', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{q.pregunta}</p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px' }}>
-                  <button type="button" onClick={() => handleOpenModal(q)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: `1px solid ${t.border}`, borderRadius: '8px', background: t.inputBg, color: t.text, fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Edit3 size={15} /> Editar</button>
-                  <button type="button" onClick={() => handleDeleteQuestion(q.id)} style={{ display: 'inline-flex', justifyContent: 'center', alignItems: 'center', gap: '7px', padding: '10px', border: '1px solid #ef444455', borderRadius: '8px', background: 'transparent', color: '#dc2626', fontSize: '12px', fontWeight: 650, cursor: 'pointer', minWidth: 0 }}><Trash2 size={15} /> Eliminar</button>
-                </div>
-              </article>
-            ))}
-          </div>
-          {visibleMobileQuestions < dbQuestions.length && (
-            <button type="button" onClick={() => setVisibleMobileQuestions((n) => n + 25)} style={{ display: 'block', width: '100%', marginTop: '14px', padding: '12px', borderRadius: '9px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '13px', fontWeight: 650, cursor: 'pointer' }}>
-              Mostrar 25 preguntas más
-            </button>
-          )}
-        </div>
-
-        {/* Modal Formulario */}
-        {showModal && (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '12px' }}>
-            <div style={{ background: t.cardBg, borderRadius: '16px', padding: 'clamp(14px, 4vw, 24px)', width: '600px', maxWidth: '100%', maxHeight: '90vh', overflowY: 'auto', minWidth: 0 }}>
-              <h3 style={{ marginBottom: '16px', fontSize: '18px', color: t.text }}>{editingQ ? 'Editar Pregunta' : 'Nueva Pregunta'}</h3>
-              <form onSubmit={handleSaveQuestion} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                <div className="normia-admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '16px' }}>
-                  <div>
-                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Código (Ej. 4.1 o A.5.1)</label>
-                    <input required value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Categoría</label>
-                    <select required value={formData.categoria} onChange={e => setFormData({...formData, categoria: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }}>
-                      <option value="Cláusula 4">Cláusula 4</option>
-                      <option value="Cláusula 5">Cláusula 5</option>
-                      <option value="Cláusula 6">Cláusula 6</option>
-                      <option value="Cláusula 7">Cláusula 7</option>
-                      <option value="Cláusula 8">Cláusula 8</option>
-                      <option value="Cláusula 9">Cláusula 9</option>
-                      <option value="Cláusula 10">Cláusula 10</option>
-                      <option value="Organizacional">Anexo A - Organizacional</option>
-                      <option value="Personas">Anexo A - Personas</option>
-                      <option value="Físico">Anexo A - Físico</option>
-                      <option value="Tecnológico">Anexo A - Tecnológico</option>
-                      <option value="Privacidad">Ley 21.719 - Privacidad</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Nombre Corto</label>
-                  <input required value={formData.nombre} onChange={e => setFormData({...formData, nombre: e.target.value})} style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Pregunta para el Evaluador</label>
-                  <textarea required value={formData.pregunta} onChange={e => setFormData({...formData, pregunta: e.target.value})} rows="3" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', display: 'block' }}>Evidencia Esperada (Instrucción para la IA)</label>
-                  <textarea value={formData.evidencia_esperada} onChange={e => setFormData({...formData, evidencia_esperada: e.target.value})} rows="2" style={{ width: '100%', padding: '10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, boxSizing: 'border-box', resize: 'vertical' }} />
-                </div>
-                <div className="normia-admin-form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px', flexWrap: 'wrap' }}>
-                  <button type="button" onClick={() => setShowModal(false)} style={{ padding: '10px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, cursor: 'pointer' }}>Cancelar</button>
-                  <button type="submit" disabled={isSavingQ} style={{ padding: '10px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', cursor: isSavingQ ? 'wait' : 'pointer' }}>{isSavingQ ? 'Guardando...' : 'Guardar Pregunta'}</button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <div className="normia-gap" style={{ maxWidth: '1360px', margin: '-32px auto 0', padding: '10px 28px 48px', width: '100%', minWidth: 0, boxSizing: 'border-box', color: t.text }}>
@@ -1299,7 +1315,7 @@ function GapAnalysisScreen({ onNavigate }) {
       ) : activeMainTab === 'analyze' ? (
         <AnalizarDocView />
       ) : activeMainTab === 'admin-questions' ? (
-        <QuestionsAdminView />
+        <QuestionsAdminView t={t} dbQuestions={dbQuestions} loadQuestions={loadQuestions} />
       ) : (
         <div style={{ padding: '40px', textAlign: 'center', color: t.textDim }}>Vista no disponible.</div>
       )}
