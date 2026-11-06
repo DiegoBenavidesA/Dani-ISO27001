@@ -1,0 +1,95 @@
+# Plan de Pruebas - NormIA
+
+## 1. Alcance
+
+El plan cubre backend FastAPI, autenticación JWT, autorización por roles, aislamiento multiempresa, rutas ISO 27001 y Ley 21.719, PostgreSQL/Neon, integración con Groq u otros proveedores compatibles, Supabase Storage, correo, frontend React y despliegues en Render/Vercel.
+
+Quedan fuera hasta contar con infraestructura dedicada y datos controlados: pruebas de carga sostenida productiva, pruebas de proveedor de IA reales con facturación, penetración externa autorizada y certificación de cumplimiento de proveedores cloud.
+
+## 2. Situación actual de las pruebas
+
+`Producto/dani-project-back/tests/` contiene actualmente:
+
+- `test_api.py`: pruebas funcionales con `httpx` que esperan un backend activo en `http://localhost:8000`. Incluye login, riesgos, compliance y health check.
+- `test_deepseek.py`: script manual de conexión con OpenAI SDK contra DeepSeek; imprime el resultado en consola y no usa el cliente de pruebas de FastAPI ni fixtures de pytest.
+- `check_db.py`: script para comprobar/diagnosticar la conexión PostgreSQL. No es una suite automatizada reproducible sin revisión de credenciales y entorno.
+
+El repositorio no demuestra una fixture global de base de datos de prueba ni una suite FastAPI `TestClient/AsyncClient` equivalente en todo el backend. Las nuevas pruebas deben aislar configuración y BD.
+
+## 3. Tipos de prueba
+
+| Tipo | Objetivo | Herramientas y criterio |
+|---|---|---|
+| Unitarias | Validar funciones y servicios sin servidor externo | pytest; mocks de proveedor, BD y almacenamiento. |
+| Integración API | Validar rutas, serialización, CORS, JWT y dependencias | `fastapi.testclient.TestClient` o `httpx.AsyncClient` con `ASGITransport`. |
+| Seguridad | Validar 401/403, roles y aislamiento de organizaciones | JWT firmado localmente y usuarios por organización; ningún secreto real. |
+| Rendimiento | Medir latencia p95 y concurrencia | `pytest`/herramienta de carga sobre entorno representativo; registrar percentiles y no afirmar SLA sin datos. |
+| Acceso/end-to-end | Validar navegación React y llamadas reales | Playwright, Cypress u otra herramienta a definir; `[completar]`. |
+
+## 4. Casos propuestos
+
+| ID | Tipo | Precondición | Procedimiento | Resultado esperado |
+|---|---|---|---|---|
+| PT-01 | Integración | Backend levantado o app ASGI disponible | `GET /health` | `200` y `{"status":"healthy"}`. |
+| PT-02 | Seguridad | Sin Authorization header | `GET /api/risks/` | `401`, o `403` si FastAPI Security responde así al esquema; documentar el comportamiento real. |
+| PT-03 | Seguridad | Token válido con rol `employee` | `GET/POST` sobre una ruta protegida por `ELEVATED_WRITE` o `ELEVATED_READ` | `403` si no está permitido por la matriz. |
+| PT-04 | Seguridad | Token válido sin `organization_id` | Acceso a ruta que dependa de `get_current_org` | `403` con mensaje de organización no asignada. |
+| PT-05 | Seguridad | Usuario regular con JWT de organización A y `X-Org-Id: B` | Listar o consultar datos de organización A | Solo datos de A; nunca datos de B. |
+| PT-06 | Seguridad | JWT con rol `superadmin` y sin selector | Ruta que exige `get_current_org` | `403` indicando seleccionar empresa. |
+| PT-07 | Integración | Login y usuario válido en BD de prueba | `POST /api/auth/login` con credenciales válidas | `200`, `access_token` y `token_type=bearer`. |
+| PT-08 | Negativo | Email inexistente o contraseña errónea | `POST /api/auth/login` | `401`. |
+| PT-09 | Integración | Organización A, token válido y datos de prueba | Crear y listar riesgo por `POST /api/risks/` y `GET /api/risks/` | Persistencia del riesgo y devolución de datos solo dentro de A. |
+| PT-10 | Integración | Pregunta y organización creadas | Responder una pregunta por `/api/assessment-questions/answers/{question_id}` | Respuesta persistida y recuperable para la misma organización. |
+| PT-11 | Integración | Evidencia de prueba en Supabase o mock | Subir evidencia mediante `/api/evidence/upload` | `200`/estado definido, metadatos persistidos y archivo descargable o URL controlada. |
+| PT-12 | Integración | Documento y usuario autenticado | Consultar y reconocer documento en rutas existentes | Estado persistente y sin acceso cruzado entre empresas. |
+| PT-13 | Integración | Datos de GAP/acciones | Consultar `/api/gap-analysis/full` y acciones | Lista y relaciones consistentes; sin consultas cruzadas. |
+| PT-14 | Integración | Router de brechas activo y usuario con rol DPO/Admin | Consultar `/api/breaches/` | `200`; usuario no autorizado debe recibir `403`. |
+| PT-15 | Integración | Configuración SMTP/Brevo válida o mocks | Invitar usuario o enviar consentimiento | Operación exitosa o fallo controlado sin imprimir secretos. |
+| PT-16 | Unitarias | Mock del cliente Groq/OpenAI | Llamar el servicio IA | Proveedor seleccionado conforme a la clave disponible, modelo esperado y manejo de excepción. |
+| PT-17 | Unitarias | Mock de Supabase | Subir, descargar, eliminar evidencia | Calls HTTP esperados y `RuntimeError` controlado ante estado distinto de éxito. |
+| PT-18 | Rendimiento | Entorno local o staging con datos representativos | 20 solicitudes `GET /api/risks/` concurrentes | p95 menor o igual a 5 segundos en la prueba acordada. |
+| PT-19 | Rendimiento | 100 solicitudes `GET /health` consecutivas | Medir latencia | p95 menor o igual al objetivo RNF definido para operaciones básicas. |
+| PT-20 | Rendimiento | 10 MB de evidencia en almacenamiento de prueba | Medir subida | Completar en menos de 30 segundos o rechazar con límite documentado. |
+| PT-21 | CORS | Origen local y dominio Vercel | Preflight desde navegador | Solo orígenes permitidos reciben respuesta habilitada. |
+| PT-22 | Frontend | Aplicación React levantada | Navegar login y módulos protegidos sin token/token válido | Redirección o acceso coherente con `ProtectedRoute` y `AuthContext`; `[completar]` criterio visual. |
+
+## 5. Ejecución actual
+
+Con el backend ejecutándose en `http://localhost:8000` y una base de datos de pruebas:
+
+```bash
+cd Producto/dani-project-back
+pytest tests/test_api.py -v
+```
+
+Comprobaciones adicionales manuales:
+
+```bash
+python tests/check_db.py
+python tests/test_deepseek.py
+```
+
+`test_deepseek.py` y cualquier prueba con claves externas deben ejecutarse solo con credenciales locales, sin credenciales reales en CI ni en archivos versionados.
+
+Para una suite nueva basada en FastAPI, ejecutar preferentemente:
+
+```bash
+pytest tests -v
+```
+
+cuando existan fixtures de aplicación y base de datos de prueba. Hasta entonces, [completar] la configuración reutilizable de pytest y separar `test_deepseek.py` porque actualmente imprime una conexión real en lugar de formar parte de una suite asertiva.
+
+## 6. Datos y entorno
+
+- Crear una organización de prueba y al menos dos organizaciones adicionales para aislamiento.
+- Crear usuarios por rol: `superadmin`, `owner`, `admin`, `manager`, `auditor`, `dpo` y `employee`.
+- Usar PostgreSQL vacío o schema de prueba; no ejecutar destrucción automática sobre Neon productivo.
+- Sustituir Groq/OpenAI/DeepSeek, Brevo, Supabase y correo por mocks salvo pruebas explícitamente manuales.
+- No usar las credenciales por defecto de arranque como datos reales de pruebas.
+
+## 7. Trazabilidad y criterios de salida
+
+- Ninguna prueba crítica PT-02 a PT-07 puede fallar por seguridad.
+- Las pruebas del flujo principal deben pasar en un backend iniciado contra la base de prueba.
+- Los errores externos no deben imprimir claves ni tokens.
+- Los resultados de rendimiento deben adjuntar fecha, entorno, versión, tamaño de datos y percentiles.
