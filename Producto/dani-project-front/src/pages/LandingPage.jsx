@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, LockKeyhole, BarChart3, Scale, ArrowRight, Menu } from 'lucide-react';
+import { ShieldCheck, LockKeyhole, BarChart3, Scale, ArrowRight, Menu, X } from 'lucide-react';
 
 const LandingPage = () => {
   const [activeSolution, setActiveSolution] = useState(0);
@@ -64,8 +64,8 @@ const LandingPage = () => {
     <div className="landing-wrapper" style={{ minHeight: '100vh', background: '#ffffff', color: '#1e293b', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       {/* HEADER TIPO NAVBAR FIJO */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #f1f5f9', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+      <header className="landing-header" style={{ position: 'sticky', top: 0, zIndex: 50, background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)', borderBottom: '1px solid #f1f5f9', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <a href="#inicio" aria-label="NormIA, ir al inicio" className="landing-logo" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bae6fd' }}>
             <ShieldCheck size={20} color="#0ea5e9" strokeWidth={2.5} />
           </div>
@@ -73,7 +73,7 @@ const LandingPage = () => {
         </a>
         
         {/* NAVEGACIÓN DESKTOP */}
-        <nav className="desktop-nav" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+        <nav className="desktop-nav" aria-label="Navegación principal" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
           <a href="#quienes-somos" style={{ textDecoration: 'none', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Quiénes somos</a>
           <a href="#soluciones" style={{ textDecoration: 'none', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Soluciones</a>
           <a href="#como-funciona" style={{ textDecoration: 'none', color: '#64748b', fontSize: '14px', fontWeight: 600 }}>Cómo funciona</a>
@@ -88,15 +88,13 @@ const LandingPage = () => {
           <a href="/login" style={{ padding: '8px 12px', background: '#0ea5e9', color: 'white', textDecoration: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: 700 }}>
             Ingresar
           </a>
-          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '4px', cursor: 'pointer' }}>
-            <Menu size={24} />
+          <button type="button" aria-label={isMobileMenuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={isMobileMenuOpen} aria-controls="landing-mobile-menu" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} style={{ background: 'transparent', border: 'none', color: '#64748b', padding: '4px', cursor: 'pointer' }}>
+            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
         </div>
-      </header>
-
       {/* MENÚ MÓVIL DESPLEGABLE */}
       {isMobileMenuOpen && (
-        <div className="mobile-menu" style={{ position: 'fixed', top: '57px', left: 0, right: 0, background: 'white', borderBottom: '1px solid #f1f5f9', zIndex: 49, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+        <div id="landing-mobile-menu" className="mobile-menu" role="navigation" aria-label="Navegación móvil" style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', borderBottom: '1px solid #f1f5f9', zIndex: 49, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
           <a href="#quienes-somos" onClick={() => setIsMobileMenuOpen(false)} style={{ textDecoration: 'none', color: '#475569', fontSize: '14px', fontWeight: 600 }}>Quiénes somos</a>
           <a href="#soluciones" onClick={() => setIsMobileMenuOpen(false)} style={{ textDecoration: 'none', color: '#475569', fontSize: '14px', fontWeight: 600 }}>Soluciones</a>
           <a href="#como-funciona" onClick={() => setIsMobileMenuOpen(false)} style={{ textDecoration: 'none', color: '#475569', fontSize: '14px', fontWeight: 600 }}>Cómo funciona</a>
@@ -104,12 +102,15 @@ const LandingPage = () => {
         </div>
       )}
 
-      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', overflow: 'hidden' }}>
+      </header>
+
+
+      <main className="landing-main" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 16px', overflow: 'hidden' }}>
         
         {/* HERO SECTION */}
         <section id="inicio" className="hero-section" style={{ paddingTop: '40px', paddingBottom: '48px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '40px' }}>
-          <div style={{ flex: '1 1 400px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: '#f1f5f9', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '16px' }}>
+          <div className="landing-hero-copy" style={{ flex: '1 1 400px' }}>
+            <div className="landing-hero-kicker" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 12px', background: '#f1f5f9', borderRadius: '999px', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '16px' }}>
               <span>Gobernanza</span> <span style={{ color: '#cbd5e1' }}>•</span> <span>Riesgo</span> <span style={{ color: '#cbd5e1' }}>•</span> <span>Cumplimiento</span> <span style={{ color: '#cbd5e1' }}>•</span> <span style={{ color: '#0ea5e9' }}>IA</span>
             </div>
             
@@ -130,7 +131,7 @@ const LandingPage = () => {
               </a>
             </div>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <div className="landing-hero-trust" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
               {['Información centralizada', 'Seguimiento continuo', 'Apoyo con IA'].map(txt => (
                 <div key={txt} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
                   <ShieldCheck size={14} color="#0ea5e9" /> {txt}
@@ -189,7 +190,7 @@ const LandingPage = () => {
             <p style={{ fontSize: '14px', color: '#475569', maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>NormIA es una plataforma orientada a facilitar la gestión de gobernanza, riesgos y cumplimiento dentro de las organizaciones.</p>
           </div>
 
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'center' }}>
+          <div className="landing-stats" style={{ display: 'flex', flexWrap: 'wrap', gap: '32px', justifyContent: 'center' }}>
             <div style={{ flex: '1 1 300px', padding: '24px', background: '#f8fafc', borderRadius: '20px', border: '1px solid #f1f5f9', textAlign: 'center' }}>
               <span style={{ display: 'block', fontSize: '40px', fontWeight: 900, color: '#0ea5e9', marginBottom: '8px' }}>GRC</span>
               <span style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>Gobernanza, riesgo y cumplimiento integrado</span>
@@ -218,13 +219,13 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <div style={{ background: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', padding: '32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+          <div className="landing-solutions-panel" style={{ background: 'white', borderRadius: '24px', border: '1px solid #f1f5f9', padding: '32px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
             <span style={{ fontSize: '10px', fontWeight: 800, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '8px' }}>Solución NormIA</span>
             <h3 style={{ fontSize: '24px', fontWeight: 800, color: '#0f172a', margin: '0 0 8px' }}>{solutions[activeSolution].title}</h3>
             <p style={{ fontSize: '14px', fontWeight: 600, color: '#0ea5e9', margin: '0 0 16px' }}>{solutions[activeSolution].subtitle}</p>
             <p style={{ fontSize: '14px', color: '#475569', lineHeight: 1.6, marginBottom: '24px' }}>{solutions[activeSolution].description}</p>
             
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div className="landing-solution-points" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
               {solutions[activeSolution].points.map(pt => (
                 <div key={pt} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#334155', fontWeight: 500 }}>
                   <span style={{ color: '#0ea5e9', fontWeight: 800 }}>✓</span> {pt}
@@ -252,7 +253,7 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <div style={{ background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '20px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start', marginTop: '16px' }}>
+          <div className="landing-step-detail" style={{ background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '20px', padding: '24px', display: 'flex', gap: '16px', alignItems: 'flex-start', marginTop: '16px' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 800, flexShrink: 0 }}>
               {steps[activeStep].number}
             </div>
@@ -265,7 +266,7 @@ const LandingPage = () => {
         </section>
 
         {/* INTELIGENCIA ARTIFICIAL */}
-        <section style={{ margin: '32px 0', padding: '40px 24px', background: '#0f172a', borderRadius: '24px', color: 'white' }}>
+        <section className="landing-ai" style={{ margin: '32px 0', padding: '40px 24px', background: '#0f172a', borderRadius: '24px', color: 'white' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#1e293b', borderRadius: '999px', fontSize: '10px', fontWeight: 700, color: '#38bdf8', marginBottom: '16px', border: '1px solid #334155' }}>
             <ShieldCheck size={14} /> INTELIGENCIA ARTIFICIAL
           </div>
@@ -298,7 +299,7 @@ const LandingPage = () => {
             ))}
           </div>
 
-          <div style={{ background: '#f0f9ff', border: '1px solid #e0f2fe', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="landing-normatives-panel" style={{ background: '#f0f9ff', border: '1px solid #e0f2fe', borderRadius: '24px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div>
               <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'white', border: '1px solid #bae6fd', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
                 {React.cloneElement(normatives[activeNormative].icon, { size: 28 })}
@@ -310,7 +311,7 @@ const LandingPage = () => {
             
             <div style={{ background: 'white', borderRadius: '16px', padding: '16px', border: '1px solid #e0f2fe' }}>
               <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b', display: 'block', marginBottom: '12px' }}>Áreas relacionadas</span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
+              <div className="landing-normative-items" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
                 {normatives[activeNormative].items.map((item, idx) => (
                   <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#475569', fontWeight: 500 }}>
                     <span style={{ color: '#0ea5e9', fontWeight: 800 }}>0{idx+1}</span> {item}
@@ -322,7 +323,7 @@ const LandingPage = () => {
         </section>
 
         {/* CTA FINAL */}
-        <section style={{ margin: '40px 0', padding: '48px 24px', background: 'linear-gradient(135deg, #f0f9ff, #f8fafc)', borderRadius: '24px', border: '1px solid #e0f2fe', textAlign: 'center' }}>
+        <section className="landing-cta" style={{ margin: '40px 0', padding: '48px 24px', background: 'linear-gradient(135deg, #f0f9ff, #f8fafc)', borderRadius: '24px', border: '1px solid #e0f2fe', textAlign: 'center' }}>
           <span style={{ fontSize: '10px', fontWeight: 800, color: '#0ea5e9', textTransform: 'uppercase', letterSpacing: '1px', display: 'block', marginBottom: '12px' }}>Gestiona • Analiza • Mejora</span>
           <h2 style={{ fontSize: 'clamp(20px, 4vw, 28px)', fontWeight: 800, color: '#0f172a', margin: '0 0 12px', lineHeight: 1.2 }}>Convierte el cumplimiento en un proceso más claro y controlable</h2>
           <p style={{ fontSize: '14px', color: '#475569', margin: '0 auto 24px', maxWidth: '600px', lineHeight: 1.6 }}>Centraliza la información de tu organización, identifica brechas y realiza seguimiento de tus avances con NormIA.</p>
@@ -335,7 +336,7 @@ const LandingPage = () => {
 
       {/* FOOTER */}
       <footer style={{ borderTop: '1px solid #f1f5f9', padding: '32px 16px', background: 'white' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+        <div className="landing-footer-content" style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
               <div style={{ width: '24px', height: '24px', borderRadius: '6px', background: '#e0f2fe', color: '#0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ShieldCheck size={14} /></div>
@@ -349,19 +350,88 @@ const LandingPage = () => {
         </div>
       </footer>
 
-      {/* ESTILOS GLOBALES INYECTADOS */}
-      <style dangerouslySetInnerHTML={{__html: `
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .mobile-nav-buttons { display: flex; }
-        .desktop-nav { display: none !important; }
+      {/* Estilos responsive exclusivos de la landing: no afectan al resto de NormIA. */}
+      <style>{`
+        .landing-wrapper, .landing-wrapper * { box-sizing: border-box; }
+        .landing-wrapper { width: 100%; min-width: 0; overflow-x: clip; }
+        .landing-wrapper .landing-header { width: 100%; min-width: 0; gap: 12px; }
+        .landing-wrapper .landing-logo { flex-shrink: 0; }
+        .landing-wrapper .landing-main { width: 100%; min-width: 0; }
+        .landing-wrapper .landing-main > section { min-width: 0; scroll-margin-top: 84px; }
+        .landing-wrapper .hero-section > *,
+        .landing-wrapper .landing-stats > *,
+        .landing-wrapper .landing-step-detail > * { min-width: 0; }
+        .landing-wrapper .hero-preview,
+        .landing-wrapper .landing-solutions-panel,
+        .landing-wrapper .landing-normatives-panel { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+        .landing-wrapper .landing-hero-copy h1,
+        .landing-wrapper h2,
+        .landing-wrapper h3 { overflow-wrap: break-word; }
+        .landing-wrapper .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+        .landing-wrapper .no-scrollbar::-webkit-scrollbar { display: none; }
+        .landing-wrapper .mobile-nav-buttons { display: flex; }
+        .landing-wrapper .desktop-nav { display: none !important; }
+        .landing-wrapper .mobile-menu { max-height: calc(100dvh - 64px); overflow-y: auto; }
+        .landing-wrapper .mobile-menu a { padding: 8px 4px; }
+        .landing-wrapper .mobile-nav-buttons button { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+        .landing-wrapper .hero-buttons a { min-width: 0; text-align: center; }
+        .landing-wrapper .steps-container { max-width: 100%; scrollbar-width: thin; }
+        .landing-wrapper a:focus-visible,
+        .landing-wrapper button:focus-visible { outline: 3px solid #0284c7; outline-offset: 3px; }
 
         @media (min-width: 768px) {
-          .mobile-nav-buttons { display: none !important; }
-          .desktop-nav { display: flex !important; }
-          .hero-section { flex-wrap: nowrap !important; }
-          .hero-buttons a { flex: 0 1 auto !important; }
+          .landing-wrapper .mobile-nav-buttons { display: none !important; }
+          .landing-wrapper .desktop-nav { display: flex !important; }
+          .landing-wrapper .mobile-menu { display: none !important; }
+          .landing-wrapper .hero-section { flex-wrap: nowrap !important; }
+          .landing-wrapper .hero-buttons a { flex: 0 1 auto !important; }
         }
-      `}} />
+
+        @media (max-width: 767px) {
+          .landing-wrapper .landing-header { padding: 10px 16px !important; }
+          .landing-wrapper .landing-main { padding: 0 16px !important; }
+          .landing-wrapper .hero-section {
+            flex-direction: column !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            gap: 24px !important;
+            padding-top: 28px !important;
+            padding-bottom: 40px !important;
+          }
+          .landing-wrapper .landing-hero-copy,
+          .landing-wrapper .hero-preview { flex: 0 1 auto !important; width: 100%; }
+          .landing-wrapper .landing-hero-copy h1 { font-size: clamp(28px, 7vw, 42px) !important; letter-spacing: -0.6px !important; }
+          .landing-wrapper .landing-hero-kicker { flex-wrap: wrap; max-width: 100%; line-height: 1.5; }
+          .landing-wrapper .hero-buttons { flex-wrap: wrap; gap: 10px !important; margin-bottom: 24px !important; }
+          .landing-wrapper .hero-buttons a { flex: 1 1 180px !important; white-space: normal !important; min-height: 46px; }
+          .landing-wrapper .hero-preview { padding: 20px !important; border-radius: 18px !important; }
+          .landing-wrapper #quienes-somos,
+          .landing-wrapper #soluciones,
+          .landing-wrapper #como-funciona,
+          .landing-wrapper #normativas { padding-top: 44px !important; padding-bottom: 44px !important; }
+          .landing-wrapper .landing-stats { gap: 12px !important; }
+          .landing-wrapper .landing-stats > div { flex: 1 1 210px !important; padding: 20px !important; }
+          .landing-wrapper .landing-solutions-panel { padding: 20px !important; border-radius: 18px !important; }
+          .landing-wrapper .landing-solution-points { grid-template-columns: minmax(0, 1fr) !important; }
+          .landing-wrapper .steps-container { gap: 8px !important; }
+          .landing-wrapper .steps-container button { flex: 0 0 90px !important; padding: 8px 2px; }
+          .landing-wrapper .landing-step-detail { padding: 18px !important; gap: 12px !important; }
+          .landing-wrapper .landing-ai { padding: 28px 20px !important; border-radius: 18px !important; }
+          .landing-wrapper .landing-normatives-panel { padding: 18px !important; border-radius: 18px !important; }
+          .landing-wrapper .landing-normative-items { grid-template-columns: minmax(0, 1fr) !important; }
+          .landing-wrapper .landing-cta { padding: 32px 18px !important; margin: 28px 0 !important; border-radius: 18px !important; }
+          .landing-wrapper .landing-cta a { max-width: 100%; justify-content: center; white-space: normal; }
+          .landing-wrapper .landing-footer-content { flex-direction: column; align-items: flex-start !important; }
+        }
+
+        @media (max-width: 420px) {
+          .landing-wrapper .hero-buttons { flex-direction: column; }
+          .landing-wrapper .hero-buttons a { flex: 0 0 auto !important; width: 100%; }
+          .landing-wrapper .landing-hero-trust { gap: 10px 14px !important; }
+          .landing-wrapper .landing-step-detail { flex-direction: column; }
+          .landing-wrapper .landing-solutions-panel h3 { font-size: 21px !important; }
+        }
+      `}</style>
     </div>
   );
 };
