@@ -24,7 +24,7 @@ El backend implementa JWT, roles, multiempresa y `organization_id`. El frontend 
 - `app/models`: modelos SQLAlchemy.
 - `app/dependencies`: sesiones de BD, autenticación y alcance por organización.
 - `app/repositories`: consulta especializada; actualmente incluye el repositorio de riesgos.
-- `app/utils`: utilidades de almacenamiento, pub/sub, Redis y slug.
+- `app/utils`: utilidades de almacenamiento, pub/sub y slug.
 
 ### Frontend
 
@@ -105,7 +105,7 @@ Las variables declaradas o consumidas por `app/config.py` y `app/dependencies/da
 | `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `OPENAI_API_KEY` | Credenciales alternativas del proveedor compatible con OpenAI SDK. |
 | `API_V1_STR`, `PROJECT_NAME`, `DEBUG` | Identidad/depuración de configuración. |
 | `DB_POOL_SIZE`, `DB_MAX_OVERFLOW` | Valores declarados de pool; la implementación real usa `NullPool` y configuración específica para PgBouncer. |
-| `REDIS_URL` | Redis declarado; confirmar uso activo del módulo `[completar]`. |
+| `REDIS_URL` | Declarada en `config.py`, pero no se usa: `RiskService` (que cachea en Redis) no está conectado a ninguna ruta. No es necesario configurarla. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM_NAME`, `EMAIL_FROM` | Correo por SMTP. |
 | `BREVO_API_KEY` | Correo por API HTTPS; tiene prioridad sobre SMTP si existe. |
 | `FRONTEND_URL`, `FRONTEND_BASE_URL` | URLs utilizadas en enlaces de invitación y consentimiento. |
@@ -157,14 +157,14 @@ Los grupos definidos en `app/dependencies/auth.py` son `PRIVILEGED_ROLES`, `ELEV
 
 ### Backend en Render
 
-1. Crear un Web Service desde el directorio raíz o el directorio `Producto/dani-project-back`.
-2. Configurar entorno Python y comando `[completar]` según el servicio Render creado: el equivalente local es `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+1. Crear un Web Service con **Root Directory** `Producto/dani-project-back` y entorno Python 3.11.
+2. Configurar **Build Command** `pip install -r requirements.txt` y **Start Command** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 3. Configurar `DATABASE_URL`, `SECRET_KEY` y proveedores externos como variables secretas.
 4. Configurar la URL pública de frontend en `FRONTEND_URL` y `FRONTEND_BASE_URL`.
 5. Usar `/health` como health check.
 6. Verificar el bloqueo de CORS del dominio Vercel.
 
-El repositorio contiene `Producto/dani-project-back/vercel.json`, pero para Render el despliegue no dispone de un `render.yaml` confirmable; `[completar]` la configuración exacta del panel.
+El repositorio contiene `Producto/dani-project-back/vercel.json`, pero no un `render.yaml`: la configuración de Render se hace en su panel con los valores anteriores. En el plan gratuito el servicio se suspende tras unos minutos sin uso y tarda cerca de un minuto en reactivarse; el frontend reintenta automáticamente la subida de evidencias mientras tanto.
 
 ### Frontend en Vercel
 
