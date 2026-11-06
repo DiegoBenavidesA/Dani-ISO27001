@@ -24,7 +24,7 @@ El repositorio no demuestra una fixture global de base de datos de prueba ni una
 | Integración API | Validar rutas, serialización, CORS, JWT y dependencias | `fastapi.testclient.TestClient` o `httpx.AsyncClient` con `ASGITransport`. |
 | Seguridad | Validar 401/403, roles y aislamiento de organizaciones | JWT firmado localmente y usuarios por organización; ningún secreto real. |
 | Rendimiento | Medir latencia p95 y concurrencia | `pytest`/herramienta de carga sobre entorno representativo; registrar percentiles y no afirmar SLA sin datos. |
-| Acceso/end-to-end | Validar navegación React y llamadas reales | Playwright, Cypress u otra herramienta a definir; `[completar]`. |
+| Acceso/end-to-end | Validar navegación React y llamadas reales | Actualmente se realizan de forma manual en el navegador. Herramienta propuesta para automatizarlas: Playwright. |
 
 ## 4. Casos propuestos
 
@@ -51,7 +51,7 @@ El repositorio no demuestra una fixture global de base de datos de prueba ni una
 | PT-19 | Rendimiento | 100 solicitudes `GET /health` consecutivas | Medir latencia | p95 menor o igual al objetivo RNF definido para operaciones básicas. |
 | PT-20 | Rendimiento | 10 MB de evidencia en almacenamiento de prueba | Medir subida | Completar en menos de 30 segundos o rechazar con límite documentado. |
 | PT-21 | CORS | Origen local y dominio Vercel | Preflight desde navegador | Solo orígenes permitidos reciben respuesta habilitada. |
-| PT-22 | Frontend | Aplicación React levantada | Navegar login y módulos protegidos sin token/token válido | Redirección o acceso coherente con `ProtectedRoute` y `AuthContext`; `[completar]` criterio visual. |
+| PT-22 | Frontend | Aplicación React levantada | Navegar login y módulos protegidos sin token/token válido | Sin token, `ProtectedRoute` redirige a `/login`; con token válido se muestra el menú lateral y el módulo solicitado; un usuario de otra empresa que entra a una URL ajena es redirigido a la de su empresa. |
 
 ## 5. Ejecución actual
 
@@ -77,7 +77,16 @@ Para una suite nueva basada en FastAPI, ejecutar preferentemente:
 pytest tests -v
 ```
 
-cuando existan fixtures de aplicación y base de datos de prueba. Hasta entonces, [completar] la configuración reutilizable de pytest y separar `test_deepseek.py` porque actualmente imprime una conexión real en lugar de formar parte de una suite asertiva.
+cuando existan fixtures de aplicación y base de datos de prueba.
+
+Estado actual de cada archivo de `tests/`:
+
+| Archivo | Necesita | Cómo se ejecuta |
+|---|---|---|
+| `test_integration_auth.py` | Nada: usa `TestClient` y no se conecta a la base de datos | `pytest tests/test_integration_auth.py -v` (3 pruebas: PT-02, PT-03 y PT-06) |
+| `test_api.py` | Backend levantado en `http://localhost:8000` y base de datos con usuario de prueba | `pytest tests/test_api.py -v` |
+| `check_db.py` | `DATABASE_URL` válida | `python tests/check_db.py` (comprobación manual) |
+| `test_deepseek.py` | Clave de IA real | `python tests/test_deepseek.py` (comprobación manual; no forma parte de la suite porque no tiene aserciones) |
 
 ## 6. Datos y entorno
 
