@@ -84,6 +84,10 @@ Estado actual de cada archivo de `tests/`:
 | Archivo | Necesita | Cómo se ejecuta |
 |---|---|---|
 | `test_integration_auth.py` | Nada: usa `TestClient` y no se conecta a la base de datos | `pytest tests/test_integration_auth.py -v` (3 pruebas: PT-02, PT-03 y PT-06) |
+| `test_breaches_permisos.py` | Nada: usa `TestClient`, tokens JWT locales y override de la base de datos | `pytest tests/test_breaches_permisos.py -v` (PT-14 y validación HTTP del módulo Ley 21.719) |
+| `test_breaches_logica.py` | Nada: valida funciones puras y modelos Pydantic con datos locales | `pytest tests/test_breaches_logica.py -v` (casos unitarios de análisis y normalización Ley 21.719) |
+| `test_breaches_flujo.py` | Sesión falsa y mocks de acceso a datos; no ejecuta IA ni notificaciones reales | `pytest tests/test_breaches_flujo.py -v` (flujo de revisión, notificación, cierre y plazo de 72 horas) |
+| `test_general.py` | Nada: usa `TestClient` sin depender de BD externa | `pytest tests/test_general.py -v` (PT-01 y PT-21; validación de login con `password` omitido) |
 | `test_api.py` | Backend levantado en `http://localhost:8000` y base de datos con usuario de prueba | `pytest tests/test_api.py -v` |
 | `check_db.py` | `DATABASE_URL` válida | `python tests/check_db.py` (comprobación manual) |
 | `test_deepseek.py` | Clave de IA real | `python tests/test_deepseek.py` (comprobación manual; no forma parte de la suite porque no tiene aserciones) |
