@@ -1,5 +1,6 @@
 """
-Carga SOLO 5 preguntas de evaluación en la tabla assessment_questions.
+Carga SOLO 5 preguntas de evaluación en la tabla assessment_questions
+(4 de ISO 27001 y 1 de la Ley 21.719, cada una con su marco).
 
 Para pruebas / demo: con 300 preguntas la evaluación con IA puede tardar
 demasiado y fallar por timeout. Con 5 preguntas la IA responde rápido y
@@ -35,6 +36,7 @@ from app.models.assessment_answer import AssessmentAnswer
 # para poder mostrar ambos mundos en la demo.
 PREGUNTAS = [
     {
+        "marco": "iso27001",
         "codigo": "A.5.1",
         "categoria": "Organizacional",
         "nombre": "Políticas de seguridad de la información",
@@ -43,6 +45,7 @@ PREGUNTAS = [
         "orden": 1,
     },
     {
+        "marco": "iso27001",
         "codigo": "A.6.3",
         "categoria": "Personas",
         "nombre": "Concientización y formación",
@@ -51,6 +54,7 @@ PREGUNTAS = [
         "orden": 2,
     },
     {
+        "marco": "iso27001",
         "codigo": "A.8.1",
         "categoria": "Tecnológico",
         "nombre": "Dispositivos de usuario final (endpoints)",
@@ -59,6 +63,7 @@ PREGUNTAS = [
         "orden": 3,
     },
     {
+        "marco": "iso27001",
         "codigo": "A.8.13",
         "categoria": "Tecnológico",
         "nombre": "Respaldo de la información",
@@ -67,8 +72,9 @@ PREGUNTAS = [
         "orden": 4,
     },
     {
-        "codigo": "O1",
-        "categoria": "Privacidad",
+        "marco": "ley21719",
+        "codigo": "L21719-O1",
+        "categoria": "Tratamiento de datos personales",
         "nombre": "Registro de actividades de tratamiento (RoPA)",
         "pregunta": "¿Existe un registro de las actividades de tratamiento de datos personales (finalidad, base de licitud, categorías de datos)?",
         "evidencia_esperada": "Inventario/registro de tratamientos (RoPA) actualizado conforme a la Ley 21.719.",
@@ -82,6 +88,7 @@ async def main():
     async with engine.begin() as conn:
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector;"))
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE assessment_questions ADD COLUMN IF NOT EXISTS marco VARCHAR(20) NOT NULL DEFAULT 'iso27001';"))
 
     async with AsyncSessionLocal() as db:
         # Idempotente: dejar la tabla con EXACTAMENTE estas 5 preguntas.

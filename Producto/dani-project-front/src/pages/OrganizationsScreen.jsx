@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Building2, Search, Activity, PauseCircle, Plus, X, UserPlus, MoreVertical, ShieldAlert, ChevronRight } from 'lucide-react';
+import { Building2, Search, Activity, PauseCircle, Plus, X, UserPlus, MoreVertical } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { organizationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -151,13 +151,13 @@ export default function OrganizationsScreen() {
           <span style={{ fontSize: '10px', color: t.textDim }}>Multi-Tenant</span>
         </div>
 
-        {/* VISTA ESCRITORIO (TABLA) */}
-        <div className="desktop-table-wrapper" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', overflowX: 'auto', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        {/* Una sola tabla; en celular cada fila se apila (ver estilos abajo). */}
+        <div className="orgs-table-wrapper" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+          <table className="orgs-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: t.inputBg, borderBottom: `1px solid ${t.border}` }}>
                 {['Empresa', 'URL', 'Estado', 'Acciones'].map((title, i) => (
-                  <th key={title} style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', textAlign: i === 3 ? 'right' : 'left' }}>{title}</th>
+                  <th key={title} style={{ padding: '12px 16px', ...(i === 0 && { borderTopLeftRadius: '16px' }), ...(i === 3 && { borderTopRightRadius: '16px' }), fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', textAlign: i === 3 ? 'right' : 'left' }}>{title}</th>
                 ))}
               </tr>
             </thead>
@@ -167,24 +167,24 @@ export default function OrganizationsScreen() {
               ) : (
                 filtered.map((org) => (
                   <tr key={org.id} style={{ borderBottom: `1px solid ${t.border}`, transition: 'background 0.2s' }}>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <td className="c-name" style={{ padding: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Building2 size={16} color="#2563eb" />
                         </div>
-                        <span style={{ fontSize: '14px', fontWeight: 700, color: t.text }}>{org.nombre}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: t.text, overflowWrap: 'break-word', minWidth: 0 }}>{org.nombre}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td className="c-url" style={{ padding: '16px' }}>
                       <span style={{ fontSize: '12px', color: t.textMuted, fontFamily: 'monospace', background: t.inputBg, padding: '4px 8px', borderRadius: '6px', border: `1px solid ${t.border}` }}>/{org.slug || '—'}</span>
                     </td>
-                    <td style={{ padding: '16px' }}>
+                    <td className="c-estado" style={{ padding: '16px' }}>
                       <span style={{ background: org.activo ? '#eff6ff' : '#fee2e2', color: org.activo ? '#2563eb' : '#dc2626', border: `1px solid ${org.activo ? '#bfdbfe' : '#fecaca'}`, padding: '4px 10px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: org.activo ? '#2563eb' : '#dc2626', animation: org.activo ? 'pulse 2s infinite' : 'none' }}></span>
                         {org.activo ? 'Activa' : 'Suspendida'}
                       </span>
                     </td>
-                    <td style={{ padding: '16px', textAlign: 'right' }}>
+                    <td className="c-actions" style={{ padding: '16px', textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', alignItems: 'center' }}>
                         <button onClick={() => enterOrg(org)} style={{ padding: '8px 12px', background: t.inputBg, color: '#2563eb', border: `1px solid ${t.border}`, borderRadius: '8px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <Search size={12} /> Gestionar
@@ -214,67 +214,6 @@ export default function OrganizationsScreen() {
               )}
             </tbody>
           </table>
-        </div>
-
-        {/* VISTA MÓVIL (TARJETAS) */}
-        <div className="mobile-cards-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {filtered.length === 0 ? (
-            <div style={{ padding: '30px', textAlign: 'center', fontSize: '13px', color: t.textDim, background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '12px' }}><ShieldAlert size={24} color={t.textDim} /></div>
-              No hay empresas registradas.
-            </div>
-          ) : (
-            filtered.map((org) => (
-              <article key={org.id} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-                
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Building2 size={20} color="#2563eb" />
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <h2 style={{ fontSize: '15px', fontWeight: 800, color: t.text, margin: '0 0 2px', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{org.nombre}</h2>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '11px', color: t.textDim }}>URL:</span>
-                        <span style={{ fontSize: '11px', fontFamily: 'monospace', color: t.textMuted, background: t.inputBg, padding: '2px 6px', borderRadius: '4px', border: `1px solid ${t.border}` }}>/{org.slug || '—'}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ position: 'relative' }}>
-                    <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(menuOpenId === org.id ? null : org.id); }} style={{ background: 'transparent', border: 'none', color: t.textMuted, cursor: 'pointer', padding: '4px', margin: '-4px' }}><MoreVertical size={18} /></button>
-                    {menuOpenId === org.id && (
-                      <>
-                        <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                        <div style={{ position: 'absolute', top: '100%', right: 0, minWidth: '160px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden', marginTop: '4px' }}>
-                          <button onClick={() => { openInvite(org); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600 }}><UserPlus size={14} /> Invitar usuario</button>
-                          <button onClick={() => { toggleStatus(org); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: org.activo ? '#d97706' : '#10b981', fontSize: '12px', fontWeight: 600, borderTop: `1px solid ${t.border}` }}>
-                            {org.activo ? <PauseCircle size={14} /> : <Activity size={14} />} {org.activo ? 'Suspender' : 'Activar'}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div style={{ margin: '12px 0', borderTop: `1px solid ${t.inputBg}` }}></div>
-
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', color: t.textDim, textTransform: 'uppercase', fontWeight: 700 }}>Estado:</span>
-                    <span style={{ background: org.activo ? '#eff6ff' : '#fee2e2', color: org.activo ? '#2563eb' : '#dc2626', border: `1px solid ${org.activo ? '#bfdbfe' : '#fecaca'}`, padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: org.activo ? '#2563eb' : '#dc2626' }}></span>
-                      {org.activo ? 'Activa' : 'Suspendida'}
-                    </span>
-                  </div>
-                  
-                  <button onClick={() => enterOrg(org)} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#2563eb', fontSize: '12px', fontWeight: 700, background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                    Gestionar <ChevronRight size={14} />
-                  </button>
-                </div>
-              </article>
-            ))
-          )}
         </div>
       </section>
 
@@ -358,9 +297,21 @@ export default function OrganizationsScreen() {
 
       {/* ESTILOS INYECTADOS GLOBALES */}
       <style dangerouslySetInnerHTML={{__html: `
-        .desktop-table-wrapper { display: none; }
-        .mobile-cards-wrapper { display: flex; }
-        
+        .orgs-table tbody tr:last-child { border-bottom: none !important; }
+
+        /* Celular: cada empresa ocupa dos líneas (nombre + acciones / URL + estado). */
+        @media (max-width: 640px) {
+          .orgs-table thead { display: none; }
+          .orgs-table, .orgs-table tbody { display: block; }
+          .orgs-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "name actions" "url estado"; align-items: center; gap: 10px 12px; padding: 14px; }
+          .orgs-table td { padding: 0 !important; }
+          .orgs-table .c-name { grid-area: name; min-width: 0; }
+          .orgs-table .c-actions { grid-area: actions; }
+          .orgs-table .c-url { grid-area: url; padding-left: 48px !important; min-width: 0; }
+          .orgs-table .c-estado { grid-area: estado; justify-self: end; }
+          .orgs-table td[colspan] { grid-column: 1 / -1; padding: 24px !important; }
+        }
+
         .btn-new-org { width: 100%; justify-content: center; }
         .form-actions { flex-direction: column-reverse; }
         .btn-cancel, .btn-save { width: 100%; justify-content: center; }
@@ -371,9 +322,6 @@ export default function OrganizationsScreen() {
           .btn-new-org { width: auto !important; }
           
           .metrics-grid { grid-template-columns: repeat(2, 280px) !important; }
-
-          .desktop-table-wrapper { display: block; }
-          .mobile-cards-wrapper { display: none; }
 
           .form-actions { flex-direction: row; }
           .btn-cancel, .btn-save { width: auto !important; }

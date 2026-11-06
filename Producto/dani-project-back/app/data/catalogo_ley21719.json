@@ -1,0 +1,82 @@
+[
+  {
+    "codigo": "L21719-O1",
+    "categoria": "Tratamiento de datos personales",
+    "nombre": "Registro y control de actividades de tratamiento (Arts. 3, 12, 13 y 14)",
+    "sub_preguntas": [
+      {"pregunta": "¿Existe un registro o inventario actualizado de las actividades de tratamiento de datos personales que realiza la organización?", "evidencia_esperada": "Registro de actividades de tratamiento (RoPA) o inventario de datos personales con fecha de actualización"},
+      {"pregunta": "¿Cada tratamiento identifica su finalidad, las categorías de datos y de titulares, y su fuente de licitud?", "evidencia_esperada": "Fichas de tratamiento con finalidad, categorías de datos, titulares y base de licitud"},
+      {"pregunta": "¿Están definidos los plazos de conservación de los datos y el procedimiento para eliminarlos o anonimizarlos al cumplirse?", "evidencia_esperada": "Política o tabla de retención de datos; procedimiento de eliminación o anonimización"}
+    ]
+  },
+  {
+    "codigo": "L21719-O2",
+    "categoria": "Licitud y consentimiento",
+    "nombre": "Gestión del consentimiento y fuentes de licitud (Arts. 12 y 13)",
+    "sub_preguntas": [
+      {"pregunta": "¿La organización puede acreditar la fuente de licitud (consentimiento, contrato, obligación legal, interés legítimo u otra) de cada tratamiento?", "evidencia_esperada": "Análisis o matriz de bases de licitud por tratamiento"},
+      {"pregunta": "Cuando el tratamiento se basa en el consentimiento, ¿este se obtiene de forma libre, informada, específica e inequívoca y queda registrado?", "evidencia_esperada": "Formularios o textos de consentimiento; registro de consentimientos con fecha y versión del aviso"},
+      {"pregunta": "¿Existe un mecanismo simple para que el titular revoque su consentimiento y se deja constancia de la revocación?", "evidencia_esperada": "Procedimiento de revocación; registro de revocaciones"},
+      {"pregunta": "¿Se informa a los titulares, mediante una política o aviso de privacidad, sobre los tratamientos, sus finalidades y sus derechos?", "evidencia_esperada": "Política de privacidad publicada; avisos de privacidad en los puntos de recolección"}
+    ]
+  },
+  {
+    "codigo": "L21719-O3",
+    "categoria": "Derechos de los titulares",
+    "nombre": "Ejercicio de derechos de los titulares (Arts. 4 a 11)",
+    "sub_preguntas": [
+      {"pregunta": "¿Existe un procedimiento documentado para atender solicitudes de acceso, rectificación, supresión, oposición y portabilidad?", "evidencia_esperada": "Procedimiento de atención de derechos ARCO y portabilidad"},
+      {"pregunta": "¿Hay un canal disponible y comunicado a los titulares para presentar sus solicitudes?", "evidencia_esperada": "Formulario web, correo o canal dedicado; publicación del canal en la política de privacidad"},
+      {"pregunta": "¿Se registran las solicitudes y se controla que se respondan dentro del plazo legal?", "evidencia_esperada": "Registro de solicitudes con fecha de ingreso, plazo y fecha de respuesta"},
+      {"pregunta": "¿Se verifica la identidad del solicitante antes de entregar o modificar sus datos?", "evidencia_esperada": "Paso de verificación de identidad descrito en el procedimiento"}
+    ]
+  },
+  {
+    "codigo": "L21719-O4",
+    "categoria": "Vulneraciones de seguridad",
+    "nombre": "Gestión de vulneraciones de seguridad (Arts. 14 quinquies y 14 sexies)",
+    "sub_preguntas": [
+      {"pregunta": "¿Existe un procedimiento para detectar, registrar y gestionar vulneraciones de seguridad que afecten datos personales?", "evidencia_esperada": "Procedimiento de gestión de incidentes o brechas de datos personales"},
+      {"pregunta": "¿El procedimiento define cuándo y cómo comunicar una vulneración a la autoridad y a los titulares afectados?", "evidencia_esperada": "Criterios y plantillas de notificación a la Agencia y a los titulares"},
+      {"pregunta": "¿Se mantiene un registro de las vulneraciones ocurridas, sus efectos y las medidas adoptadas?", "evidencia_esperada": "Registro de incidentes de datos personales con análisis y acciones correctivas"}
+    ]
+  },
+  {
+    "codigo": "L21719-O5",
+    "categoria": "Encargados del tratamiento",
+    "nombre": "Control de terceros encargados del tratamiento (Art. 15 bis)",
+    "sub_preguntas": [
+      {"pregunta": "¿Se tiene identificados a los terceros (proveedores) que tratan datos personales por cuenta de la organización?", "evidencia_esperada": "Listado de encargados del tratamiento y servicios que prestan"},
+      {"pregunta": "¿Los contratos con encargados definen objeto, duración, finalidad, tipo de datos, categorías de titulares y obligaciones de las partes?", "evidencia_esperada": "Contratos o anexos de tratamiento de datos (DPA) firmados"},
+      {"pregunta": "¿Se exige y verifica que los encargados apliquen medidas de seguridad y confidencialidad adecuadas?", "evidencia_esperada": "Cláusulas de seguridad; evaluaciones o auditorías a proveedores"}
+    ]
+  },
+  {
+    "codigo": "L21719-O6",
+    "categoria": "Evaluación de impacto",
+    "nombre": "Evaluación de impacto en protección de datos (Art. 15 ter)",
+    "sub_preguntas": [
+      {"pregunta": "¿Existen criterios para determinar qué tratamientos requieren una evaluación de impacto en protección de datos?", "evidencia_esperada": "Metodología o criterios de evaluación de impacto (alto riesgo, datos sensibles, gran escala, etc.)"},
+      {"pregunta": "¿Se han realizado y documentado evaluaciones de impacto para los tratamientos de alto riesgo, con sus medidas de mitigación?", "evidencia_esperada": "Informes de evaluación de impacto con riesgos identificados y medidas"}
+    ]
+  },
+  {
+    "codigo": "L21719-O7",
+    "categoria": "Gobernanza",
+    "nombre": "Delegado de protección de datos (Arts. 49 y 50)",
+    "sub_preguntas": [
+      {"pregunta": "¿La organización ha evaluado si debe designar un delegado de protección de datos y, si corresponde, lo ha designado formalmente?", "evidencia_esperada": "Acta o resolución de designación del delegado; análisis de obligatoriedad"},
+      {"pregunta": "¿Están definidas las funciones, la independencia y los recursos del delegado de protección de datos?", "evidencia_esperada": "Descripción de cargo o mandato del delegado; reporte a la alta dirección"}
+    ]
+  },
+  {
+    "codigo": "L21719-O8",
+    "categoria": "Seguridad de los datos",
+    "nombre": "Medidas técnicas y organizativas de seguridad (Art. 3 letra f y Art. 14 quinquies)",
+    "sub_preguntas": [
+      {"pregunta": "¿Se aplican medidas técnicas para proteger los datos personales, como control de accesos, cifrado y respaldos?", "evidencia_esperada": "Política de control de accesos; evidencia de cifrado y respaldos"},
+      {"pregunta": "¿Existen medidas organizativas como capacitación del personal y compromisos de confidencialidad?", "evidencia_esperada": "Registros de capacitación en protección de datos; acuerdos de confidencialidad firmados"},
+      {"pregunta": "¿Las medidas de seguridad se definen en función del riesgo y se revisan periódicamente?", "evidencia_esperada": "Análisis de riesgos sobre datos personales; registro de revisiones de las medidas"}
+    ]
+  }
+]

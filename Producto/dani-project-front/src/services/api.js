@@ -104,8 +104,16 @@ export const documentsAPI = {
   },
   acknowledgePolicy: async (documentId, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/documents/${documentId}/acknowledge`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) } });
-    return response.json();
+    const response = await fetch(`${API_URL}/api/documents/${documentId}/acknowledge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` })
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'No se pudo registrar la aceptación');
+    return data;
   }
 };
 
@@ -182,11 +190,31 @@ export const evidenceAPI = {
     const data = await response.json();
     return Array.isArray(data) ? data : [];
   },
-  upload: async (fileOrFormData, token) => {
+  // Render suspende el backend sin tráfico: mientras despierta responde 502/503/504
+  // o la conexión falla ("Failed to fetch"). En esos casos se reintenta.
+  upload: async (fileOrFormData, token, onRetry) => {
     const resolvedToken = token || localStorage.getItem('token');
     const body = fileOrFormData instanceof FormData ? fileOrFormData : (() => { const fd = new FormData(); fd.append('file', fileOrFormData); return fd; })();
-    const response = await fetch(`${API_URL}/api/evidence/upload`, { method: 'POST', headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body });
-    if (!response.ok) throw new Error(await response.text());
+    const esperas = [5000, 15000, 30000];
+    for (let intento = 0; ; intento++) {
+      let response;
+      try {
+        response = await fetch(`${API_URL}/api/evidence/upload`, { method: 'POST', headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body });
+      } catch (e) {
+        if (intento >= esperas.length) throw new Error('No se pudo conectar con el servidor. Intenta de nuevo en un minuto.');
+      }
+      if (response) {
+        if (response.ok) return response.json();
+        if (![502, 503, 504].includes(response.status) || intento >= esperas.length) throw new Error(await response.text());
+      }
+      if (onRetry) onRetry(intento + 1, esperas.length);
+      await new Promise(r => setTimeout(r, esperas[intento]));
+    }
+  },
+  delete: async (evidenceId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.detail || 'No se pudo eliminar la evidencia.'); }
     return response.json();
   },
   download: async (evidenceId, token) => {
@@ -283,195 +311,39 @@ export const capaAPI = {
   }
 };
 
-export const dataRequestsAPI = {
-  getAll: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/data-requests`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    const data = await response.json();
-    return Array.isArray(data) ? data : [];
-  },
-  getOne: async (requestId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/data-requests/${requestId}`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    return response.json();
-  },
-  create: async (requestData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/data-requests`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(requestData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  update: async (requestId, updateData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/data-requests/${requestId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(updateData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
+// Vulneraciones: cualquiera reporta; owner/admin/DPO revisan, notifican y cierran.
+const breachRequest = async (path, method = 'GET', body) => {
+  const activeToken = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/breaches/${path}`, {
+    method,
+    headers: { ...(body && { 'Content-Type': 'application/json' }), ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+    ...(body && { body: JSON.stringify(body) }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    const detail = Array.isArray(err.detail) ? err.detail.map(d => d.msg).join('; ') : err.detail;
+    throw new Error(detail || `Error ${response.status}`);
   }
+  return response.json();
 };
 
 export const breachesAPI = {
-  getAll: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    const data = await response.json();
+  getAll: async () => {
+    const data = await breachRequest('');
     return Array.isArray(data) ? data : [];
   },
-  create: async (breachData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(breachData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  update: async (breachId, updateData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(updateData) });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  notify: async (breachId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}/notify`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  },
-  delete: async (breachId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/breaches/${breachId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(await response.text());
-    return response.json();
-  }
+  create: (breachData) => breachRequest('', 'POST', breachData),
+  analizar: (breachId) => breachRequest(`${breachId}/analizar`, 'POST'),
+  revisar: (breachId, data) => breachRequest(`${breachId}/revision`, 'PUT', data),
+  notify: (breachId) => breachRequest(`${breachId}/notify`, 'POST'),
+  resolver: (breachId, data) => breachRequest(`${breachId}/resolver`, 'POST', data),
+  delete: (breachId) => breachRequest(breachId, 'DELETE'),
 };
 
 export const authFetch = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token');
   const defaultOptions = { headers: { 'Content-Type': 'application/json', ...(token && { 'Authorization': `Bearer ${token}` }) } };
   return await fetch(`${API_URL}${endpoint}`, { ...defaultOptions, ...options, headers: { ...defaultOptions.headers, ...options.headers } });
-};
-
-export const treatmentsAPI = {
-  getAll: async (token) => {
-    const activeToken = token || localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_URL}/api/treatments`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-      if (!response.ok) throw new Error('Error al obtener tratamientos');
-      return await response.json();
-    } catch (e) {
-      console.warn("Usando datos de fallback para tratamientos");
-      return null; 
-    }
-  },
-  create: async (treatmentData, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/treatments/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(treatmentData) });
-    if (!response.ok) {
-      let detail = `Error ${response.status}`;
-      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
-      throw new Error(detail);
-    }
-    return response.json();
-  },
-  delete: async (treatmentId, token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/treatments/${treatmentId}`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    return response.json();
-  }
-};
-
-export const impactAPI = {
-  getAll: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    try {
-      const response = await fetch(`${API_URL}/api/impact`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-      if (!response.ok) throw new Error('Error al obtener evaluaciones');
-      return await response.json();
-    } catch (e) { return null; }
-  },
-  analyzeAll: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/impact/analyze-all`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
-    return response.json();
-  }
-};
-
-export const consentsAPI = {
-  getAll: async (token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/consents`, { headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) } });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al obtener'); }
-    return response.json();
-  },
-  getById: async (id, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/consents/${id}`, { headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) } });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al obtener'); }
-    return response.json();
-  },
-  create: async (consentData, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/consents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) },
-      body: JSON.stringify(consentData)
-    });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al registrar'); }
-    return response.json();
-  },
-  revoke: async (id, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/consents/${id}/revoke`, {
-      method: 'POST',
-      headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) }
-    });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al revocar'); }
-    return response.json();
-  },
-  delete: async (id, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/consents/${id}`, {
-      method: 'DELETE',
-      headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) }
-    });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al eliminar'); }
-    return response.json();
-  }
-};
-
-export const vendorsAPI = {
-  getAll: async (token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/vendors/`, { headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) } });
-    if (!response.ok) throw new Error('Error al obtener');
-    return response.json();
-  },
-  getById: async (vendorId, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, { headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) } });
-    if (!response.ok) throw new Error('Error al obtener');
-    return response.json();
-  },
-  create: async (vendorData, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/vendors/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) }, body: JSON.stringify(vendorData) });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al crear'); }
-    return response.json();
-  },
-  update: async (vendorId, vendorData, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) }, body: JSON.stringify(vendorData) });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al actualizar'); }
-    return response.json();
-  },
-  delete: async (vendorId, token = null) => {
-    const resolvedToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/vendors/${vendorId}`, { method: 'DELETE', headers: { ...(resolvedToken && { Authorization: `Bearer ${resolvedToken}` }) } });
-    if (!response.ok) { const error = await response.json().catch(() => ({})); throw new Error(error.detail || 'Error al eliminar'); }
-    return response.json();
-  }
 };
 
 export const endpoints = {
@@ -487,7 +359,6 @@ export const endpoints = {
   risks: `${API_URL}/api/risks`,
   chat: `${API_URL}/api/chat`,
   users: `${API_URL}/api/users`,
-  dataRequests: `${API_URL}/api/data-requests`,
   breaches: `${API_URL}/api/breaches`,
 };
 
@@ -553,29 +424,166 @@ export const assessmentQuestionsAPI = {
     if (!response.ok) throw new Error('Error al eliminar la pregunta');
     return response.json();
   },
-  evaluate: async (files, questionIds = [], token = null) => {
+
+  // Superadmin: la IA redacta como pregunta, con título corto y evidencia
+  // esperada, las preguntas del marco que no la tienen (p. ej. las de un PDF).
+  // Corre en segundo plano; onProgress recibe {done, total, stage}.
+  mejorar: async (marco, onProgress = null) => {
+    const token = localStorage.getItem('token');
+    const auth = token ? { 'Authorization': `Bearer ${token}` } : {};
+    const form = new FormData();
+    form.append('marco', marco);
+    const inicio = await fetch(`${API_URL}/api/assessment-questions/mejorar`, { method: 'POST', headers: auth, body: form });
+    if (!inicio.ok) { const err = await inicio.json().catch(() => ({})); throw new Error(err.detail || `Error ${inicio.status}`); }
+    const { job_id, total } = await inicio.json();
+    if (!job_id) return { total: 0, con_ia: 0 };
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 2500));
+      const resp = await fetch(`${API_URL}/api/assessment-questions/mejorar/${job_id}`, { headers: auth });
+      if (!resp.ok) { const err = await resp.json().catch(() => ({})); throw new Error(err.detail || `Error ${resp.status}`); }
+      const job = await resp.json();
+      if (onProgress) onProgress({ done: job.done, total: job.total || total, stage: job.stage });
+      if (job.status === 'done') return job.result;
+      if (job.status === 'error') throw new Error(job.error || 'No se pudieron mejorar las preguntas');
+    }
+  },
+
+  // Respuestas guardadas de la empresa (incluye las marcadas como "no aplica").
+  getAnswers: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error(`Error ${response.status}`);
+    return response.json();
+  },
+  // Respuesta manual (veredicto: 'cumple' | 'parcial' | 'no_cumple').
+  setAnswer: async (questionId, veredicto, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify({ veredicto }) });
+    if (!response.ok) throw new Error('No se pudo guardar la respuesta');
+    return response.json();
+  },
+  // La empresa declara que una pregunta no le aplica, con justificación.
+  setNoAplica: async (questionId, justificacion, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}/no-aplica`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify({ justificacion }) });
+    if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.detail || 'No se pudo marcar como "no aplica"'); }
+    return response.json();
+  },
+  clearNoAplica: async (questionId, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/answers/${questionId}/no-aplica`, { method: 'DELETE', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error('No se pudo quitar el "no aplica"');
+    return response.json();
+  },
+
+  // Carga masiva desde Excel (.xlsx) a un marco ('iso27001' o 'ley21719').
+  // Devuelve { marco, creadas, omitidas, columnas_detectadas, ... }
+  bulkImport: async (file, marco, token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const form = new FormData();
-    (files || []).forEach((f) => form.append('files', f));
-    form.append('question_ids', (questionIds || []).join(','));
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000);
-    try {
-      const response = await fetch(`${API_URL}/api/assessment-questions/evaluate`, { method: 'POST', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: form, signal: controller.signal });
-      if (!response.ok) { let detail = `Error ${response.status}`; try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {} throw new Error(detail); }
-      return response.json();
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('Timeout. Intenta de nuevo.');
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
+    form.append('file', file);
+    form.append('marco', marco);
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
     }
+    return response.json();
+  },
+
+  // Carga masiva desde un PDF (checklist/listado) a un marco ('iso27001' o 'ley21719').
+  // Devuelve { marco, creadas, omitidas, total_detectadas, categorias }
+  bulkImportPdf: async (file, marco, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const form = new FormData();
+    form.append('file', file);
+    form.append('marco', marco);
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-import-pdf`, {
+      method: 'POST',
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) },
+      body: form
+    });
+    if (!response.ok) {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      throw new Error(detail);
+    }
+    return response.json();
+  },
+
+  // Descarga la plantilla Excel con las columnas esperadas.
+  downloadTemplate: async (token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/assessment-questions/bulk-template`, {
+      headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }
+    });
+    if (!response.ok) throw new Error('No se pudo descargar la plantilla');
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_preguntas.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+
+  // Evaluar con IA: la IA responde las preguntas de UN marco ('iso27001' o 'ley21719').
+  // questionIds = [] -> evalúa todas; con ids -> solo esas (revalidar).
+  // La evaluación corre en segundo plano en el servidor: este método la inicia
+  // y consulta el avance cada 2 s, llamando a onProgress({ done, total, stage }).
+  // Devuelve { marco, total, results, evaluated_with_ai }.
+  evaluate: async (marco, files, questionIds = [], evidenceIds = [], token = null, onProgress = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const headers = { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) };
+    const form = new FormData();
+    (files || []).forEach((f) => form.append('files', f));
+    form.append('marco', marco);
+    form.append('question_ids', (questionIds || []).join(','));
+    form.append('evidence_ids', (evidenceIds || []).join(','));
+
+    const leerError = async (response) => {
+      let detail = `Error ${response.status}`;
+      try { const e = await response.json(); if (e.detail) detail = e.detail; } catch (_) {}
+      return new Error(detail);
+    };
+
+    const start = await fetch(`${API_URL}/api/assessment-questions/evaluate`, { method: 'POST', headers, body: form });
+    if (!start.ok) throw await leerError(start);
+    const { job_id, total } = await start.json();
+    if (onProgress) onProgress({ done: 0, total, stage: 'Iniciando evaluación' });
+
+    // Hasta ~60 min de espera; los fallos de red puntuales no cortan el sondeo.
+    let fallosSeguidos = 0;
+    for (let i = 0; i < 1800; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      let job;
+      try {
+        const res = await fetch(`${API_URL}/api/assessment-questions/evaluate/${job_id}`, { headers });
+        if (!res.ok) throw await leerError(res);
+        job = await res.json();
+        fallosSeguidos = 0;
+      } catch (err) {
+        if (++fallosSeguidos >= 10) throw err;
+        continue;
+      }
+      if (onProgress) onProgress({ done: job.done, total: job.total, stage: job.stage });
+      if (job.status === 'done') return job.result;
+      if (job.status === 'error') throw new Error(job.error || 'La evaluación falló.');
+    }
+    throw new Error('La evaluación con IA tardó demasiado. Vuelve a intentarlo.');
   },
 };
 
 const api = {
-  API_URL, userAPI, chatAPI, documentsAPI, complianceAPI, authAPI, evidenceAPI, riskAPI, capaAPI, vendorsAPI,
-  consentsAPI, dataRequestsAPI, breachesAPI, authFetch, endpoints, treatmentsAPI, impactAPI, organizationsAPI,
+  API_URL, userAPI, chatAPI, documentsAPI, complianceAPI, authAPI, evidenceAPI, riskAPI, capaAPI,
+  breachesAPI, authFetch, endpoints, organizationsAPI,
   assessmentQuestionsAPI, getFullGapAnalysis, getRemediationPlan, getKPIDashboard, getComplianceScore, getDomainScores
 };
 

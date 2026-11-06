@@ -15,14 +15,6 @@ const AssessmentScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Datos demo por si el backend no responde.
-  const demo = [
-    { id: 'd1', codigo: '4.1', categoria: 'Cláusula 4', nombre: 'Comprender la organización y su contexto', pregunta: "¿Existe documentación formal y aprobada que cubra 'comprender la organización y su contexto'?", evidencia_esperada: 'Análisis de contexto interno/externo, PESTEL, análisis FODA', orden: 0 },
-    { id: 'd2', codigo: '4.1', categoria: 'Cláusula 4', nombre: 'Comprender la organización y su contexto', pregunta: "¿Hay evidencia de que se ejecuta/actualiza de forma periódica (no solo en papel)?", evidencia_esperada: 'Registro de fechas de revisión/actualización', orden: 1 },
-    { id: 'd3', codigo: '4.2', categoria: 'Cláusula 4', nombre: 'Necesidades y expectativas de las partes interesadas', pregunta: "¿Existe documentación formal y aprobada que cubra este punto?", evidencia_esperada: 'Matriz de partes interesadas, registro de requisitos legales', orden: 2 },
-    { id: 'ley1', codigo: 'Art. 4', categoria: 'Ley 21.719 - Privacidad', nombre: 'Principio de Licitud', pregunta: '¿Se han definido las bases de licitud para el tratamiento de datos personales?', evidencia_esperada: 'Política de Privacidad, Registro de Consentimientos', orden: 100 }
-  ];
-
   useEffect(() => { fetchQuestions(); }, []);
 
   const fetchQuestions = async () => {
@@ -30,11 +22,11 @@ const AssessmentScreen = () => {
     setError(null);
     try {
       const data = await assessmentQuestionsAPI.getAll();
-      setQuestions(Array.isArray(data) && data.length > 0 ? data : demo);
+      setQuestions(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Error al cargar las preguntas. Usando datos demo.', err);
-      setError('No se pudo conectar con el servidor. Mostrando datos de ejemplo.');
-      setQuestions(demo);
+      console.error('Error al cargar las preguntas.', err);
+      setError('No se pudieron cargar las preguntas. Revisa tu conexión y recarga la página.');
+      setQuestions([]);
     } finally {
       setLoading(false);
     }
@@ -54,9 +46,9 @@ const AssessmentScreen = () => {
     return groups;
   };
 
-  // Separar preguntas ISO de las de Privacidad/Ley 21.719
-  const isoQuestions = questions.filter(q => !q.categoria.includes('Privacidad') && !q.categoria.includes('Ley 21.719'));
-  const privacyQuestions = questions.filter(q => q.categoria.includes('Privacidad') || q.categoria.includes('Ley 21.719'));
+  // Cada pregunta pertenece a un marco normativo (campo "marco" en la BD)
+  const isoQuestions = questions.filter(q => (q.marco || 'iso27001') === 'iso27001');
+  const privacyQuestions = questions.filter(q => q.marco === 'ley21719');
 
   const isoGroups = groupQuestions(isoQuestions);
   const privacyGroups = groupQuestions(privacyQuestions);

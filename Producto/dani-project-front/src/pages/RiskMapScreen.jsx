@@ -18,48 +18,34 @@ const RiskMapScreen = () => {
   
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [appliedControls, setAppliedControls] = useState([]);
-  const [showAssetDiscovery, setShowAssetDiscovery] = useState(true);
-  const [activeAssetSource, setActiveAssetSource] = useState('network');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   // ==========================================
   // 2. CONEXIÓN REAL CON EL BACKEND
   // ==========================================
   useEffect(() => {
     const fetchRisks = async () => {
-      const demoRisks = [
-        { id: 'd1', title: 'Acceso no autorizado a sistemas críticos', description: 'Un atacante externo podría comprometer credenciales y acceder a sistemas sensibles.', likelihood: 4, impact: 5, category: 'security' },
-        { id: 'd2', title: 'Pérdida de datos por ransomware', description: 'Cifrado malicioso de archivos críticos sin backup disponible.', likelihood: 3, impact: 5, category: 'operational' },
-        { id: 'd3', title: 'Fuga de datos personales', description: 'Exposición de información personal de empleados o clientes.', likelihood: 2, impact: 4, category: 'privacy' },
-      ];
       try {
         const data = await riskAPI.getAll();
-        const risksToUse = (data && data.length > 0) ? data : demoRisks;
-        setRisks(risksToUse);
-        const first = risksToUse[0];
-        setSelectedRisk({ ...first, name: first.title, prob: Math.max(1, first.likelihood || first.prob || 1) });
+        const lista = Array.isArray(data) ? data : [];
+        setRisks(lista);
+        setLoadError(null);
+        if (lista.length > 0) {
+          const first = lista[0];
+          setSelectedRisk({ ...first, name: first.title, prob: Math.max(1, first.likelihood || first.prob || 1) });
+        }
       } catch (error) {
-        console.error("Error conectando con la API de Riesgos. Usando datos demo.", error);
-        setRisks(demoRisks);
-        setSelectedRisk({ ...demoRisks[0], name: demoRisks[0].title, prob: demoRisks[0].likelihood });
+        console.error("Error conectando con la API de Riesgos.", error);
+        setLoadError('No se pudieron cargar los riesgos. Revisa tu conexión y recarga la página.');
       }
     };
     fetchRisks();
   }, []);
-
-  // ==========================================
-  // 3. DATOS DE DEMOSTRACIÓN (Activos)
-  // ==========================================
-  const assets = [
-    { id: 'fw1', name: 'firewall-main', type: 'Network', criticality: 'Critical', source: 'network' },
-    { id: 'sw1', name: 'switch-core-01', type: 'Network', criticality: 'High', source: 'network' },
-    { id: 'rt1', name: 'router-edge-01', type: 'Network', criticality: 'High', source: 'network' },
-    { id: 'vg1', name: 'vpn-gateway', type: 'Network', criticality: 'Critical', source: 'network' }
-  ];
 
   // ==========================================
   // 4. FUNCIONES DE CÁLCULO Y COLOR
@@ -316,78 +302,30 @@ const RiskMapScreen = () => {
         }
       `}</style>
       
-      {/* 1. SECCIÓN: DESCUBRIMIENTO DE ACTIVOS */}
-      <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-        <div className="riskmap-asset-header"
-          onClick={() => setShowAssetDiscovery(!showAssetDiscovery)}
-          style={{ padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', borderBottom: showAssetDiscovery ? `1px solid ${t.border}` : 'none' }}
-        >
-          <div className="riskmap-header-title" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Database size={24} color="white" />
-            </div>
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Descubrimiento Automático de Activos</h2>
-              <p style={{ fontSize: '13px', color: t.textDim }}>12 activos • 4 sincronizado de</p>
-            </div>
+      {/* 1. CABECERA */}
+      <div className="riskmap-asset-header" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="riskmap-header-title" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Database size={24} color="white" />
           </div>
-          <div className="riskmap-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px', color: t.textDim }}>
-            <button className="riskmap-add-button"
-              onClick={(e) => { e.stopPropagation(); setShowAddModal(true); }}
-              style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-            >
-              <Plus size={16} /> Nuevo Riesgo
-            </button>
-            <div style={{ display: 'flex', gap: '12px', fontSize: '12px', fontWeight: 600 }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Cloud size={14} /> 4</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6' }}><Layers size={14} /> 2</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#f59e0b' }}><FileText size={14} /> 2</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#06b6d4' }}><Globe size={14} /> 4</span>
-            </div>
-            {showAssetDiscovery ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>Mapa de Riesgos</h2>
+            <p style={{ fontSize: '13px', color: t.textDim }}>{risks.length} {risks.length === 1 ? 'riesgo registrado' : 'riesgos registrados'}</p>
           </div>
         </div>
-
-        {showAssetDiscovery && (
-          <div className="riskmap-asset-content" style={{ padding: '24px' }}>
-            {/* Filtros */}
-            <div className="riskmap-asset-filters" style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-              {[
-                { key: 'all',     label: 'Todas las Fuentes', count: assets.length, icon: null },
-                { key: 'cloud',   label: 'AWS',         count: assets.filter(a => a.source === 'cloud').length,   icon: <Cloud size={14} /> },
-                { key: 'azure',   label: 'Azure AD',    count: assets.filter(a => a.source === 'azure').length,   icon: <Layers size={14} color="#3b82f6" /> },
-                { key: 'jira',    label: 'Jira',        count: assets.filter(a => a.source === 'jira').length,    icon: <FileText size={14} color="#f59e0b" /> },
-                { key: 'network', label: 'Network Scan',count: assets.filter(a => a.source === 'network').length, icon: <Globe size={14} /> },
-              ].map(({ key, label, count, icon }) => {
-                const active = activeAssetSource === key;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => setActiveAssetSource(key)}
-                    style={{ padding: '8px 16px', background: active ? 'rgba(0, 74, 198,0.1)' : t.inputBg, border: active ? '1px solid #004ac6' : `1px solid ${t.border}`, borderRadius: '8px', color: active ? '#004ac6' : t.textMuted, fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
-                  >
-                    {icon} {label} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Tarjetas de Activos */}
-            <div className="riskmap-asset-cards">
-              {assets.filter(a => activeAssetSource === 'all' || a.source === activeAssetSource).map((asset, idx) => (
-                <div className="riskmap-asset-card" key={idx} style={{ background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <Globe size={16} color="#06b6d4" />
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', background: asset.criticality === 'Critical' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)', color: asset.criticality === 'Critical' ? '#ef4444' : '#f59e0b', textTransform: 'uppercase' }}>{asset.criticality}</span>
-                  </div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: t.text, marginBottom: '4px' }}>{asset.name}</div>
-                  <div style={{ fontSize: '12px', color: t.textDim }}>{asset.type}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <button className="riskmap-add-button"
+          onClick={() => setShowAddModal(true)}
+          style={{ padding: '8px 16px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+        >
+          <Plus size={16} /> Nuevo Riesgo
+        </button>
       </div>
+
+      {loadError && (
+        <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <AlertTriangle size={16} /> {loadError}
+        </div>
+      )}
 
       {/* 2. SECCIÓN: MATRIZ Y SIMULADOR */}
       <div className="riskmap-main-grid">

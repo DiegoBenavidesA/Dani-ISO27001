@@ -9,11 +9,11 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db
-from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
+from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE, require_superadmin
 from app.models.assessment_question import AssessmentQuestion
 from app.models.assessment_answer import AssessmentAnswer
 from app.models.control_status import ControlStatus
@@ -38,10 +38,25 @@ except ImportError:
     PdfReader = None
 
 router = APIRouter(prefix="/api/assessment-questions", tags=["Assessment Questions"])
+
+# Marcos normativos. Cada pregunta pertenece a uno solo y la IA evalúa uno a la vez.
+MARCOS = {"iso27001": "ISO 27001:2022", "ley21719": "Ley 21.719"}
+
+
+def _validar_marco(marco: Optional[str], obligatorio: bool = True) -> Optional[str]:
+    m = (marco or "").strip().lower()
+    if not m:
+        if obligatorio:
+            raise HTTPException(status_code=400, detail="Debes indicar el marco: 'iso27001' o 'ley21719'.")
+        return None
+    if m not in MARCOS:
+        raise HTTPException(status_code=400, detail=f"Marco '{marco}' no válido. Usa 'iso27001' o 'ley21719'.")
+    return m
 ai_service = AIService()
 
 class QuestionResponse(BaseModel):
     id: str
+    marco: str = "iso27001"
     codigo: str
     categoria: str
     nombre: str
@@ -51,6 +66,7 @@ class QuestionResponse(BaseModel):
     class Config: from_attributes = True
 
 class QuestionCreate(BaseModel):
+    marco: str = "iso27001"
     codigo: str
     categoria: str
     nombre: str
@@ -59,6 +75,7 @@ class QuestionCreate(BaseModel):
     orden: int = 0
 
 class QuestionUpdate(BaseModel):
+    marco: Optional[str] = None
     codigo: Optional[str] = None
     categoria: Optional[str] = None
     nombre: Optional[str] = None
@@ -76,15 +93,18 @@ class AnswerResponse(BaseModel):
     class Config: from_attributes = True
 
 @router.get("/", response_model=List[QuestionResponse])
-async def get_questions(categoria: Optional[str] = None, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def get_questions(categoria: Optional[str] = None, marco: Optional[str] = None, current_user: dict = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     stmt = select(AssessmentQuestion)
+    marco = _validar_marco(marco, obligatorio=False)
+    if marco: stmt = stmt.where(AssessmentQuestion.marco == marco)
     if categoria: stmt = stmt.where(AssessmentQuestion.categoria == categoria)
     stmt = stmt.order_by(AssessmentQuestion.orden)
     result = await db.execute(stmt)
     return result.scalars().all()
 
 @router.post("/", response_model=QuestionResponse)
-async def create_question(data: QuestionCreate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def create_question(data: QuestionCreate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
+    data.marco = _validar_marco(data.marco)
     new_q = AssessmentQuestion(**data.model_dump(exclude_unset=True))
     db.add(new_q)
     await db.commit()
@@ -92,18 +112,22 @@ async def create_question(data: QuestionCreate, current_user: dict = Depends(Req
     return new_q
 
 @router.put("/{q_id}", response_model=QuestionResponse)
-async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def update_question(q_id: str, data: QuestionUpdate, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
-    for key, value in data.model_dump(exclude_unset=True).items(): setattr(q, key, value)
+    cambios = data.model_dump(exclude_unset=True)
+    if "marco" in cambios: cambios["marco"] = _validar_marco(cambios["marco"])
+    for key, value in cambios.items(): setattr(q, key, value)
     await db.commit()
     await db.refresh(q)
     return q
 
 @router.delete("/{q_id}")
-async def delete_question(q_id: str, current_user: dict = Depends(RequireRole(["admin"])), db: AsyncSession = Depends(get_db)):
+async def delete_question(q_id: str, current_user: dict = Depends(require_superadmin), db: AsyncSession = Depends(get_db)):
     q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == q_id))).scalar_one_or_none()
     if not q: raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    # Primero las respuestas de las empresas a esta pregunta (FK); si no, el borrado falla.
+    await db.execute(sa_delete(AssessmentAnswer).where(AssessmentAnswer.question_id == q_id))
     await db.delete(q)
     await db.commit()
     return {"message": "Eliminada"}
@@ -166,10 +190,12 @@ def _mapear_columnas(headers: list) -> dict:
 @router.post("/bulk-import")
 async def bulk_import_questions(
     file: UploadFile = File(...),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    marco: str = Form(...),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Carga masiva de preguntas desde un Excel (.xlsx). Tolerante a nombres de columna distintos."""
+    """Carga masiva de preguntas desde un Excel (.xlsx) a un marco (ISO o Ley). Tolerante a nombres de columna distintos."""
+    marco = _validar_marco(marco)
     nombre_archivo = (file.filename or "").lower()
     if not nombre_archivo.endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="El archivo debe ser un Excel (.xlsx).")
@@ -214,7 +240,7 @@ async def bulk_import_questions(
         return v or None
 
     existentes = set()
-    res_prev = await db.execute(select(AssessmentQuestion.codigo, AssessmentQuestion.pregunta))
+    res_prev = await db.execute(select(AssessmentQuestion.codigo, AssessmentQuestion.pregunta).where(AssessmentQuestion.marco == marco))
     for cod, preg in res_prev.all():
         existentes.add((_normalizar(cod), _normalizar(preg)))
 
@@ -250,7 +276,7 @@ async def bulk_import_questions(
             continue
 
         db.add(AssessmentQuestion(
-            codigo=codigo, categoria=categoria, nombre=nombre,
+            marco=marco, codigo=codigo, categoria=categoria, nombre=nombre,
             pregunta=pregunta, evidencia_esperada=evidencia, orden=orden,
         ))
         nuevas_en_lote.add(clave)
@@ -261,6 +287,7 @@ async def bulk_import_questions(
 
     columnas_detectadas = {campo: headers[idx] for campo, idx in mapeo.items() if idx < len(headers)}
     return {
+        "marco": marco,
         "creadas": creadas,
         "omitidas": omitidas,
         "total_filas_datos": creadas + omitidas,
@@ -337,11 +364,13 @@ def _parsear_preguntas_pdf(texto: str):
 @router.post("/bulk-import-pdf")
 async def bulk_import_questions_pdf(
     file: UploadFile = File(...),
+    marco: str = Form(...),
     categoria_forzada: Optional[str] = Form(None),
-    current_user: dict = Depends(RequireRole(["admin"])),
+    current_user: dict = Depends(require_superadmin),
     db: AsyncSession = Depends(get_db),
 ):
-    """Carga masiva de preguntas desde un PDF (checklist/listado). Detecta categorías e ítems."""
+    """Carga masiva de preguntas desde un PDF (checklist/listado) a un marco (ISO o Ley). Detecta categorías e ítems."""
+    marco = _validar_marco(marco)
     if PdfReader is None:
         raise HTTPException(status_code=500, detail="Falta la dependencia 'pypdf' en el servidor.")
 
@@ -372,7 +401,7 @@ async def bulk_import_questions_pdf(
     prefijo = re.sub(r"[^A-Za-z0-9]", "", os.path.splitext(os.path.basename(nombre_archivo))[0])[:8].upper() or "PDF"
 
     preguntas_existentes = set()
-    res_prev = await db.execute(select(AssessmentQuestion.pregunta))
+    res_prev = await db.execute(select(AssessmentQuestion.pregunta).where(AssessmentQuestion.marco == marco))
     for (preg,) in res_prev.all():
         preguntas_existentes.add(_normalizar(preg))
 
@@ -384,17 +413,21 @@ async def bulk_import_questions_pdf(
 
     for categoria, texto_item in items:
         indice += 1
-        cat = (categoria_forzada or categoria or "General")[:100]
+        cat = limpiar_texto_pdf(categoria_forzada or categoria or "General")[:100]
         codigo = f"{prefijo}-{indice:03d}"[:50]
-        clave = _normalizar(texto_item)
+        # El PDF trae afirmaciones con texto partido: se limpian y se pasan a pregunta.
+        # La evidencia esperada la completa luego la IA (POST /mejorar).
+        pregunta_txt = a_pregunta(texto_item)
+        clave = _normalizar(pregunta_txt)
         if clave in preguntas_existentes or clave in nuevas:
             omitidas += 1
             continue
         db.add(AssessmentQuestion(
+            marco=marco,
             codigo=codigo,
             categoria=cat,
-            nombre=texto_item[:60],
-            pregunta=texto_item[:1000],
+            nombre=nombre_corto(texto_item),
+            pregunta=pregunta_txt[:1000],
             evidencia_esperada=None,
             orden=indice,
         ))
@@ -406,6 +439,7 @@ async def bulk_import_questions_pdf(
         await db.commit()
 
     return {
+        "marco": marco,
         "creadas": creadas,
         "omitidas": omitidas,
         "total_detectadas": len(items),
@@ -414,7 +448,7 @@ async def bulk_import_questions_pdf(
 
 
 @router.get("/bulk-template")
-async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
+async def bulk_template(current_user: dict = Depends(require_superadmin)):
     """Descarga una plantilla .xlsx con las columnas esperadas y 2 ejemplos."""
     try:
         import openpyxl
@@ -432,9 +466,9 @@ async def bulk_template(current_user: dict = Depends(RequireRole(["admin"]))):
         "Documento de política firmado por la dirección", 1,
     ])
     ws.append([
-        "O1", "Privacidad", "Registro de tratamientos (RoPA)",
-        "¿Existe un registro de actividades de tratamiento de datos personales?",
-        "Inventario RoPA actualizado", 2,
+        "A.5.2", "Organizacional", "Roles y responsabilidades",
+        "¿Están definidos y asignados los roles de seguridad de la información?",
+        "Matriz de responsabilidades o RACI aprobada", 2,
     ])
     buf = io.BytesIO()
     wb.save(buf)
@@ -455,6 +489,88 @@ async def get_answer_by_question(question_id: str, org_id: str = Depends(get_cur
     answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
     if not answer: raise HTTPException(status_code=404, detail="No encontrada")
     return answer
+
+class RespuestaManualRequest(BaseModel):
+    veredicto: str
+
+
+@router.put("/answers/{question_id}", response_model=AnswerResponse)
+async def guardar_respuesta_manual(
+    question_id: str,
+    data: RespuestaManualRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Respuesta dada a mano en el cuestionario (Sí / Parcial / No). Se guarda
+    por empresa, igual que las de la IA, para que el resultado no dependa del
+    navegador. Si cambia el veredicto, se descarta la justificación de la IA."""
+    veredicto = (data.veredicto or "").strip().lower()
+    if veredicto not in ("cumple", "parcial", "no_cumple"):
+        raise HTTPException(status_code=400, detail="Veredicto inválido (cumple, parcial o no_cumple).")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    if answer.veredicto != veredicto:
+        answer.confianza = None
+        answer.justificacion = None
+    answer.veredicto = veredicto
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+
+class NoAplicaRequest(BaseModel):
+    justificacion: str
+
+
+@router.put("/answers/{question_id}/no-aplica", response_model=AnswerResponse)
+async def marcar_no_aplica(
+    question_id: str,
+    data: NoAplicaRequest,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """La empresa declara que una pregunta del catálogo no le aplica, con su
+    justificación (igual que en la SOA). La pregunta no se borra: queda fuera
+    de la evaluación con IA y del cálculo de brechas de esa empresa."""
+    justificacion = (data.justificacion or "").strip()
+    if len(justificacion) < 10:
+        raise HTTPException(status_code=400, detail="Explica en al menos 10 caracteres por qué la pregunta no aplica.")
+    if not (await db.execute(select(AssessmentQuestion.id).where(AssessmentQuestion.id == question_id))).first():
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    answer = (await db.execute(select(AssessmentAnswer).where(AssessmentAnswer.question_id == question_id, AssessmentAnswer.organization_id == org_id))).scalar_one_or_none()
+    if not answer:
+        answer = AssessmentAnswer(question_id=question_id, organization_id=org_id)
+        db.add(answer)
+    answer.veredicto = "no_aplica"
+    answer.confianza = None
+    answer.justificacion = justificacion[:2000]
+    await db.commit()
+    await db.refresh(answer)
+    return answer
+
+
+@router.delete("/answers/{question_id}/no-aplica")
+async def quitar_no_aplica(
+    question_id: str,
+    current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+):
+    """Vuelve a incluir la pregunta en la evaluación de la empresa."""
+    await db.execute(sa_delete(AssessmentAnswer).where(
+        AssessmentAnswer.question_id == question_id,
+        AssessmentAnswer.organization_id == org_id,
+        AssessmentAnswer.veredicto == "no_aplica",
+    ))
+    await db.commit()
+    return {"message": "La pregunta vuelve a aplicar"}
+
 
 # Función para extraer JSON de una cadena de texto (incluso si la IA agrega markdown o comentarios)
 def extract_json_from_text(text: str):
@@ -478,233 +594,288 @@ def extract_json_from_text(text: str):
             print(f"No se pudo extraer JSON de la respuesta de la IA: {text}")
             return []
 
-# EVALUACIÓN EXHAUSTIVA DE IA Y RoPA AUTOMÁTICA
+# EVALUACIÓN CON IA POR MARCO NORMATIVO (en segundo plano)
+# =====================================================================
+# POST /evaluate        -> inicia un job para UN marco (iso27001 o ley21719)
+#                          y devuelve {job_id, total}
+# GET  /evaluate/{id}   -> estado: done/total, etapa y, al terminar,
+#                          {marco, total, results, evaluated_with_ai}
+# Ver app/services/question_evaluator.py (filtro por relevancia + contexto
+# por fragmentos + reintentos ante el límite de Groq).
+# =====================================================================
+from app.services import question_evaluator as qe
+from app.services.question_enricher import limpiar_texto_pdf, a_pregunta, nombre_corto
+from app.services import question_enricher
+from app.dependencies.database import AsyncSessionLocal
+
+_jobs_en_curso = set()  # referencias para que asyncio no recolecte las tareas
+
+
+def _texto_de_bytes(data: bytes, filename: str) -> str:
+    filename = (filename or "").lower()
+    texto = ""
+    if filename.endswith(".pdf") and PdfReader:
+        try:
+            pdf = PdfReader(io.BytesIO(data))
+            for page in pdf.pages:
+                t = page.extract_text()
+                if t:
+                    texto += t + "\n"
+        except Exception as e:
+            print(f"Error leyendo PDF: {e}")
+    else:
+        try:
+            texto = data.decode("utf-8")
+        except Exception:
+            texto = data.decode("latin-1", errors="ignore")
+    return texto
+
+
+async def _documentos_guardados(db: AsyncSession, ev_ids: List[str], org_id: str):
+    """Texto de las evidencias seleccionadas del Centro de Evidencias."""
+    from app.models.evidence import Evidence
+    from app.models.evidence_chunk import EvidenceChunk
+    from app.services.storage_service import storage_service
+
+    documentos = []
+    ev_rows = (await db.execute(
+        select(Evidence).where(Evidence.id.in_(ev_ids), Evidence.organization_id == org_id)
+    )).scalars().all()
+    for ev in ev_rows:
+        # 0) Lo más confiable: el texto ya guardado en la BD al subir.
+        texto_ev = (ev.extracted_text or "").strip()
+        # 1) Si no hay, descargar el archivo guardado y extraer el texto ahora.
+        if not texto_ev:
+            try:
+                data = await storage_service.download(ev.file_url)
+                texto_ev = _texto_de_bytes(data, ev.file_name or ev.title or "")
+            except Exception as e:
+                print(f"No se pudo descargar la evidencia {ev.id}, uso el índice: {e}")
+        # 2) Fallback: texto ya indexado (EvidenceChunk).
+        if not texto_ev.strip():
+            chunks = (await db.execute(
+                select(EvidenceChunk).where(
+                    EvidenceChunk.evidence_id == ev.id,
+                    EvidenceChunk.organization_id == org_id,
+                ).order_by(EvidenceChunk.chunk_index)
+            )).scalars().all()
+            texto_ev = "\n".join(c.content for c in chunks if c.content)
+        if texto_ev.strip():
+            documentos.append((ev.title or "Documento", texto_ev))
+    return documentos
+
+
+async def _guardar_resultados(db: AsyncSession, org_id: str, preguntas, resultados, actualizar_soa: bool = True):
+    """Guarda las respuestas y, si es ISO, refleja los veredictos en el SOA (ControlStatus)."""
+    q_ids_res = [str(item.get("id")) for item in resultados if item.get("id")]
+    respuestas_existentes = {}
+    if q_ids_res:
+        exist_stmt = select(AssessmentAnswer).where(AssessmentAnswer.organization_id == org_id, AssessmentAnswer.question_id.in_(q_ids_res))
+        respuestas_existentes = {a.question_id: a for a in (await db.execute(exist_stmt)).scalars().all()}
+
+    for item in resultados:
+        qid = str(item.get("id") or "").strip()
+        if not qid:
+            continue
+        veredicto = item.get("veredicto", "sin_evidencia")
+        if veredicto not in {"cumple", "parcial", "no_cumple", "sin_evidencia"}:
+            veredicto = "sin_evidencia"
+        try:
+            confianza = float(item.get("confianza", 0.0))
+        except Exception:
+            confianza = 0.0
+        existing = respuestas_existentes.get(qid)
+        if existing:
+            existing.veredicto = veredicto
+            existing.confianza = confianza
+            existing.justificacion = item.get("justificacion")
+        else:
+            db.add(AssessmentAnswer(question_id=qid, organization_id=org_id, veredicto=veredicto, confianza=confianza, justificacion=item.get("justificacion")))
+    await db.commit()
+    if not actualizar_soa:
+        return  # la Ley 21.719 no tiene SOA
+
+    # --- Puente hacia el SOA: actualizar el estado de los controles ISO ---
+    # Mapeo por código: pregunta "A.5.1" -> control "5.1".
+    q_by_id = {q.id: q for q in preguntas}
+    estado_por_veredicto = {
+        "cumple": ("Implementado", 100),
+        "parcial": ("Planificado", 50),
+        "no_cumple": ("No Implementado", 0),
+        "sin_evidencia": ("No Implementado", 0),
+    }
+    statuses = {cs.control_id: cs for cs in (await db.execute(
+        select(ControlStatus).where(ControlStatus.organization_id == org_id)
+    )).scalars().all()}
+    for item in resultados:
+        q = q_by_id.get(str(item.get("id") or "").strip())
+        if not q:
+            continue
+        cs = statuses.get(_codigo_a_control_id(q.codigo))
+        if not cs:
+            continue  # solo tocamos controles que existan para esta empresa
+        veredicto = item.get("veredicto", "sin_evidencia")
+        # No degradamos un control ya Implementado por un "sin_evidencia".
+        if veredicto in ("sin_evidencia", "no_cumple") and cs.status == "Implementado":
+            continue
+        nuevo_estado, score = estado_por_veredicto.get(veredicto, ("No Implementado", 0))
+        cs.applies = True
+        cs.status = nuevo_estado
+        cs.score = score
+        if item.get("justificacion"):
+            cs.justification = item.get("justificacion")
+    await db.commit()
+
+
+async def _ejecutar_job(job_id: str, org_id: str, marco: str, preguntas, documentos):
+    job = qe.JOBS[job_id]
+
+    def progreso(avance: int, etapa):
+        job["done"] = min(job["total"], job["done"] + avance)
+        if etapa:
+            job["stage"] = etapa
+
+    try:
+        from app.routes.evidence import embedding_service
+        job["stage"] = "Buscando qué preguntas se relacionan con los documentos"
+        resultados, enviadas = await qe.evaluar_preguntas(
+            ai_service, embedding_service, preguntas, documentos, extract_json_from_text, progreso
+        )
+        job["stage"] = "Guardando resultados y actualizando la SOA" if marco == "iso27001" else "Guardando resultados"
+        async with AsyncSessionLocal() as db:
+            await _guardar_resultados(db, org_id, preguntas, resultados, actualizar_soa=(marco == "iso27001"))
+
+        job["result"] = {
+            "marco": marco, "total": len(resultados), "results": resultados,
+            "evaluated_with_ai": enviadas,
+        }
+        job["done"] = job["total"]
+        job["status"] = "done"
+        job["stage"] = "Listo"
+    except Exception as e:
+        print(f"Error en el job de evaluación {job_id}: {e}")
+        job["status"] = "error"
+        job["error"] = "La evaluación falló en el servidor. Intenta de nuevo."
+
+
 @router.post("/evaluate")
 async def evaluate_with_ai(
     files: List[UploadFile] = File(default=None),
+    marco: str = Form(...),        # "iso27001" o "ley21719": la IA evalúa un solo marco
     question_ids: str = Form(""),
     evidence_ids: str = Form(""),  # documentos ya guardados en el Centro de Evidencias
     current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    contexto = ""
-
-    # Documentos GUARDADOS: usamos el texto ya indexado (EvidenceChunk) de las
-    # evidencias seleccionadas, sin necesidad de volver a subir el archivo.
+    marco = _validar_marco(marco)
+    documentos = []
     ev_ids = [x.strip() for x in evidence_ids.split(",") if x.strip()]
     if ev_ids:
-        from app.models.evidence import Evidence
-        from app.models.evidence_chunk import EvidenceChunk
-        from app.services.storage_service import storage_service
-        ev_rows = (await db.execute(
-            select(Evidence).where(Evidence.id.in_(ev_ids), Evidence.organization_id == org_id)
-        )).scalars().all()
-        for ev in ev_rows:
-            # 0) Lo más confiable: el texto ya guardado en la BD al subir.
-            texto_ev = (ev.extracted_text or "").strip()
-
-            # 1) Si no hay, descargar el archivo guardado y extraer el texto ahora.
-            if not texto_ev:
-                try:
-                    data = await storage_service.download(ev.file_url)
-                    fn = (ev.file_name or ev.title or "").lower()
-                    if fn.endswith(".pdf") and PdfReader:
-                        pdf = PdfReader(io.BytesIO(data))
-                        for page in pdf.pages:
-                            t = page.extract_text()
-                            if t:
-                                texto_ev += t + "\n"
-                    else:
-                        try:
-                            texto_ev = data.decode("utf-8")
-                        except Exception:
-                            texto_ev = data.decode("latin-1", errors="ignore")
-                except Exception as e:
-                    print(f"No se pudo descargar la evidencia {ev.id}, uso el índice: {e}")
-
-            # 2) Fallback: texto ya indexado (EvidenceChunk).
-            if not texto_ev.strip():
-                chunks = (await db.execute(
-                    select(EvidenceChunk).where(
-                        EvidenceChunk.evidence_id == ev.id,
-                        EvidenceChunk.organization_id == org_id,
-                    ).order_by(EvidenceChunk.chunk_index)
-                )).scalars().all()
-                texto_ev = "\n".join(c.content for c in chunks if c.content)
-
-            if texto_ev.strip():
-                contexto += f"\n\n### Documento: {ev.title}\n{texto_ev}"
-
+        documentos += await _documentos_guardados(db, ev_ids, org_id)
     for f in (files or []):
-        data = await f.read()
-        texto = ""
-        filename = f.filename.lower() if f.filename else ""
-        
-        # Extracción robusta de PDF
-        if filename.endswith('.pdf') and PdfReader:
-            try:
-                import io
-                pdf = PdfReader(io.BytesIO(data))
-                for page in pdf.pages:
-                    extracted = page.extract_text()
-                    if extracted: texto += extracted + "\n"
-            except Exception as e:
-                print(f"Error leyendo PDF: {e}")
-        else:
-            try: texto = data.decode('utf-8')
-            except: texto = data.decode('latin-1', errors='ignore')
-            
+        texto = _texto_de_bytes(await f.read(), f.filename)
         if texto.strip():
-            contexto += f"\n\n### Documento: {f.filename}\n{texto}"
+            documentos.append((f.filename or "Documento", texto))
 
-    if not contexto.strip(): raise HTTPException(status_code=400, detail="No se pudo extraer texto. Asegúrate de que los PDFs no sean solo imágenes.")
+    if not documentos:
+        raise HTTPException(status_code=400, detail="No se pudo extraer texto. Asegúrate de que los PDFs no sean solo imágenes.")
 
-    stmt = select(AssessmentQuestion)
+    stmt = select(AssessmentQuestion).where(AssessmentQuestion.marco == marco)
     ids = [x.strip() for x in question_ids.split(",") if x.strip()]
-    if ids: stmt = stmt.where(AssessmentQuestion.id.in_(ids))
+    if ids:
+        stmt = stmt.where(AssessmentQuestion.id.in_(ids))
+    # Las preguntas que la empresa marcó como "no aplica" no se evalúan.
+    no_aplica = select(AssessmentAnswer.question_id).where(
+        AssessmentAnswer.organization_id == org_id, AssessmentAnswer.veredicto == "no_aplica"
+    )
+    stmt = stmt.where(AssessmentQuestion.id.not_in(no_aplica))
     preguntas = (await db.execute(stmt.order_by(AssessmentQuestion.orden))).scalars().all()
+    if not preguntas:
+        raise HTTPException(status_code=400, detail=f"No hay preguntas de {MARCOS[marco]} para evaluar (o todas están marcadas como \"no aplica\").")
 
-    resultados = []
-    if preguntas:
-        TAMANO_LOTE = 10
-        lotes = [preguntas[i:i + TAMANO_LOTE] for i in range(0, len(preguntas), TAMANO_LOTE)]
-        sem = asyncio.Semaphore(3)
+    job_id = qe.crear_job(org_id, len(preguntas))
+    tarea = asyncio.create_task(_ejecutar_job(job_id, org_id, marco, list(preguntas), documentos))
+    _jobs_en_curso.add(tarea)
+    tarea.add_done_callback(_jobs_en_curso.discard)
+    return {"job_id": job_id, "total": len(preguntas)}
 
-        async def evaluar_lote(qs):
-            async with sem:
-                prompt = f"""Eres un Auditor ISO 27001 y Ley 21.719. Analiza este documento:
-                {contexto[:8000]}
-                
-                Responde a estas preguntas basadas SOLAMENTE en el documento:
-                {json.dumps([{"id": q.id, "pregunta": q.pregunta, "codigo": q.codigo} for q in qs])}
-                
-                Instrucciones:
-                1. Si el documento muestra explícitamente que cumplen la pregunta, "veredicto" es "cumple".
-                2. Si el documento muestra cumplimiento parcial o falta información clave, "veredicto" es "parcial".
-                3. Si el documento no menciona el tema o no hay evidencia, "veredicto" es "sin_evidencia".
-                4. "justificacion" debe ser una breve razón de tu veredicto citando el documento.
-                
-                MUY IMPORTANTE: Tu respuesta DEBE ser un arreglo JSON válido y NADA MÁS. No incluyas bloques de código markdown (```json), ni texto introductorio, ni comentarios.
-                
-                Ejemplo de formato esperado:
-                [
-                  {{ "id": "id_pregunta_1", "veredicto": "cumple", "confianza": 0.9, "justificacion": "El documento menciona..." }},
-                  {{ "id": "id_pregunta_2", "veredicto": "sin_evidencia", "confianza": 0.1, "justificacion": "No se menciona en el texto proporcionado." }}
-                ]
-                """
-                resp_text = await ai_service.generate_document(prompt)
-                
-                parsed_json = extract_json_from_text(resp_text)
-                if parsed_json:
-                    return parsed_json
-                else:
-                    return [{"id": q.id, "veredicto": "sin_evidencia", "confianza": 0.0, "justificacion": "Error: La IA no devolvió un JSON válido."} for q in qs]
 
-        lotes_res = await asyncio.gather(*[evaluar_lote(qs) for qs in lotes])
-        resultados = [item for sub in lotes_res for item in sub if type(item) is dict]
+@router.get("/evaluate/{job_id}")
+async def evaluate_status(job_id: str, org_id: str = Depends(get_current_org)):
+    job = qe.obtener_job(job_id, org_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="La evaluación no existe o expiró (el servidor pudo haberse reiniciado).")
+    return job
 
-        q_ids_res = [str(item.get("id")) for item in resultados if item.get("id")]
-        respuestas_existentes = {}
-        if q_ids_res:
-            exist_stmt = select(AssessmentAnswer).where(AssessmentAnswer.organization_id == org_id, AssessmentAnswer.question_id.in_(q_ids_res))
-            respuestas_existentes = {a.question_id: a for a in (await db.execute(exist_stmt)).scalars().all()}
 
-        for item in resultados:
-            qid = str(item.get("id") or "").strip()
-            if not qid: continue
-            veredicto = item.get("veredicto", "sin_evidencia")
-            if veredicto not in {"cumple", "parcial", "no_cumple", "sin_evidencia"}: veredicto = "sin_evidencia"
-            try: confianza = float(item.get("confianza", 0.0))
-            except: confianza = 0.0
-            
-            existing = respuestas_existentes.get(qid)
-            if existing:
-                existing.veredicto = veredicto
-                existing.confianza = confianza
-                existing.justificacion = item.get("justificacion")
-            else:
-                db.add(AssessmentAnswer(question_id=qid, organization_id=org_id, veredicto=veredicto, confianza=confianza, justificacion=item.get("justificacion")))
-        await db.commit()
+# =====================================================================
+# MEJORAR PREGUNTAS CON IA (solo superadmin)
+# POST /mejorar       -> redacta como pregunta, título corto y evidencia
+#                        esperada las preguntas del marco que no la tienen
+# GET  /mejorar/{id}  -> avance del trabajo
+# =====================================================================
+_JOB_PLATAFORMA = "plataforma"  # los jobs del catálogo no son de una empresa
 
-        # --- Puente hacia el SOA: actualizar el estado de los controles ISO ---
-        # El veredicto de la IA se refleja en ControlStatus para que el SOA y
-        # Resultados cambien. Mapeo por código: pregunta "A.5.1" -> control "5.1".
-        q_by_id = {q.id: q for q in preguntas}
-        estado_por_veredicto = {
-            "cumple": ("Implementado", 100),
-            "parcial": ("Planificado", 50),
-            "no_cumple": ("No Implementado", 0),
-            "sin_evidencia": ("No Implementado", 0),
-        }
-        for item in resultados:
-            qid = str(item.get("id") or "").strip()
-            q = q_by_id.get(qid)
-            if not q:
-                continue
-            control_id = _codigo_a_control_id(q.codigo)
-            veredicto = item.get("veredicto", "sin_evidencia")
-            nuevo_estado, score = estado_por_veredicto.get(veredicto, ("No Implementado", 0))
-            # Solo tocamos controles que existan para esta empresa.
-            cs_res = await db.execute(
-                select(ControlStatus).where(
-                    ControlStatus.control_id == control_id,
-                    ControlStatus.organization_id == org_id,
-                )
-            )
-            cs = cs_res.scalar_one_or_none()
-            if not cs:
-                continue
-            # No degradamos un control ya Implementado por un "sin_evidencia".
-            if veredicto in ("sin_evidencia", "no_cumple") and cs.status == "Implementado":
-                continue
-            cs.applies = True
-            cs.status = nuevo_estado
-            cs.score = score
-            if item.get("justificacion"):
-                cs.justification = item.get("justificacion")
-        await db.commit()
 
-    # EXTRAER TRATAMIENTOS RoPA AUTOMÁTICAMENTE
-    extracted_treatments = []
+@router.post("/mejorar")
+async def mejorar_preguntas(
+    marco: str = Form(...),
+    current_user: dict = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db),
+):
+    marco = _validar_marco(marco)
+    preguntas = (await db.execute(
+        select(AssessmentQuestion)
+        .where(AssessmentQuestion.marco == marco)
+        .where((AssessmentQuestion.evidencia_esperada.is_(None)) | (AssessmentQuestion.evidencia_esperada == ""))
+        .order_by(AssessmentQuestion.orden)
+    )).scalars().all()
+    if not preguntas:
+        return {"job_id": None, "total": 0}
+    datos = [{"id": q.id, "categoria": q.categoria, "texto": q.pregunta} for q in preguntas]
+    job_id = qe.crear_job(_JOB_PLATAFORMA, len(datos))
+    tarea = asyncio.create_task(_ejecutar_mejora(job_id, marco, datos))
+    _jobs_en_curso.add(tarea)
+    tarea.add_done_callback(_jobs_en_curso.discard)
+    return {"job_id": job_id, "total": len(datos)}
+
+
+@router.get("/mejorar/{job_id}")
+async def mejorar_estado(job_id: str, current_user: dict = Depends(require_superadmin)):
+    job = qe.obtener_job(job_id, _JOB_PLATAFORMA)
+    if not job:
+        raise HTTPException(status_code=404, detail="El trabajo no existe o expiró (el servidor pudo haberse reiniciado).")
+    return job
+
+
+async def _ejecutar_mejora(job_id: str, marco: str, datos: list):
+    job = qe.JOBS[job_id]
+    job["stage"] = "Redactando preguntas y evidencia esperada"
+
+    def progreso(hechas: int):
+        job["done"] = hechas
+
     try:
-        ropa_prompt = f"""Analiza detalladamente este documento y extrae TODAS las Actividades de Tratamiento de Datos Personales (para un Registro RoPA).
-        Documento: 
-        {contexto[:8000]}
-        
-        Busca información como: gestión de clientes, marketing, recursos humanos, videovigilancia, etc.
-        Para cada tratamiento encontrado, extrae la siguiente información:
-        - "nombre": Nombre descriptivo de la actividad (ej. "Gestión de clientes y facturación").
-        - "finalidad": Para qué se usan los datos.
-        - "base_licitud": La base legal (ej. "ejecución de un contrato", "consentimiento").
-        - "categorias_datos": Qué datos se recopilan (ej. "nombre, RUT, dirección").
-        - "plazo_conservacion": Cuánto tiempo se guardan.
-        - "destinatarios": A quién se comparten los datos (opcional, si se menciona).
-        
-        Instrucciones MUY IMPORTANTES:
-        1. Devuelve ÚNICAMENTE un arreglo JSON válido y NADA MÁS.
-        2. No incluyas bloques de código markdown (```json), ni explicaciones.
-        3. Si no encuentras NINGÚN tratamiento, devuelve un arreglo vacío: []
-        
-        Ejemplo de formato esperado:
-        [
-          {{
-            "nombre": "Envío de comunicaciones de marketing",
-            "finalidad": "enviar newsletters y promociones",
-            "base_licitud": "consentimiento del titular",
-            "categorias_datos": "nombre y correo electrónico",
-            "plazo_conservacion": "hasta que revoque el consentimiento",
-            "destinatarios": "plataforma de email marketing"
-          }}
-        ]
-        """
-        
-        ropa_text = await ai_service.generate_document(ropa_prompt)
-        
-        extracted_treatments = extract_json_from_text(ropa_text)
-        print(f"Tratamientos extraídos: {len(extracted_treatments)}")
-
+        mejoradas = await question_enricher.enriquecer(ai_service, marco, datos, progreso)
+        con_ia = 0
+        async with AsyncSessionLocal() as db:
+            for d, m in zip(datos, mejoradas):
+                q = (await db.execute(select(AssessmentQuestion).where(AssessmentQuestion.id == d["id"]))).scalar_one_or_none()
+                if not q:
+                    continue
+                q.pregunta = m["pregunta"] or q.pregunta
+                q.nombre = (m["nombre"] or q.nombre)[:255]
+                q.categoria = limpiar_texto_pdf(q.categoria)[:100]
+                if m["evidencia_esperada"]:
+                    q.evidencia_esperada = m["evidencia_esperada"]
+                con_ia += 1 if m["con_ia"] else 0
+            await db.commit()
+        job["result"] = {"marco": marco, "total": len(datos), "con_ia": con_ia}
+        job["done"] = job["total"]
+        job["status"] = "done"
+        job["stage"] = "Listo"
     except Exception as e:
-        print(f"Error en la extracción de RoPA: {e}")
-
-    return { "total": len(resultados), "results": resultados, "extracted_treatments": extracted_treatments }
+        print(f"Error al mejorar preguntas {job_id}: {e}")
+        job["status"] = "error"
+        job["error"] = "No se pudieron mejorar las preguntas. Intenta de nuevo."

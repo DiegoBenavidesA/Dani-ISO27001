@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from app.dependencies.database import get_db
 from app.models.risk import Risk, RiskLevel, RiskStatus, RiskCategory
 from app.models.data_breach import DataBreach
-from app.models.data_treatment import DataTreatment
 from app.dependencies.auth import get_current_user, get_current_org
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 
@@ -131,14 +130,10 @@ async def predict_future_risks(
         breaches = (await db.execute(scope_to_org(select(DataBreach), DataBreach, org_id))).scalars().all()
         breach_summary = "; ".join([f"{b.descripcion} (Gravedad: {b.gravedad})" for b in breaches])
         
-        treatments = (await db.execute(scope_to_org(select(DataTreatment), DataTreatment, org_id))).scalars().all()
-        treatment_summary = "; ".join([f"{t.nombre} (Datos: {t.categorias_datos})" for t in treatments])
-        
         # 2. Armar prompt del estado general
         context_data = f"""
         RIESGOS ACTIVOS: {risk_summary or 'Ninguno registrado.'}
         BRECHAS HISTÓRICAS RECIENTES: {breach_summary or 'Ninguna registrada.'}
-        TRATAMIENTOS DE DATOS CRÍTICOS: {treatment_summary or 'Ninguno registrado.'}
         """
         
         # 3. Llamar a la IA

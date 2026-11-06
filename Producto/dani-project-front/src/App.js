@@ -6,9 +6,7 @@ import Login from './pages/Login';
 import DaniPlatform from './dani-platform-respaldo';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import GapAnalysis from './pages/GapAnalysisScreen';
-import PublicConsentScreen from './pages/PublicConsentScreen';
 import ActivateScreen from './pages/ActivateScreen';
-import PublicDataRequestScreen from './pages/PublicDataRequestScreen';
 import LandingPage from './pages/LandingPage';
 
 // Pantalla de carga del inicio de sesión. Si la espera se alarga, avisamos que
@@ -61,8 +59,6 @@ function AppRoutes() {
     <Routes>
       {/* Rutas públicas */}
       <Route path="/activar/:token" element={<ActivateScreen />} />
-      <Route path="/consent/:token" element={<PublicConsentScreen />} />
-      <Route path="/solicitud/:orgSlug" element={<PublicDataRequestScreen />} />
 
       {/* Login */}
       <Route

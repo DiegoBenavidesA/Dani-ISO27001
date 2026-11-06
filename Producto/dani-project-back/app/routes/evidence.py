@@ -4,7 +4,7 @@ import zipfile
 import io
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete as sa_delete
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -14,11 +14,11 @@ from app.dependencies.auth import get_current_user, get_current_org, RequireRole
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
-from app.services.embedding_service import EmbeddingService
+from app.models.evidence_chunk import EvidenceChunk
+from app.services.embedding_service import embedding_service
 from app.services.storage_service import storage_service
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
-embedding_service = EmbeddingService()
 
 TMP_DIR = "/tmp"
 
@@ -33,11 +33,13 @@ async def _index_evidence_background(evidence_id: str, org_id: str, file_bytes: 
             with open(tmp_path, "wb") as f:
                 f.write(file_bytes)
 
-            extracted_text = embedding_service.extract_text_from_file(tmp_path, mime_type)
+            # Extraer y generar embeddings usa CPU por casi un minuto: en un hilo
+            # aparte, para que el servidor siga atendiendo las demás páginas.
+            extracted_text = await asyncio.to_thread(embedding_service.extract_text_from_file, tmp_path, mime_type)
             if extracted_text:
                 chunks = embedding_service.chunk_text(extracted_text)
                 if chunks:
-                    embeddings = embedding_service.generate_embeddings(chunks)
+                    embeddings = await asyncio.to_thread(embedding_service.generate_embeddings, chunks)
                     from app.models.evidence_chunk import EvidenceChunk
                     for idx, (chunk_content, chunk_emb) in enumerate(zip(chunks, embeddings)):
                         db.add(EvidenceChunk(
@@ -193,6 +195,29 @@ async def get_evidence_status(
 ):
     ev = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
     return {"id": evidence_id, "indexing_status": ev.indexing_status or "done"}
+
+@router.delete("/{evidence_id}")
+async def delete_evidence(
+    evidence_id: str,
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(RequireRole(["admin"])),  # admin, owner y superadmin
+):
+    """Elimina una evidencia de la empresa: sus fragmentos indexados, el
+    archivo en Storage y el registro. Las respuestas ya evaluadas con ella se
+    conservan; se recomienda re-evaluar después."""
+    evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
+    ruta = evidence.file_url or ""
+    await db.execute(sa_delete(EvidenceChunk).where(EvidenceChunk.evidence_id == evidence_id))
+    await db.delete(evidence)
+    await db.commit()
+    if ruta and not ruta.startswith("local:"):
+        try:
+            await storage_service.delete(ruta)
+        except Exception as e:  # el registro ya no existe; un archivo huérfano no debe romper la acción
+            print(f"No se pudo borrar el archivo de Storage {ruta}: {e}")
+    return {"message": "Evidencia eliminada"}
+
 
 @router.get("/{evidence_id}/download")
 async def download_evidence(

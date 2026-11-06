@@ -4,21 +4,20 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
+import asyncio
 import json
 
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user, get_current_org
 from app.services.ai_service import AIService
-from app.services.embedding_service import EmbeddingService
+from app.services.embedding_service import embedding_service
 from app.models.evidence_chunk import EvidenceChunk
 from app.models.normative_chunk import NormativeChunk
 from app.models.gap_analysis import ControlImplementation  # <-- Importación corregida
 from app.models.data_breach import DataBreach
-from app.models.data_treatment import DataTreatment
 
 router = APIRouter(prefix="/api/chat", tags=["Chat IA"])
 ai_service = AIService()
-embedding_service = EmbeddingService()
 
 class HistoryItem(BaseModel):
     role: str
@@ -59,15 +58,11 @@ async def chat_endpoint(
         breaches = (await db.execute(select(DataBreach).where(DataBreach.organization_id == org_id))).scalars().all()
         breaches_activas = [b for b in breaches if b.estado not in ['notificada', 'cerrada']]
         
-        # C) Resumen de Tratamientos RoPA
-        treatments = (await db.execute(select(DataTreatment).where(DataTreatment.organization_id == org_id))).scalars().all()
-        
         live_data = f"""
         --- CONTEXTO EN VIVO DE LA EMPRESA DEL USUARIO ---
         Progreso de Cumplimiento ISO 27001: {score}%
         Controles aplicables: {len(applies)} | Implementados: {len(implemented)}
         Brechas de Datos Registradas: {len(breaches)} en total | {len(breaches_activas)} activas.
-        Tratamientos RoPA Registrados: {len(treatments)}
         ---------------------------------------------------
         """
         context_blocks.append(live_data)
@@ -78,7 +73,7 @@ async def chat_endpoint(
     # 2. BÚSQUEDA RAG (Vectores)
     # ========================================================
     try:
-        query_vector = embedding_service.generate_single_embedding(request.message)
+        query_vector = await asyncio.to_thread(embedding_service.generate_single_embedding, request.message)
         
         # Evidencias internas
         try:

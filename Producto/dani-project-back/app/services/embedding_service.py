@@ -2,6 +2,7 @@
 import os
 import logging
 import re
+import threading
 from typing import List, Optional
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,9 @@ class EmbeddingService:
         self.model_name = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
         self.embedding_model = None
         self._model_loaded = False
+        # Una sola generación a la vez: con varios documentos en paralelo la
+        # memoria se suma y Render (512 MB) reinicia el servidor.
+        self._lock = threading.Lock()
 
     def _ensure_model_loaded(self):
         # CAMBIO: NUEVO método. Contiene el mismo try/except que antes
@@ -66,13 +70,13 @@ class EmbeddingService:
             return
 
         try:
-            self.embedding_model = TextEmbedding(model_name=self.model_name)
+            self.embedding_model = TextEmbedding(model_name=self.model_name, threads=1)
             logger.info(f"✅ Modelo de embeddings multilingüe '{self.model_name}' inicializado con éxito.")
         except Exception as e:
             logger.warning(f"⚠️ No se pudo inicializar '{self.model_name}': {e}. Reintentando con BAAI/bge-small-en-v1.5.")
             try:
                 self.model_name = "BAAI/bge-small-en-v1.5"
-                self.embedding_model = TextEmbedding(model_name=self.model_name)
+                self.embedding_model = TextEmbedding(model_name=self.model_name, threads=1)
                 logger.info(f"✅ Fallback exitoso: Modelo '{self.model_name}' inicializado.")
             except Exception as fallback_err:
                 logger.error(f"❌ Error al cargar modelo de fallback: {fallback_err}. Activando modo simulado.")
@@ -201,14 +205,17 @@ class EmbeddingService:
         # vez que se llama, carga el modelo real (puede tardar); las
         # siguientes veces dentro de la misma invocación "warm", _model_loaded
         # ya es True y no vuelve a intentar cargarlo.
-        self._ensure_model_loaded()
+        with self._lock:
+            self._ensure_model_loaded()
 
-        if self.embedding_model:
-            try:
-                embeddings_generator = self.embedding_model.embed(texts)
-                return [list(e) for e in embeddings_generator]
-            except Exception as e:
-                logger.error(f"Error generando embeddings con fastembed: {e}")
+            if self.embedding_model:
+                try:
+                    # Lotes chicos y 1 hilo: con los valores por defecto (lote 256)
+                    # el proceso supera 1,5 GB al indexar un PDF mediano.
+                    embeddings_generator = self.embedding_model.embed(texts, batch_size=4)
+                    return [list(e) for e in embeddings_generator]
+                except Exception as e:
+                    logger.error(f"Error generando embeddings con fastembed: {e}")
 
         # Fallback / Modo Simulado: Generar vectores deterministicos simulados de 384 dimensiones
         logger.warning("⚙️ Generando embeddings simulados de 384 dimensiones para la demo.")
@@ -302,3 +309,6 @@ class EmbeddingService:
 
         logger.info(f"✅ Procesados con éxito {len(processed_chunks)} fragmentos RAG para {document_name}.")
         return processed_chunks
+
+# Instancia compartida: cada EmbeddingService carga su propia copia del modelo.
+embedding_service = EmbeddingService()

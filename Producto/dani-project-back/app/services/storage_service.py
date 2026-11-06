@@ -56,6 +56,14 @@ class StorageService:
             raise RuntimeError(f"Error descargando de Supabase Storage: {resp.status_code} {resp.text}")
         return resp.content
 
+    async def delete(self, path: str) -> None:
+        """Borra un archivo del bucket (si ya no existe, no es error)."""
+        url = f"{self.base_url}/storage/v1/object/{self.bucket}/{path}"
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.delete(url, headers=self._headers())
+        if resp.status_code not in (200, 204, 404):
+            raise RuntimeError(f"Error borrando de Supabase Storage: {resp.status_code} {resp.text}")
+
     async def exists(self, path: str) -> bool:
         url = f"{self.base_url}/storage/v1/object/info/{self.bucket}/{path}"
         async with httpx.AsyncClient(timeout=15) as client:

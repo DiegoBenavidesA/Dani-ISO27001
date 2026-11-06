@@ -3,9 +3,18 @@ import React, { useState, useEffect, useContext } from 'react';
 import { 
   Database, Zap, Upload, Clock, Search, Eye, RefreshCw, 
   CheckCircle2, XCircle, X, Send, Plus, ExternalLink,
-  Sparkles, FileText, Download, Copy, AlertTriangle
+  Sparkles, FileText, Download, Copy, AlertTriangle, Trash2
 } from 'lucide-react';
 import { ThemeContext, useTranslation } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+
+// El servidor guarda las fechas en UTC sin zona ("2026-11-02T13:05:00"); sin la
+// "Z" el navegador las lee como hora local y quedan en el futuro ("-1 días atrás").
+const parseServerDate = (s) => {
+  if (!s) return new Date();
+  const tieneZona = /[zZ]$|[+-]\d\d:?\d\d$/.test(s);
+  return new Date(tieneZona ? s : s + 'Z');
+};
 
 const labels = {
   en: {
@@ -83,6 +92,8 @@ function EvidenceCenterScreen() {
   const [dragOver, setDragOver] = useState(false);
 
   const l = labels[language] || labels.en;
+  const { user } = useAuth();
+  const puedeEliminar = ['superadmin', 'owner', 'admin'].includes(user?.role);
 
   const [evidences, setEvidences] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -101,7 +112,7 @@ function EvidenceCenterScreen() {
     try {
       const { evidenceAPI } = await import('../services/api');
       const data = await evidenceAPI.getAll();
-      const mapped = (Array.isArray(data) ? data : []).map(e => ({ ...e, lastUpdated: e.lastUpdated ? new Date(e.lastUpdated) : new Date() }));
+      const mapped = (Array.isArray(data) ? data : []).map(e => ({ ...e, lastUpdated: parseServerDate(e.lastUpdated) }));
       setEvidences(mapped);
     } catch (error) {
       console.error("Error loading evidences", error);
@@ -162,11 +173,6 @@ function EvidenceCenterScreen() {
   const handleViewEvidence = async (evidence, e) => {
     e.stopPropagation();
     try {
-      // Si el id es muy corto (ej: 1, 2, 3), es un mock hardcodeado
-      if (evidence.id.toString().length < 5) {
-        alert("Esta evidencia es un ejemplo de diseño. Para probar el visualizador, sube tu propia evidencia real usando la pestaña Carga Masiva.");
-        return;
-      }
       const { evidenceAPI } = await import('../services/api');
       const fileUrl = await evidenceAPI.download(evidence.id);
       window.open(fileUrl, '_blank');
@@ -192,7 +198,19 @@ function EvidenceCenterScreen() {
     { id: 'slack', name: 'Slack', icon: '💬', status: 'pending', lastSync: 'Not configured', evidences: 0, color: '#4A154B' }
   ];
 
-  const getDaysAgo = (date) => Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+  const getDaysAgo = (date) => Math.max(0, Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24)));
+
+  const handleDeleteEvidence = async (evidence, e) => {
+    e.stopPropagation();
+    if (!window.confirm(`¿Eliminar "${evidence.name || evidence.file_name || 'esta evidencia'}"? Se borra el archivo y deja de usarse en las evaluaciones con IA. Esta acción no se puede deshacer.`)) return;
+    try {
+      const { evidenceAPI } = await import('../services/api');
+      await evidenceAPI.delete(evidence.id);
+      setEvidences((prev) => prev.filter((x) => x.id !== evidence.id));
+    } catch (err) {
+      alert(err.message || 'No se pudo eliminar la evidencia.');
+    }
+  };
   const getFreshnessStatus = (evidence) => {
     const daysAgo = getDaysAgo(evidence.lastUpdated);
     const daysRemaining = evidence.validityDays - daysAgo;
@@ -398,6 +416,9 @@ function EvidenceCenterScreen() {
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           {freshnessStatus === 'expired' && <button onClick={(e) => { e.stopPropagation(); loadEvidences(); }} style={{ padding: '6px 12px', background: '#ef444420', border: '1px solid #ef444440', borderRadius: '6px', color: '#ef4444', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><RefreshCw size={12} /> {l.updateNow}</button>}
                           <button onClick={(e) => handleViewEvidence(evidence, e)} style={{ padding: '6px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.textMuted, fontSize: '11px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {l.view}</button>
+                          {puedeEliminar && (
+                            <button onClick={(e) => handleDeleteEvidence(evidence, e)} title={l.delete} aria-label={`${l.delete} ${evidence.name || ''}`} style={{ padding: '6px 8px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '6px', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={12} /></button>
+                          )}
                         </div>
                       </td>
                     </tr>

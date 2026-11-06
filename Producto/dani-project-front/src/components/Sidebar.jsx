@@ -1,11 +1,11 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList, BrainCircuit, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList, BrainCircuit, ListChecks, Menu, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDomainScores, getComplianceScore } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen, isMobile, mobileMenuOpen, setMobileMenuOpen }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, isMobile, mobileMenuOpen, setMobileMenuOpen }) => {
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
@@ -13,7 +13,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const [isoOpen, setIsoOpen] = useState(true);
   const [leyOpen, setLeyOpen] = useState(true);
   const ISO_IDS = ['audit-room', 'assessment'];
-  const LEY_IDS = ['treatments', 'consents', 'data-requests', 'breaches', 'vendors', 'impact'];
+  const LEY_IDS = ['breaches'];
 
   useEffect(() => {
 
@@ -47,22 +47,16 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
     { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW, group: 'iso' },
-    { id: 'treatments', label: language === 'es' ? 'Tratamientos (RoPA)' : 'Treatments (RoPA)', icon: ClipboardList, roles: LEY, group: 'ley' },
-    { id: 'consents', label: language === 'es' ? 'Consentimientos' : 'Consents', icon: ClipboardCheck, roles: LEY, group: 'ley' },
-    { id: 'data-requests', label: language === 'es' ? 'Solicitudes de Titulares' : 'Data Requests', icon: Inbox, roles: LEY, group: 'ley' },
-    { id: 'breaches', label: language === 'es' ? 'Gestión de Brechas' : 'Data Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
-    { id: 'vendors', label: language === 'es' ? 'Proveedores' : 'Vendors', icon: Building2, roles: LEY, group: 'ley' },
-    { id: 'impact', label: language === 'es' ? 'Evaluación de Impacto' : 'Impact Assessment', icon: Shield, roles: LEY, group: 'ley' },
+    { id: 'breaches', label: language === 'es' ? 'Vulneraciones de Seguridad' : 'Security Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
+    { id: 'questions', label: language === 'es' ? 'Preguntas' : 'Questions', icon: ListChecks, roles: PLATFORM, group: 'general' },
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null, group: 'general' },
 
   ].filter(item => {
-
-    if (superadminPlataforma) return ['organizations', 'user-management'].includes(item.id);
-
-    if (superadminEnOrg) return item.id !== 'organizations';
-
+    if (superadminPlataforma) return ['organizations', 'questions', 'user-management'].includes(item.id);
+    // El catálogo de preguntas es global: se administra fuera de las empresas.
+    if (superadminEnOrg) return !['organizations', 'questions'].includes(item.id);
     return !item.roles || item.roles.includes(role);
 
   });
@@ -157,28 +151,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
         </div>
 
-        {/* Buscador (Cmd+K) */}
-
-        {(!sidebarCollapsed || isMobile) && setCommandPaletteOpen && (
-
-          <button
-
-            onClick={() => { setCommandPaletteOpen(true); if(isMobile) setMobileMenuOpen(false); }}
-
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textDim, fontSize: '13px', cursor: 'pointer', marginBottom: '20px', width: '100%', textAlign: 'left' }}
-
-          >
-
-            <Search size={16} />
-
-            <span style={{ flex: 1 }}>{language === 'es' ? 'Buscar...' : 'Search...'}</span>
-
-            {!isMobile && <kbd style={{ padding: '2px 6px', background: t.hoverBg || 'rgba(0,0,0,0.05)', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>⌘K</kbd>}
-
-          </button>
-
-        )}
-
         {/* Botón Volver (Superadmin) */}
 
         {superadminEnOrg && (
@@ -252,7 +224,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
                 <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} />
 
                 <span>{label}</span>
-
               </button>
 
             );

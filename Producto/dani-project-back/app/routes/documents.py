@@ -129,6 +129,37 @@ async def get_published_policies(
     policies = [{"id": d.id, "chapter_id": d.chapter_id, "title": d.title, "content": d.content, "is_acknowledged": d.id in ack_doc_ids} for d in documents]
     return {"policies": policies}
 
+@router.post("/{document_id}/acknowledge")
+async def acknowledge_policy(
+    document_id: str,
+    org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """El empleado declara haber leído y aceptado una política publicada (evidencia ISO 27001 cl. 7.3)."""
+    document = await get_scoped_or_404(db, Document, document_id, org_id, detail="Política no encontrada")
+    if document.status != DocumentStatus.PUBLISHED:
+        raise HTTPException(status_code=400, detail="Solo se pueden aceptar políticas publicadas")
+
+    user_id = current_user.get("user_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Usuario no identificado")
+
+    existing = await db.execute(
+        select(DocumentAcknowledgement).filter(
+            DocumentAcknowledgement.user_id == user_id,
+            DocumentAcknowledgement.document_id == document_id,
+        )
+    )
+    ack = existing.scalar_one_or_none()
+    if not ack:
+        ack = DocumentAcknowledgement(user_id=user_id, document_id=document_id)
+        db.add(ack)
+        await db.commit()
+        await db.refresh(ack)
+
+    return {"document_id": document_id, "acknowledged": True, "acknowledged_at": ack.acknowledged_at}
+
 @router.get("/{chapter_id}")
 async def get_document(
     chapter_id: str,

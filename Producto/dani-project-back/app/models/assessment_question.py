@@ -7,7 +7,7 @@ from app.dependencies.database import Base
 
 class AssessmentQuestion(Base):
     """
-    Pregunta estándar del cuestionario de evaluación ISO 27001:2022.
+    Pregunta estándar del cuestionario de evaluación (ISO 27001:2022 o Ley 21.719).
 
     Es un CATÁLOGO de referencia (igual que los controles ISO): las preguntas
     son las mismas para todas las empresas, por eso NO llevan organization_id.
@@ -21,6 +21,10 @@ class AssessmentQuestion(Base):
     __tablename__ = "assessment_questions"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
+
+    # Marco normativo al que pertenece la pregunta: "iso27001" o "ley21719".
+    # La evaluación con IA trabaja con un solo marco a la vez.
+    marco = Column(String(20), nullable=False, default="iso27001", server_default="iso27001", index=True)
 
     # A qué control/cláusula pertenece (ej: "4.1", "A.8.34")
     codigo = Column(String(50), nullable=False, index=True)

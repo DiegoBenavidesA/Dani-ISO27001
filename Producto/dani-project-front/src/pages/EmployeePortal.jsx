@@ -33,6 +33,7 @@ const EmployeePortalScreen = () => {
       setSelectedPolicy(null);
     } catch (error) {
       console.error("Error acknowledging policy:", error);
+      alert(`No se pudo registrar tu aceptación: ${error.message}`);
     } finally {
       setAcknowledging(false);
     }

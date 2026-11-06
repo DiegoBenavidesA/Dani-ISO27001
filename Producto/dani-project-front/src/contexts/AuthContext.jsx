@@ -55,12 +55,30 @@ export function AuthProvider({ children }) {
       ? { name, email, password, empresa }
       : { email, password };
 
+    // Mientras Render (plan gratuito) despierta, el servidor no responde o
+    // devuelve 502/503/504 sin cabeceras CORS, y el navegador lo muestra como
+    // "Failed to fetch". En esos casos reintentamos en vez de fallar al tiro.
+    const esperas = [0, 5000, 10000, 20000, 30000, 45000];
+    const pedir = () => fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
     try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      let response = null;
+      for (let i = 0; i < esperas.length; i++) {
+        if (esperas[i]) await new Promise((r) => setTimeout(r, esperas[i]));
+        try {
+          response = await pedir();
+          if (![502, 503, 504].includes(response.status)) break;
+        } catch (netErr) {
+          response = null; // error de red: el servidor aún está arrancando
+        }
+      }
+      if (!response || [502, 503, 504].includes(response.status)) {
+        throw new Error('No se pudo conectar con el servidor. Inténtalo de nuevo en unos minutos.');
+      }
 
       const data = await response.json();
 

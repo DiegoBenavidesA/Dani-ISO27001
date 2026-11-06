@@ -20,12 +20,9 @@ import UserManagementScreen from './pages/UserManagementScreen';
 import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
-import TreatmentsScreen from './pages/TreatmentsScreen';
-import ImpactScreen from './pages/ImpactScreen';
 import OrganizationsScreen from './pages/OrganizationsScreen';
-import VendorsScreen from './pages/VendorsScreen';
-import ConsentsScreen from './pages/ConsentsScreen';
-import DataRequestsScreen from './pages/DataRequestsScreen';
+import QuestionsScreen from './pages/QuestionsScreen';
+
 import BreachesScreen from './pages/BreachesScreen';
 import AssessmentScreen from './pages/AssessmentScreen';
 import PredictiveScreen from './pages/PredictiveScreen';
@@ -236,15 +233,11 @@ export default function DaniPlatform() {
           {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}
           {activeScreen === 'user-management' && <UserManagementScreen />}
-          {activeScreen === 'vendors' && <VendorsScreen />}
-          {activeScreen === 'consents' && <ConsentsScreen />}
-          {activeScreen === 'data-requests' && <DataRequestsScreen />}
           {activeScreen === 'breaches' && <BreachesScreen />}
           {activeScreen === 'assessment' && <AssessmentScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
-          {activeScreen === 'treatments' && <TreatmentsScreen onNavigate={handleNavigate} />}
-          {activeScreen === 'impact' && <ImpactScreen navParams={navParams} onNavigate={handleNavigate} />}
           {activeScreen === 'organizations' && <OrganizationsScreen />}
+          {activeScreen === 'questions' && isSuperadmin && <QuestionsScreen />}
           {activeScreen === 'predictive' && <PredictiveScreen />}
         </div>
       </main>
