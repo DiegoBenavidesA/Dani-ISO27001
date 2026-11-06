@@ -157,13 +157,59 @@ function DocumentsScreen({ setActiveScreen }) {
   const getStatusColor = (s) => (s === 'approved' || s === 'published') ? '#004ac6' : s === 'review' ? '#f59e0b' : '#64748b';
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+    <div className="normia-documents-screen" style={{ animation: 'fadeIn 0.4s ease', width: '100%', minWidth: 0 }}>
+      {/* Estilos de presentación responsive; no afectan la lógica del módulo. */}
+      <style>{`
+        .normia-documents-screen,
+        .normia-documents-screen * { box-sizing: border-box; }
+        .normia-documents-screen .documents-layout > * { min-width: 0; }
+        .normia-documents-screen .documents-list { scrollbar-width: thin; }
+        .normia-documents-screen .documents-chat-input { min-width: 0; }
+        .normia-documents-screen .documents-message { overflow-wrap: anywhere; word-break: break-word; }
+        .normia-documents-screen .documents-mobile-hint { display: none; }
+        @media (max-width: 1100px) {
+          .normia-documents-screen .documents-layout {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+          .normia-documents-screen .documents-chat-panel {
+            width: 100%;
+            max-width: 100%;
+          }
+        }
+        @media (max-width: 640px) {
+          .normia-documents-screen .documents-header {
+            flex-direction: column;
+            align-items: stretch !important;
+            gap: 16px;
+            margin-bottom: 22px !important;
+          }
+          .normia-documents-screen .documents-heading { font-size: 25px !important; }
+          .normia-documents-screen .documents-create-button {
+            width: 100%;
+            justify-content: center;
+            min-height: 44px;
+          }
+          .normia-documents-screen .documents-layout { gap: 18px !important; }
+          .normia-documents-screen .documents-mobile-hint {
+            display: block;
+            padding: 10px 14px;
+            font-size: 12px;
+            opacity: .8;
+          }
+          .normia-documents-screen .documents-chat-panel { height: 520px !important; }
+          .normia-documents-screen .documents-faq-footer {
+            flex-wrap: wrap;
+            text-align: center;
+          }
+        }
+      `}</style>
+      <div className="documents-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Gestor Documental</h1>
+          <h1 className="documents-heading" style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>Gestor Documental</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Políticas y Documentación del SGSI</p>
         </div>
         <button 
+          className="documents-create-button"
           onClick={() => setActiveScreen && setActiveScreen('doc-generator')}
           style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}
         >
@@ -171,10 +217,11 @@ function DocumentsScreen({ setActiveScreen }) {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
+      <div className="documents-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 400px)', gap: '24px', minWidth: 0 }}>
         {/* Documents List */}
-        <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr', padding: '14px 24px', background: t.hoverBg, borderBottom: `1px solid ${t.border}`, fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div className="documents-list" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflowX: 'auto', overflowY: 'hidden', minWidth: 0, maxWidth: '100%' }}>
+          <div className="documents-mobile-hint" style={{ color: t.textDim }}>Desliza la tabla hacia los lados para ver todas las columnas.</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 2.5fr) minmax(100px, 1fr) minmax(70px, 0.8fr) minmax(95px, 1fr) minmax(75px, 1fr)', minWidth: '680px', padding: '14px 24px', background: t.hoverBg, borderBottom: `1px solid ${t.border}`, fontSize: '11px', color: t.textDim, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             <span>Documento</span><span>Estado</span><span>Versión</span><span>Actualizado</span><span>Firmas</span>
           </div>
           {isLoading ? (
@@ -182,10 +229,10 @@ function DocumentsScreen({ setActiveScreen }) {
           ) : documents.length === 0 ? (
             <div style={{ padding: '20px', textAlign: 'center', color: t.textDim }}>No hay documentos. Usa el botón superior para generar uno.</div>
           ) : documents.map((doc) => (
-            <div key={doc.id || doc.chapter_id} style={{ display: 'grid', gridTemplateColumns: '2.5fr 1fr 0.8fr 1fr 1fr', padding: '16px 24px', borderBottom: `1px solid ${t.border}`, alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div key={doc.id || doc.chapter_id} style={{ display: 'grid', gridTemplateColumns: 'minmax(210px, 2.5fr) minmax(100px, 1fr) minmax(70px, 0.8fr) minmax(95px, 1fr) minmax(75px, 1fr)', minWidth: '680px', padding: '16px 24px', borderBottom: `1px solid ${t.border}`, alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
                 <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'rgba(59, 130, 246, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FileText size={16} color="#3b82f6" /></div>
-                <span style={{ fontWeight: 500, fontSize: '14px' }}>{doc.name}</span>
+                <span style={{ fontWeight: 500, fontSize: '14px', overflowWrap: 'anywhere' }}>{doc.name}</span>
               </div>
               <select 
                 value={doc.status} 
@@ -205,7 +252,7 @@ function DocumentsScreen({ setActiveScreen }) {
         </div>
 
         {/* Document Chat & FAQ Panel */}
-        <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', height: '580px', overflow: 'hidden' }}>
+        <div className="documents-chat-panel" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column', height: '580px', overflow: 'hidden', minWidth: 0 }}>
           <div style={{ display: 'flex', borderBottom: `1px solid ${t.border}` }}>
             <button onClick={() => setActiveTab('chat')} style={{ flex: 1, padding: '16px', background: activeTab === 'chat' ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%)' : 'transparent', border: 'none', borderBottom: activeTab === 'chat' ? '2px solid #8b5cf6' : '2px solid transparent', color: activeTab === 'chat' ? '#8b5cf6' : t.textDim, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
               <MessageSquare size={16} /> {labels.chat}
@@ -238,7 +285,7 @@ function DocumentsScreen({ setActiveScreen }) {
                   <>
                     {chatMessages.map((msg, idx) => (
                       <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                        <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', background: msg.role === 'user' ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' : t.inputBg, color: msg.role === 'user' ? 'white' : t.text, fontSize: '12px', lineHeight: '1.5' }}>
+                        <div className="documents-message" style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '12px 12px 4px 12px' : '12px 12px 12px 4px', background: msg.role === 'user' ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' : t.inputBg, color: msg.role === 'user' ? 'white' : t.text, fontSize: '12px', lineHeight: '1.5' }}>
                           {msg.content}
                         </div>
                         {msg.sources && (
@@ -264,7 +311,7 @@ function DocumentsScreen({ setActiveScreen }) {
               </div>
               <div style={{ padding: '12px 16px', borderTop: `1px solid ${t.border}` }}>
                 <div style={{ display: 'flex', gap: '8px', background: t.inputBg, borderRadius: '10px', padding: '6px 10px', border: `1px solid ${t.border}` }}>
-                  <input type="text" value={chatQuery} onChange={(e) => setChatQuery(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chatQuery)} placeholder={labels.placeholder} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '13px' }} />
+                  <input className="documents-chat-input" type="text" value={chatQuery} onChange={(e) => setChatQuery(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage(chatQuery)} placeholder={labels.placeholder} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '13px' }} />
                   <button onClick={() => handleSendMessage(chatQuery)} disabled={!chatQuery.trim()} style={{ width: '32px', height: '32px', borderRadius: '8px', background: chatQuery.trim() ? 'linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%)' : t.hoverBg, border: 'none', cursor: chatQuery.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Send size={14} color={chatQuery.trim() ? 'white' : t.textDim} />
                   </button>
@@ -294,7 +341,7 @@ function DocumentsScreen({ setActiveScreen }) {
                   </div>
                 ))}
               </div>
-              <div style={{ padding: '12px 16px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div className="documents-faq-footer" style={{ padding: '12px 16px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '11px', color: t.textDim }}>{language === 'es' ? '¿No encuentras lo que buscas?' : language === 'pt' ? 'Não encontrou o que procura?' : "Can't find what you're looking for?"}</span>
                 <button onClick={() => setActiveTab('chat')} style={{ background: 'transparent', border: 'none', color: '#8b5cf6', fontSize: '11px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>{language === 'es' ? 'Pregunta a Dani' : language === 'pt' ? 'Pergunte ao Dani' : 'Ask Dani'} <ArrowRight size={12} /></button>
               </div>

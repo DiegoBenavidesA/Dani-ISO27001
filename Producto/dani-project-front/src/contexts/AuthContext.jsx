@@ -143,6 +143,16 @@ export function AuthProvider({ children }) {
     return () => { window.fetch = originalFetch; };
   }, []);
 
+  // ==========================================================================
+  // Pre-calentar el backend. En el plan gratuito de Render el servidor se
+  // duerme tras ~15 min sin uso y tarda varios minutos en volver a arrancar.
+  // Lo despertamos apenas se abre la app (landing/login), así el arranque
+  // ocurre mientras la persona escribe sus credenciales y no al iniciar sesión.
+  // ==========================================================================
+  useEffect(() => {
+    fetch(`${API_URL}/health`).catch(() => { /* solo es para despertarlo */ });
+  }, []);
+
   // Slug de la empresa para la URL /:slug/... El superadmin de plataforma no
   // pertenece a ninguna empresa, así que usa el prefijo neutro "admin"
   // (reservado en el backend para que ninguna empresa pueda tomarlo).

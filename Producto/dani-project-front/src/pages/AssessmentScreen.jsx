@@ -62,11 +62,25 @@ const AssessmentScreen = () => {
   const privacyGroups = groupQuestions(privacyQuestions);
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="assessment-responsive" style={{ padding: 'clamp(14px, 3vw, 28px)', maxWidth: '1100px', width: '100%', boxSizing: 'border-box', minWidth: 0, margin: '0 auto', overflowWrap: 'anywhere' }}>
+      {/* Ajustes visuales responsive; no alteran datos ni acciones */}
+      <style>{`
+        .assessment-responsive * { box-sizing: border-box; }
+        .assessment-responsive .assessment-card-header { min-width: 0; }
+        .assessment-responsive .assessment-group-name,
+        .assessment-responsive .assessment-category { overflow-wrap: anywhere; }
+        @media (max-width: 600px) {
+          .assessment-responsive .assessment-actions,
+          .assessment-responsive .assessment-refresh-button { width: 100%; }
+          .assessment-responsive .assessment-card-header { align-items: flex-start !important; }
+          .assessment-responsive .assessment-group-name { flex-basis: calc(100% - 90px) !important; }
+          .assessment-responsive .assessment-category { width: 100%; margin-left: 0 !important; }
+        }
+      `}</style>
       {/* Encabezado */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-        <ClipboardList size={26} color="#004ac6" />
-        <h1 style={{ margin: 0, color: t.text, fontSize: '24px' }}>Catálogo de Evaluación</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px', minWidth: 0 }}>
+        <ClipboardList size={26} color="#004ac6" style={{ flexShrink: 0 }} />
+        <h1 style={{ margin: 0, color: t.text, fontSize: 'clamp(20px, 5vw, 24px)', minWidth: 0 }}>Catálogo de Evaluación</h1>
       </div>
       <p style={{ color: t.textMuted, marginTop: 0, marginBottom: '20px', fontSize: '14px' }}>
         Sube tus documentos en la vista de Análisis de Brechas y la IA responderá cada pregunta 
@@ -74,10 +88,11 @@ const AssessmentScreen = () => {
       </p>
 
       {/* Acciones */}
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
+      <div className="assessment-actions" style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <button
           onClick={fetchQuestions}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '13px', cursor: 'pointer' }}>
+          className="assessment-refresh-button"
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, fontSize: '13px', cursor: 'pointer' }}>
           <RefreshCw size={16} /> Actualizar Catálogo
         </button>
       </div>
@@ -103,17 +118,17 @@ const AssessmentScreen = () => {
                <div style={{ color: t.textMuted, fontSize: '14px' }}>No hay preguntas de la norma ISO configuradas.</div>
             ) : (
               isoGroups.map((g) => (
-                <div key={g.codigo} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '18px', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <div key={g.codigo} className="assessment-card" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: 'clamp(12px, 2vw, 18px)', marginBottom: '16px', minWidth: 0 }}>
+                  <div className="assessment-card-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0 }}>
                     <span style={{ background: '#3b82f6', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>{g.codigo}</span>
-                    <span style={{ color: t.text, fontWeight: 600, fontSize: '15px' }}>{g.nombre}</span>
-                    <span style={{ marginLeft: 'auto', color: t.textMuted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{g.categoria}</span>
+                    <span className="assessment-group-name" style={{ color: t.text, fontWeight: 600, fontSize: '15px', flex: '1 1 180px', minWidth: 0 }}>{g.nombre}</span>
+                    <span className="assessment-category" style={{ marginLeft: 'auto', color: t.textMuted, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{g.categoria}</span>
                   </div>
 
                   {g.preguntas.map((q) => (
-                    <div key={q.id} style={{ display: 'flex', gap: '14px', padding: '12px 0', borderTop: `1px solid ${t.border}` }}>
+                    <div key={q.id} style={{ display: 'flex', gap: 'clamp(8px, 2vw, 14px)', padding: '12px 0', borderTop: `1px solid ${t.border}`, minWidth: 0 }}>
                       <HelpCircle size={18} color={t.textMuted} style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: t.text, fontSize: '14px', marginBottom: '6px' }}>{q.pregunta}</div>
                         <div style={{ color: t.textMuted, fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                           <FileText size={13} style={{ flexShrink: 0, marginTop: '1px' }} />
@@ -140,18 +155,18 @@ const AssessmentScreen = () => {
                </div>
             ) : (
               privacyGroups.map((g) => (
-                <div key={g.codigo} style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: '18px', marginBottom: '16px', position: 'relative', overflow: 'hidden' }}>
+                <div key={g.codigo} className="assessment-card" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', padding: 'clamp(12px, 2vw, 18px)', marginBottom: '16px', position: 'relative', overflow: 'hidden', minWidth: 0 }}>
                   <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#8b5cf6' }} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <div className="assessment-card-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', minWidth: 0 }}>
                     <span style={{ background: '#8b5cf6', color: '#fff', padding: '3px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 700 }}>{g.codigo}</span>
-                    <span style={{ color: t.text, fontWeight: 600, fontSize: '15px' }}>{g.nombre}</span>
-                    <span style={{ marginLeft: 'auto', color: '#8b5cf6', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{g.categoria}</span>
+                    <span className="assessment-group-name" style={{ color: t.text, fontWeight: 600, fontSize: '15px', flex: '1 1 180px', minWidth: 0 }}>{g.nombre}</span>
+                    <span className="assessment-category" style={{ marginLeft: 'auto', color: '#8b5cf6', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>{g.categoria}</span>
                   </div>
 
                   {g.preguntas.map((q) => (
-                    <div key={q.id} style={{ display: 'flex', gap: '14px', padding: '12px 0', borderTop: `1px solid ${t.border}` }}>
+                    <div key={q.id} style={{ display: 'flex', gap: 'clamp(8px, 2vw, 14px)', padding: '12px 0', borderTop: `1px solid ${t.border}`, minWidth: 0 }}>
                       <HelpCircle size={18} color={t.textMuted} style={{ flexShrink: 0, marginTop: '2px' }} />
-                      <div style={{ flex: 1 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ color: t.text, fontSize: '14px', marginBottom: '6px' }}>{q.pregunta}</div>
                         <div style={{ color: t.textMuted, fontSize: '12px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
                           <FileText size={13} style={{ flexShrink: 0, marginTop: '1px' }} />
