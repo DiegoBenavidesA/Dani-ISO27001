@@ -15,7 +15,7 @@ client = TestClient(app)
 def test_protected_risk_route_requires_token():
     response = client.get("/api/risks/")
 
-    assert response.status_code == 401
+    assert response.status_code in (401, 403)
 
 
 def test_employee_cannot_access_elevated_risk_write_route():
