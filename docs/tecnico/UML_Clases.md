@@ -1,11 +1,9 @@
 # Diagrama de Clases UML - NormIA
 
-Este diagrama representa la estructura orientada a objetos de los modelos de base de datos SQLAlchemy del backend de NormIA, incluyendo la separación multi-tenant y los módulos de la Ley 21.719 e ISO 27001.
+El siguiente diagrama representa los modelos reales de SQLAlchemy ubicados en `Producto/dani-project-back/app/models`. Las asociaciones reflejan claves foráneas o relaciones declaradas en el código. No se incluyen asociaciones que no estén implementadas por el modelo.
 
 ```mermaid
 classDiagram
-    %% --- Modulo Base, Tenants y Usuarios ---
-
     class Organization {
         +String id
         +String nombre
@@ -24,45 +22,38 @@ classDiagram
         +String email
         +String full_name
         +String hashed_password
-        +Enum role
+        +UserRole role
         +Boolean is_active
-        +DateTime created_at
-        +DateTime updated_at
-        +DateTime last_login
         +JSON preferences
         +String push_token
         +String organization_id
-    }
-
-    class AIPrompt {
-        +String id
-        +String name
-        +String category
-        +String description
-        +Text system_prompt
-        +Text user_prompt_template
         +DateTime created_at
-        +DateTime updated_at
+        +DateTime last_login
     }
 
-    %% --- Módulo Evaluaciones, Riesgos y Controles ---
+    class UserRole {
+        <<enumeration>>
+        superadmin
+        owner
+        admin
+        employee
+        manager
+        auditor
+        dpo
+    }
 
     class Risk {
         +String id
         +String organization_id
         +String title
         +Text description
-        +Enum category
+        +RiskCategory category
         +Integer likelihood
         +Integer impact
-        +Enum risk_level
-        +Enum status
+        +RiskLevel risk_level
+        +RiskStatus status
         +JSON controls
-        +Text mitigation_plan
         +String owner
-        +DateTime due_date
-        +DateTime closed_at
-        +DateTime created_at
         +String created_by
     }
 
@@ -76,15 +67,46 @@ classDiagram
         +Integer version
     }
 
-    class AssessmentAnswer {
+    class Evidence {
         +String id
-        +String question_id
         +String organization_id
-        +String veredicto
-        +Float confianza
-        +Text justificacion
-        +DateTime created_at
-        +DateTime updated_at
+        +String title
+        +EvidenceType evidence_type
+        +String file_url
+        +String file_name
+        +Integer file_size
+        +Text extracted_text
+        +Boolean is_verified
+        +String risk_id
+        +String uploaded_by
+    }
+
+    class EvidenceChunk {
+        +String id
+        +String organization_id
+        +String evidence_id
+        +Text content
+        +SafeVector embedding
+        +Integer chunk_index
+    }
+
+    class Document {
+        +String id
+        +String title
+        +Text content
+        +DocumentStatus status
+        +String version
+        +String user_id
+        +String organization_id
+        +Boolean generated_by_ai
+    }
+
+    class DocumentAcknowledgement {
+        +String id
+        +String user_id
+        +String document_id
+        +Boolean acknowledged
+        +DateTime acknowledged_at
     }
 
     class AssessmentQuestion {
@@ -96,7 +118,26 @@ classDiagram
         +Text pregunta
         +Text evidencia_esperada
         +Integer orden
+    }
+
+    class AssessmentAnswer {
+        +String id
+        +String question_id
+        +String organization_id
+        +String veredicto
+        +Float confianza
+        +Text justificacion
         +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ISOCControl {
+        +String id
+        +String control_id
+        +String domain
+        +String title
+        +Text description
+        +Text implementation_guidance
     }
 
     class ControlStatus {
@@ -108,66 +149,6 @@ classDiagram
         +Text justification
         +Integer score
         +String document_id
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    class Document {
-        +String id
-        +String chapter_id
-        +String title
-        +Text content
-        +Enum status
-        +String version
-        +String user_id
-        +Boolean generated_by_ai
-        +String organization_id
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    class Evidence {
-        +String id
-        +String organization_id
-        +String title
-        +Text description
-        +Enum evidence_type
-        +String file_url
-        +String file_name
-        +Integer file_size
-        +String mime_type
-        +JSON evidence_metadata
-        +Text extracted_text
-        +String indexing_status
-        +Boolean is_verified
-        +String verified_by
-        +DateTime verified_at
-        +String risk_id
-        +String uploaded_by
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    class EvidenceChunk {
-        +String id
-        +String organization_id
-        +String evidence_id
-        +Text content
-        +Vector embedding
-        +Integer chunk_index
-        +DateTime created_at
-    }
-    
-    class NormativeChunk {
-        +String id
-        +String document_name
-        +String clause
-        +Integer page_number
-        +Integer chunk_index
-        +Text content
-        +Text raw_text
-        +Vector embedding
-        +DateTime created_at
     }
 
     class CAPA {
@@ -178,33 +159,11 @@ classDiagram
         +Text corrective_action
         +String assignee
         +String control
-        +Enum priority
-        +Enum status
-        +Enum source
-        +Integer progress
+        +CAPAPriority priority
+        +CAPAStatus status
+        +CAPASource source
         +String organization_id
         +DateTime due_date
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    class ISOCControl {
-        +String id
-        +String control_id
-        +String title
-        +Text description
-        +String category
-        +String domain
-        +String annex
-        +String clause_reference
-        +Text implementation_guide
-        +JSON related_controls
-        +JSON attributes
-        +Boolean applies
-        +String status
-        +Text justification
-        +Integer score
-        +String document_id
     }
 
     class GapAnalysis {
@@ -214,171 +173,177 @@ classDiagram
         +String clause_id
         +String clause_name
         +Text requirement
-        +String current_status
-        +String target_status
-        +Text gap_description
-        +String priority
         +String status
-        +String responsible
-        +DateTime target_date
-        +DateTime completed_date
-        +Text notes
+        +String priority
         +Float score
         +Text ai_response
-        +Text evidence_text
     }
 
-    %% --- Módulo Ley N° 21.719 ---
+    class RemediationAction {
+        +String id
+        +String gap_id
+        +String title
+        +Text description
+        +String status
+        +Integer estimated_hours
+        +JSON dependencies
+        +String evidence_url
+    }
+
+    class ControlImplementation {
+        +String id
+        +String control_id
+        +String title
+        +String category
+        +String implementation_status
+        +Integer completion_percentage
+        +String responsible
+        +Float kpi_target
+        +Float kpi_current
+    }
+
+    class KPI {
+        +String id
+        +String name
+        +String category
+        +String formula
+        +Float target_value
+        +Float current_value
+        +String unit
+        +String status
+    }
 
     class DataTreatment {
         +String id
+        +String organization_id
         +String nombre
-        +Text finalidad
-        +String base_licitud
+        +Text finalidades
         +Text categorias_datos
-        +String origen
+        +Text titulares
         +Text destinatarios
         +Text transferencias_internacionales
-        +String plazo_conservacion
-        +String responsable
-        +String organization_id
-        +DateTime created_at
-        +DateTime updated_at
-    }
-
-    class Vendor {
-        +String id
-        +String nombre
-        +Text datos_compartidos
-        +String pais
-        +Enum estado_contrato
-        +String treatment_id
-        +String organization_id
-        +DateTime created_at
-        +DateTime updated_at
+        +String base_legal
+        +String estado
     }
 
     class Consent {
         +String id
-        +String titular
-        +String titular_email
-        +String acceptance_token_hash
-        +String notice_version
-        +Text notice_text
-        +Text finalidades_consentidas
-        +String treatment_id
-        +DateTime fecha_otorgado
-        +DateTime fecha_expiracion
-        +DateTime fecha_renovacion
-        +String medio
-        +Enum estado
-        +DateTime fecha_revocado
-        +String comprobante_url
         +String organization_id
+        +String treatment_id
+        +ConsentState estado
+        +String titular_nombre
+        +String titular_email
+        +DateTime fecha_otorgado
+        +String acceptance_token_hash
     }
 
     class ConsentHistory {
         +String id
         +String consent_id
         +String organization_id
-        +String action
-        +String actor_type
-        +String actor_identifier
+        +String accion
+        +String realizado_por
+        +Text detalle
         +DateTime created_at
-    }
-
-    class DataBreach {
-        +String id
-        +DateTime fecha_deteccion
-        +Text descripcion
-        +String reportado_por
-        +Text datos_afectados
-        +Integer cantidad_afectados
-        +String afectados_estimacion
-        +Enum gravedad
-        +JSON analisis_ia
-        +String analisis_estado
-        +Boolean gravedad_confirmada
-        +Boolean notificacion_requerida
-        +String confirmada_por
-        +DateTime fecha_confirmacion
-        +DateTime fecha_limite_notificacion
-        +DateTime fecha_notificacion
-        +Enum estado
-        +Text medidas_tomadas
-        +String responsable
-        +Text causa_raiz
-        +Text resolucion
-        +String resuelta_por
-        +DateTime fecha_resolucion
-        +String organization_id
-        +DateTime created_at
-        +DateTime updated_at
     }
 
     class DataSubjectRequest {
         +String id
-        +String titular
+        +String organization_id
+        +RequestType tipo
+        +RequestState estado
+        +String titular_nombre
         +String titular_email
-        +String origen
-        +Enum tipo
         +Text descripcion
         +DateTime fecha_solicitud
-        +DateTime fecha_limite
-        +Enum estado
-        +String responsable
-        +Text respuesta
+    }
+
+    class DataBreach {
+        +String id
         +String organization_id
+        +SeverityLevel gravedad
+        +BreachState estado
+        +String descripcion
+        +String datos_afectados
+        +Boolean gravedad_confirmada
+        +DateTime fecha_ocurrencia
+    }
+
+    class Vendor {
+        +String id
+        +String organization_id
+        +String nombre
+        +String tratamiento
+        +String pais
+        +ContractStatus contract_status
+        +String treatment_id
         +DateTime created_at
-        +DateTime updated_at
     }
 
     class ImpactAssessment {
         +String id
-        +String treatment_id
-        +Enum nivel_riesgo
-        +Text descripcion_riesgo
-        +Text medidas_mitigacion
-        +Enum estado
-        +String responsable
         +String organization_id
-        +DateTime created_at
-        +DateTime updated_at
+        +String treatment_id
+        +ImpactStatus status
+        +ImpactRiskLevel riesgo
+        +Text necesidades
+        +Text medidas
+    }
+
+    class AIPrompt {
+        +String id
+        +String name
+        +String category
+        +Text system_prompt
+        +Text user_prompt_template
+    }
+
+    class NormativeChunk {
+        +String id
+        +String document_name
+        +String clause
+        +Integer page_number
+        +Text content
+        +SafeVector embedding
     }
 
     class LawObligation {
         +String id
-        +String codigo
-        +String categoria
-        +String nombre
-        +String referencia_legal
+        +String ley
+        +String articulo
+        +Text titulo
         +Text descripcion
-        +String modulo
-        +Integer orden
-        +DateTime created_at
     }
 
-    %% --- Relaciones ---
-    User --> Organization : "Pertenece a"
-    Risk --> Organization : "Pertenece a"
-    Risk --> User : "Creado por"
-    Vendor --> DataTreatment : "Asociado a"
-    Vendor --> Organization : "Contratado por"
-    
-    AssessmentAnswer --> AssessmentQuestion : "Responde a"
-    AssessmentAnswer --> Organization : "Pertenece a"
-    ControlStatus --> Organization : "Estado local de"
-    
-    Consent --> DataTreatment : "Autoriza"
-    ConsentHistory --> Consent : "Registra cambios de"
-    ConsentHistory --> Organization : "Registrado en"
-    ImpactAssessment --> DataTreatment : "Evalúa impacto de"
+    Organization "1" --> "0..*" User : users
+    Organization "1" --> "0..*" Risk
+    Organization "1" --> "0..*" Evidence
+    Organization "1" --> "0..*" AssessmentAnswer
+    Organization "1" --> "0..*" ControlStatus
+    Organization "1" --> "0..*" DataTreatment
+    Organization "1" --> "0..*" Consent
+    Organization "1" --> "0..*" ConsentHistory
+    Organization "1" --> "0..*" DataSubjectRequest
+    Organization "1" --> "0..*" DataBreach
+    Organization "1" --> "0..*" Vendor
+    Organization "1" --> "0..*" ImpactAssessment
 
-    EvidenceChunk --> Evidence : "Pertenece a"
-    Evidence --> Risk : "Soporta"
-    Evidence --> User : "Subida por"
-    
-    Document --> User : "Creado por"
-    Document --> Organization : "Pertenece a"
-    
-    GapAnalysis --> User : "Evaluado por"
+    User --> UserRole
+    User "1" --> "0..*" Risk : creator
+    User "1" --> "0..*" Evidence : uploader
+    User "1" --> "0..*" Document : author
+    User "1" --> "0..*" DocumentAcknowledgement
+    User "1" --> "0..*" GapAnalysis
+
+    Risk "1" --> "0..*" Evidence
+    Risk "1" --> "0..*" RiskAssessment
+    Evidence "1" --> "0..*" EvidenceChunk
+    AssessmentQuestion "1" --> "0..*" AssessmentAnswer
+    Document "1" --> "0..*" DocumentAcknowledgement
+    GapAnalysis "1" --> "0..*" RemediationAction
+
+    DataTreatment "1" --> "0..*" Consent
+    DataTreatment "1" --> "0..*" Vendor
+    DataTreatment "1" --> "0..*" ImpactAssessment
+    Consent "1" --> "0..*" ConsentHistory
+```
