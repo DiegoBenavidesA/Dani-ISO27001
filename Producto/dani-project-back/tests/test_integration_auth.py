@@ -16,3 +16,21 @@ def test_protected_risk_route_requires_token():
     response = client.get("/api/risks/")
 
     assert response.status_code == 401
+
+
+def test_employee_cannot_access_elevated_risk_write_route():
+    token = AuthService.create_access_token(
+        {
+            "sub": "employee@example.com",
+            "role": "employee",
+            "user_id": "employee-test-id",
+            "organization_id": "organization-test-id",
+        }
+    )
+
+    response = client.get(
+        "/api/risks/",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
