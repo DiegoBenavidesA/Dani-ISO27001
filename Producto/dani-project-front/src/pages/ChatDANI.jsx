@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Bot, X, Send, Maximize2, Minimize2, User } from 'lucide-react';
 import { chatAPI } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 
 // ── Paleta Material 3 (DANI GRC) ──────────────────────────────
 const C = {
-  primary: '#004ac6',
+  primary: '#070708',
   primaryDark: '#003ea8',
   accent: '#004ac6',         // "en línea", avatar del bot y énfasis (identidad azul NormIA)
   tertFixed: '#dbe6ff',      // chip/ícono del bot (azul claro)
@@ -21,6 +22,13 @@ const C = {
 export default function ChatDANI() {
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  // El encabezado principal ya existe cuando se monta ChatDANI.
+  // En móviles, colocamos el acceso a DANI allí para no tapar respuestas ni botones.
+  const [headerTarget, setHeaderTarget] = useState(null);
+
+  useEffect(() => {
+    setHeaderTarget(document.querySelector('.normia-platform-header'));
+  }, []);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([
@@ -88,6 +96,7 @@ export default function ChatDANI() {
       {/* ── Panel del chat ───────────────────────────────── */}
       {isOpen && (
         <aside
+          className={`normia-dani-panel${isExpanded ? ' normia-dani-panel-expanded' : ''}`}
           style={{
             position: 'fixed',
             bottom: isExpanded ? '0' : '92px',
@@ -304,6 +313,8 @@ export default function ChatDANI() {
 
       {/* ── FAB (siempre visible) ────────────────────────── */}
       <button
+        type="button"
+        className={headerTarget ? 'normia-dani-fab normia-dani-fab-desktop' : 'normia-dani-fab'}
         onClick={() => setIsOpen(!isOpen)}
         aria-label={isOpen ? 'Cerrar Asistente Dani AI' : 'Abrir Asistente Dani AI'}
         style={{
@@ -335,11 +346,107 @@ export default function ChatDANI() {
         </span>
       </button>
 
+      {/* En móvil, el acceso a DANI va en el encabezado, no sobre el cuestionario. */}
+      {headerTarget && createPortal(
+        <button
+          type="button"
+          className="normia-dani-header-trigger"
+          onClick={() => setIsOpen(prev => !prev)}
+          aria-label={isOpen ? 'Cerrar asistente DANI' : 'Abrir asistente DANI'}
+          aria-expanded={isOpen}
+          title="Asistente DANI"
+          style={{
+            background: C.surfaceLow,
+            color: C.primary,
+            border: `1px solid ${C.border}`,
+            borderRadius: '10px',
+            cursor: 'pointer',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}
+        >
+          {isOpen ? <X size={20} /> : <Bot size={20} />}
+        </button>,
+        headerTarget
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes pulse { 0% { opacity: 0.3; } 50% { opacity: 1; } 100% { opacity: 0.3; } }
         .dot-pulse { animation: pulse 1.4s infinite ease-in-out both; font-size: 18px; line-height: 10px; color: ${C.outline}; }
         .delay-1 { animation-delay: 0.2s; }
         .delay-2 { animation-delay: 0.4s; }
+        /* El botón del encabezado solo aparece en pantallas pequeñas. */
+        .normia-dani-header-trigger { display: none; }
+
+        @media (max-width: 768px) {
+          /* Con encabezado disponible, eliminamos el FAB flotante: no tapa Continuar. */
+          .normia-dani-fab-desktop { display: none !important; }
+
+          /* Si esta pantalla no tiene el encabezado esperado, conservamos un acceso. */
+          .normia-dani-fab:not(.normia-dani-fab-desktop) {
+            width: 44px !important;
+            height: 44px !important;
+            right: 10px !important;
+            bottom: 10px !important;
+          }
+
+          .normia-dani-header-trigger {
+            display: inline-flex;
+            width: 38px;
+            height: 38px;
+            min-width: 38px;
+            padding: 0;
+          }
+
+          /* Seis controles en el encabezado deben caber también a 320-375 px. */
+          .normia-platform-header {
+            padding: 8px !important;
+            gap: 4px !important;
+          }
+          .normia-platform-header > button:not(.normia-dani-header-trigger),
+          .normia-platform-header > div > button {
+            width: 38px !important;
+            min-width: 38px !important;
+            height: 38px !important;
+            padding: 6px !important;
+          }
+          .normia-platform-header > div:first-of-type > button {
+            width: auto !important;
+            min-width: 74px !important;
+            padding: 6px !important;
+            gap: 4px !important;
+          }
+
+          /* Chat legible y usable en pantallas pequeñas, incluso con poco alto. */
+          /* La regla móvil del Sidebar no debe afectar al panel del chat. */
+          .normia-shell > aside.normia-dani-panel {
+            top: auto !important;
+            transform: none !important;
+            overflow: hidden !important;
+            z-index: 9999 !important;
+          }
+          .normia-dani-panel {
+            left: 8px !important;
+            right: 8px !important;
+            bottom: 8px !important;
+            width: auto !important;
+            max-width: none !important;
+            height: min(78dvh, 650px) !important;
+            max-height: calc(100dvh - 16px) !important;
+            border-radius: 16px !important;
+          }
+          .normia-shell > aside.normia-dani-panel-expanded {
+            top: 0 !important;
+          }
+          .normia-dani-panel-expanded {
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100dvh !important;
+            max-height: 100dvh !important;
+            border-radius: 0 !important;
+          }
+        }
       `}} />
     </>
   );

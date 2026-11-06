@@ -57,12 +57,6 @@ const DocGeneratorScreen = ({ navParams }) => {
   const [targetControl, setTargetControl] = useState(null);
   const [targetControlTitle, setTargetControlTitle] = useState(null);
 
-  // A partir de aquí sigue el useEffect que carga el documento...
-  useEffect(() => {
-    if (selectedChapter) sessionStorage.setItem('dani_doc_chapter_id', String(selectedChapter.id));
-    else sessionStorage.removeItem('dani_doc_chapter_id');
-  }, [selectedChapter]);
-
 
   const totalGenerated = Object.keys(generatedContent).length;
   const progressPercent = Math.round((totalGenerated / chapters.length) * 100);
@@ -203,10 +197,41 @@ const DocGeneratorScreen = ({ navParams }) => {
   };
 
   return (
-    <div style={{ animation: 'fadeIn 0.4s ease', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="dani-doc-screen" style={{ animation: 'fadeIn 0.4s ease', height: '100%', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <style>{`
+        .dani-doc-screen { width: 100%; box-sizing: border-box; }
+        .dani-doc-screen *, .dani-doc-screen *::before, .dani-doc-screen *::after { box-sizing: border-box; }
+        .dani-doc-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; margin-bottom: 24px; }
+        .dani-doc-main { display: grid; grid-template-columns: minmax(220px, 280px) minmax(0, 1fr); gap: 24px; flex: 1; min-height: 0; min-width: 0; }
+        .dani-doc-work { min-width: 0; }
+        .dani-doc-split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); flex: 1; min-height: 0; min-width: 0; }
+        .dani-doc-preview { min-width: 0; border-right: 1px solid var(--doc-divider, #e2e8f0); }
+        .dani-doc-editor { min-width: 0; }
+        .dani-doc-workflow { flex-wrap: wrap; gap: 16px; }
+        .dani-doc-toolbar { flex-wrap: wrap; gap: 12px; }
+        .dani-doc-title-row { flex-wrap: wrap; gap: 12px; }
+        .dani-doc-screen button { max-width: 100%; }
+        @media (max-width: 900px) {
+          .dani-doc-main { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+          .dani-doc-sidebar { max-height: 250px; }
+        }
+        @media (max-width: 700px) {
+          .dani-doc-header { margin-bottom: 16px; }
+          .dani-doc-header h1 { font-size: 23px !important; }
+          .dani-doc-split { grid-template-columns: minmax(0, 1fr); }
+          .dani-doc-preview { border-right: none; border-bottom: 1px solid var(--doc-divider, #e2e8f0); }
+          .dani-doc-preview-content { max-height: 320px; overflow-y: auto; }
+          .dani-doc-editor { min-height: 340px; }
+          .dani-doc-editor textarea { min-height: 300px; }
+          .dani-doc-workflow { justify-content: center !important; }
+          .dani-doc-workflow > div { max-width: 100%; }
+          .dani-doc-toolbar { align-items: flex-start !important; }
+          .dani-doc-sidebar { max-height: 220px; }
+        }
+      `}</style>
       
       {/* ENCABEZADO Y BARRA DE PROGRESO */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+      <div className="dani-doc-header">
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 700, color: t.text, marginBottom: '8px' }}>Generador de Documentos ISO 27001</h1>
           <p style={{ color: t.textDim, fontSize: '15px' }}>Genera documentación compatible con asistencia de IA</p>
@@ -222,17 +247,17 @@ const DocGeneratorScreen = ({ navParams }) => {
       <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px 24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: t.textDim, marginBottom: '12px' }}>
           <span>Progreso Total</span>
-          <span style={{ color: '#004ac6', fontWeight: 700 }}>{totalGenerated}/7 Capítulos</span>
+          <span style={{ color: '#004ac6', fontWeight: 700 }}>{totalGenerated}/{chapters.length} Documentos</span>
         </div>
         <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{ width: `${progressPercent}%`, height: '100%', background: '#004ac6', transition: 'width 0.3s ease' }} />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', flex: 1, minHeight: 0 }}>
+      <div className="dani-doc-main">
         
         {/* PANEL IZQUIERDO: LISTA DE CAPÍTULOS */}
-        <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        <div className="dani-doc-sidebar" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: 'clamp(12px, 2vw, 24px)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
           <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '20px' }}>CAPÍTULOS</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {chapters.map((chapter) => {
@@ -265,11 +290,11 @@ const DocGeneratorScreen = ({ navParams }) => {
         </div>
 
         {/* PANEL DERECHO: ÁREA DE TRABAJO */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: 0 }}>
+        <div className="dani-doc-work" style={{ display: 'flex', flexDirection: 'column', gap: '24px', minHeight: 0 }}>
           
           {/* ESTADO 1: Nada seleccionado */}
           {!selectedChapter && (
-            <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textDim }}>
+            <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textDim, padding: '24px', textAlign: 'center' }}>
               <FileText size={48} style={{ opacity: 0.3, marginBottom: '20px' }} />
               <h2 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>Selecciona un capítulo para comenzar</h2>
               <p style={{ fontSize: '14px' }}>Elige un capítulo del panel izquierdo para comenzar</p>
@@ -279,8 +304,8 @@ const DocGeneratorScreen = ({ navParams }) => {
           {/* ESTADO 2: Capítulo seleccionado, pero NO generado */}
           {selectedChapter && !generatedContent[selectedChapter.id] && (
             <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <div style={{ padding: '24px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div className="dani-doc-title-row" style={{ padding: 'clamp(14px, 2vw, 24px)', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flexWrap: 'wrap' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: `${selectedChapter.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <selectedChapter.icon size={24} color={selectedChapter.color} />
                   </div>
@@ -314,7 +339,7 @@ const DocGeneratorScreen = ({ navParams }) => {
 
                 <h2 style={{ fontSize: '22px', fontWeight: 700, color: t.text, marginBottom: '12px' }}>Generar Borrador {selectedChapter.number}</h2>
                 <p style={{ fontSize: '15px', color: t.textDim, maxWidth: '400px', lineHeight: '1.5', marginBottom: '32px' }}>
-                  La IA generará un borrador en el panel izquierdo que podrás editar en el derecho.
+                  La IA generará un borrador que podrás revisar y editar en tu documento.
                 </p>
 
                 {/* AQUÍ VA EL MENSAJE DE ERROR */}
@@ -337,7 +362,7 @@ const DocGeneratorScreen = ({ navParams }) => {
           {/* ESTADO 3: Vista Dividida (Split View) */}
           {selectedChapter && generatedContent[selectedChapter.id] && (
             <>
-              <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div className="dani-doc-workflow" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '16px clamp(14px, 2vw, 24px)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <GitBranch size={18} color={t.textDim} />
                   <span style={{ fontSize: '14px', fontWeight: 700, color: t.text }}>Flujo de Aprobación</span>
@@ -413,8 +438,8 @@ const DocGeneratorScreen = ({ navParams }) => {
               </div>
 
               <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ padding: '16px 24px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="dani-doc-toolbar" style={{ padding: '16px clamp(14px, 2vw, 24px)', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flexWrap: 'wrap' }}>
                     <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: `${selectedChapter.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <selectedChapter.icon size={22} color={selectedChapter.color} />
                     </div>
@@ -424,7 +449,7 @@ const DocGeneratorScreen = ({ navParams }) => {
                     </div>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textDim, fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Tag size={14} /> Etiquetado
                     </button>
@@ -435,28 +460,28 @@ const DocGeneratorScreen = ({ navParams }) => {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', flex: 1, minHeight: 0 }}>
-                  <div style={{ borderRight: `1px solid ${t.border}`, display: 'flex', flexDirection: 'column' }}>
+                <div className="dani-doc-split" style={{ ['--doc-divider']: t.border }}>
+                  <div className="dani-doc-preview" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '12px 24px', background: `${selectedChapter.color}10`, borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Sparkles size={16} color={selectedChapter.color} />
                       <span style={{ fontSize: '13px', fontWeight: 700, color: selectedChapter.color }}>Borrador IA</span>
                     </div>
-                    <div style={{ padding: '32px', overflowY: 'auto', flex: 1 }}>
+                    <div className="dani-doc-preview-content" style={{ padding: 'clamp(16px, 2.5vw, 32px)', overflowY: 'auto', flex: 1, overflowWrap: 'anywhere' }}>
                       {renderMarkdown(generatedContent[selectedChapter.id], selectedChapter.color)}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div className="dani-doc-editor" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '12px 24px', background: 'rgba(0, 74, 198, 0.05)', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Edit3 size={16} color="#004ac6" />
                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#004ac6' }}>Tu Documento</span>
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, minHeight: 0 }}>
                       <textarea
-                        value={documentContent[selectedChapter.id]}
+                        value={documentContent[selectedChapter.id] || ''}
                         onChange={(e) => setDocumentContent({...documentContent, [selectedChapter.id]: e.target.value})}
                         style={{
-                          width: '100%', height: '100%', padding: '32px', background: 'transparent',
+                          width: '100%', height: '100%', minHeight: '320px', padding: 'clamp(16px, 2.5vw, 32px)', background: 'transparent',
                           border: 'none', outline: 'none', color: t.text, fontFamily: 'monospace',
                           fontSize: '14px', lineHeight: '1.8', resize: 'none'
                         }}
