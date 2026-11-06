@@ -10,7 +10,7 @@ Los valores son objetivos verificables; no representan un SLA contractual provis
 |---|---|---|
 | RNF-01 | Respuesta de operaciones de lectura | El 95 % de las solicitudes `GET` a endpoints sin IA externa debe responder en menos de 2 segundos, medido sobre 100 solicitudes consecutivas representativas. |
 | RNF-02 | Respuesta de operaciones IA | El 95 % de las solicitudes de chat o análisis con proveedor disponible debe responder o entregar un `job_id` en menos de 30 segundos. |
-| RNF-03 | Carga de evidencias | Una evidencia de hasta 10 MB debe subir, almacenarse y retornar resultado sin error en menos de 30 segundos. El límite exacto vigente debe implementar `[completar]` si no existe validación de tamaño. |
+| RNF-03 | Carga de evidencias | Una evidencia de hasta 10 MB debe subir, almacenarse y retornar resultado sin error en menos de 30 segundos. Estado actual: `POST /api/evidence/upload` no valida el tamaño del archivo; agregar el rechazo de archivos mayores a 10 MB queda como mejora pendiente. |
 | RNF-04 | Consulta paginada | Los listados deben limitar la cantidad retornada al tamaño de página del endpoint y no deben causar consultas N+1 en listas masivas. |
 
 ## 2. Seguridad
@@ -51,7 +51,7 @@ Los valores son objetivos verificables; no representan un SLA contractual provis
 | RNF-21 | Compatibilidad del frontend | Las vistas React deben cargar en navegadores modernos compatibles con React 19 sin reiniciar manualmente la aplicación para navegar entre módulos normales. |
 | RNF-22 | Retroalimentación | Las operaciones fallidas visibles deben mostrar error o estado de fallo distinto de éxito, y conservar códigos HTTP legibles entre frontend y backend. |
 | RNF-23 | Accesibilidad básica | Los campos principales de login y las acciones interactivas deben tener etiquetas o nombres accesibles y ser operables por teclado. |
-| RNF-24 | Confirmación de acciones críticas | Acciones destructivas o cambios críticos deben requerir confirmación o mostrar una previsión reversible explícita; `[completar]` si el componente actual no implementa confirmación. |
+| RNF-24 | Confirmación de acciones críticas | Acciones destructivas o cambios críticos deben requerir confirmación o mostrar una previsión reversible explícita. Estado actual: piden confirmación antes de eliminar las pantallas de Vulneraciones, Evidencias, Preguntas y Gestión de Usuarios. |
 
 ## 6. Mantenibilidad
 
@@ -67,7 +67,7 @@ Los valores son objetivos verificables; no representan un SLA contractual provis
 
 | ID | Requisito | Criterio medible |
 |---|---|---|
-| RNF-30 | Alineación Ley 21.719 | Los registros de consentimientos, tratamientos, solicitudes de titulares, brechas y proveedores deben utilizar el ámbito de organización de la implementación vigente. Algunos routers retirados no invalidan las tablas existentes: `[completar]` su operación funcional actual. |
+| RNF-30 | Alineación Ley 21.719 | Los registros de consentimientos, tratamientos, solicitudes de titulares, brechas y proveedores deben utilizar el ámbito de organización de la implementación vigente. Estado actual: de los módulos de la Ley solo está activo el de vulneraciones (`/api/breaches`); tratamientos, consentimientos, solicitudes de titulares, proveedores y evaluación de impacto se retiraron de la API, pero sus tablas se conservan para no perder datos. |
 | RNF-31 | Trazabilidad ISO 27001 | Riesgos, controles, evidencias, CAPA y evaluaciones deben conservar identificadores persistentes, relaciones y marcas `created_at`/`updated_at` cuando el modelo las declare. |
-| RNF-32 | Auditoría de cambios | Donde falte actor o fecha de modificación explícita, la funcionalidad debe marcarse como `[completar]`; no se debe afirmar trazabilidad completa sin confirmación en todos los modelos críticos. |
+| RNF-32 | Auditoría de cambios | Estado actual: las vulneraciones registran quién reportó, quién confirmó la gravedad y quién resolvió, con sus fechas (`reportado_por`, `confirmada_por`, `resuelta_por`); el historial de consentimientos registra actor y acción. El resto de los modelos solo guarda `created_at` y `updated_at`, sin el usuario que hizo el cambio. |
 | RNF-33 | Minimización de datos | Las respuestas API deben limitar los campos al caso de uso autorizado y nunca incluir datos de otra organización. |
