@@ -16,21 +16,25 @@
 - [Arquitectura del Sistema](#arquitectura-del-sistema)
 - [Módulos Implementados](#módulos-implementados)
 - [Instalación Local](#instalación-local)
+- [Ejecución con Docker](#ejecución-con-docker)
 - [Variables de Entorno](#variables-de-entorno)
 - [Scripts de Inicialización](#scripts-de-inicialización)
 - [Estructura del Proyecto](#estructura-del-proyecto)
 - [Despliegue en Producción](#despliegue-en-producción)
-- [Credenciales por Defecto](#credenciales-por-defecto)
+- [Credenciales y Seguridad](#credenciales-y-seguridad)
 - [Pruebas](#pruebas)
+- [Metodología](#metodología)
 - [Equipo](#equipo)
 
 ---
 
 ## Descripción General
 
-**DANI** es una plataforma de cumplimiento normativo que centraliza, automatiza y visualiza el estado de cumplimiento ISO 27001 en tiempo real. Integra un motor de IA (DeepSeek) con arquitectura RAG (Retrieval-Augmented Generation) sobre documentación ISO 27001:2022 e ISO 27002:2022 para asistir a los equipos de seguridad en la redacción de políticas, evaluación de controles y gestión de evidencias.
+DANI **NormIA** es una plataforma de gestión de gobierno, riesgos y cumplimiento normativo (GRC) que centraliza, automatiza y visualiza el estado de cumplimiento de ISO 27001:2022, incorporando funcionalidades relacionadas con la Ley N.º 21.719 sobre protección de datos personales.
 
-> **Objetivo:** Reducir el tiempo de implementación ISO 27001 transformando un proceso burocrático en un flujo de trabajo inteligente, colaborativo y auditable.
+Integra inteligencia artificial generativa compatible con **Groq** y **DeepSeek**, priorizando Groq cuando su clave de API está configurada. Utiliza una arquitectura RAG (Retrieval-Augmented Generation) basada en documentación ISO 27001:2022 e ISO 27002:2022 para apoyar la evaluación de controles, la gestión de evidencias y la generación de documentación.
+
+> **Objetivo:** Facilitar la gestión del cumplimiento normativo mediante una plataforma inteligente, colaborativa y auditable, que permita identificar brechas, gestionar riesgos, organizar evidencias y apoyar la toma de decisiones relacionadas con la seguridad de la información y la protección de datos personales.
 
 ---
 
@@ -66,7 +70,7 @@
 | Base de Datos | PostgreSQL (Neon.tech) + pgvector 0.2.5 |
 | ORM | SQLAlchemy 2.0 async + asyncpg |
 | Autenticación | JWT (HS256) + bcrypt |
-| IA / LLM | DeepSeek (`deepseek-chat`) vía SDK de OpenAI |
+| IA / LLM | Groq (proveedor prioritario) y DeepSeek (alternativa), mediante API compatible con OpenAI |
 | Embeddings | FastEmbed (384 dimensiones) |
 | RAG | pgvector (cosine distance) sobre evidencias + normativa |
 | PDF Parsing | PyMuPDF + pypdf |
@@ -78,32 +82,33 @@
 | Frontend | Vercel |
 | Backend | Render.com |
 | Base de Datos | Neon.tech (PostgreSQL serverless) |
-| API Keys | DeepSeek API |
+| API Keys | Groq API (prioritaria) / DeepSeek API (alternativa) |
 
 ---
 
 ## Arquitectura del Sistema
 
 ```
+
 ┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (React)                       │
-│  Dashboard · Gap Analysis · Doc Generator · Risk Map     │
-│  Evidence Center · Documents · Audit Room · Employee     │
+│                    FRONTEND (React)                     │
+│  Dashboard · Gap Analysis · Doc Generator · Risk Map    │
+│  Evidence Center · Documents · Audit Room · Employee    │
 └───────────────────────┬─────────────────────────────────┘
                         │ HTTPS / JWT
 ┌───────────────────────▼─────────────────────────────────┐
-│                 BACKEND (FastAPI)                         │
+│                 BACKEND (FastAPI)                       │
 │  /api/auth · /api/users · /api/risks · /api/evidence    │
 │  /api/compliance · /api/gap-analysis · /api/chat        │
-│  /api/documents                                          │
+│  /api/documents                                         │
 └────────┬───────────────────┬────────────────────────────┘
          │                   │
 ┌────────▼───────┐  ┌────────▼──────────────────────────┐
-│  Neon.tech DB  │  │  DeepSeek API (deepseek-chat)      │
-│  PostgreSQL +  │  │  · Análisis de riesgos             │
-│  pgvector      │  │  · Generación de documentos SGSI   │
-│  · Controles   │  │  · Evaluación de controles (SOA)   │
-│  · Evidencias  │  │  · Chat RAG con contexto ISO       │
+│  Neon.tech DB  │  │  Groq / DeepSeek (IA)             │
+│  PostgreSQL +  │  │  · Análisis de riesgos            │
+│  pgvector      │  │  · Generación de documentos SGSI  │
+│  · Controles   │  │  · Evaluación de controles (SOA)  │
+│  · Evidencias  │  │  · Chat RAG con contexto ISO      │
 │  · Normativa   │  └───────────────────────────────────┘
 └────────────────┘
 ```
@@ -132,8 +137,8 @@
 - SOA (Statement of Applicability) interactiva con 93 controles del Anexo A
 - Exportación de SOA en PDF (`GET /api/compliance/soa/export`) con tabla completa de controles, badges de estado y portada con métricas
 - Scores por cláusula calculados desde el estado real de controles en BD
-- Auditoría individual de controles: DeepSeek evalúa un documento contra un control
-- Auditoría masiva RAG: embeddings + cosine similarity + DeepSeek (límite 10 controles por sesión para respetar timeouts de Render.com)
+- Auditoría individual de controles: evaluación de documentos mediante IA según el proveedor configurado.
+- Auditoría masiva RAG: embeddings, similitud coseno y evaluación asistida por IA.
 - Vista de Resultados: score general, brechas por cláusula, plan de remediación, KPIs
 
 ### Doc Generator
@@ -145,7 +150,7 @@
 
 ### Risk Map
 - Matriz de riesgos interactiva (probabilidad × impacto)
-- Análisis de riesgos con DeepSeek + prompts dinámicos desde BD
+- Análisis de riesgos asistido por IA mediante prompts dinámicos almacenados en la base de datos.
 - Simulador de controles con reducción de riesgo calculada
 - Fallback inteligente si la API de IA no responde
 
@@ -276,9 +281,10 @@ Los contenedores pueden ejecutarse por separado; para sustituciones manuales o d
 
 ---
 
+
 ## Variables de Entorno
 
-Crear el archivo `.env` en `Producto/dani-project-back/`:
+Crear el archivo `.env` en `Producto/dani-project-back/`, utilizando como referencia el archivo `.env.example`.
 
 ```env
 # Base de Datos (PostgreSQL con pgvector)
@@ -287,22 +293,24 @@ DATABASE_URL=postgresql+asyncpg://usuario:password@host/dbname?ssl=require
 # Seguridad JWT
 SECRET_KEY=tu_secreto_de_al_menos_32_caracteres
 
-# IA — DeepSeek (https://platform.deepseek.com)
-DEEPSEEK_API_KEY=sk-...
+# Inteligencia artificial: Groq tiene prioridad cuando está configurado
+GROQ_API_KEY=tu_clave_de_groq
 
-# Alternativa: Groq (fallback automático si DEEPSEEK_API_KEY no está)
-# GROQ_API_KEY=gsk_...
+# Proveedor alternativo: DeepSeek
+DEEPSEEK_API_KEY=tu_clave_de_deepseek
 
-# Google Cloud (solo si se usa Cloud Storage — puede dejarse como dummy)
+# Google Cloud (solo si se utiliza Cloud Storage)
 GOOGLE_CLOUD_PROJECT=dummy-project
 GOOGLE_APPLICATION_CREDENTIALS=dummy.json
 CLOUD_STORAGE_BUCKET=dummy-bucket
 
-# Vector Store (no requerido si se usa pgvector)
+# Vector Store (no requerido si se utiliza pgvector)
 VECTOR_STORE_API_KEY=dummy-vector-key
 ```
 
-> **Nota:** La aplicación funciona sin Redis. El `REDIS_URL` no es requerido para la demo.
+> **Importante:** Los valores anteriores son ejemplos. Nunca publiques claves de API, contraseñas ni secretos reales en GitHub. Si se configuran Groq y DeepSeek al mismo tiempo, el backend prioriza Groq.
+
+> **Nota:** La aplicación funciona sin Redis. `REDIS_URL` no es obligatorio para la demo.
 
 ---
 
@@ -436,17 +444,22 @@ export const API_URL = window.location.hostname === 'localhost'
 
 ---
 
-## Credenciales por Defecto
+## Credenciales y Seguridad
 
-El servidor crea automáticamente un usuario administrador al iniciar:
+Por motivos de seguridad, no se publican credenciales de acceso
+en este repositorio.
 
-| Campo | Valor |
-|---|---|
-| Email | `admin@dani27001.com` |
-| Contraseña | `admin123` |
-| Rol | `admin` |
+Las cuentas de administrador deben configurarse de forma segura,
+utilizando contraseñas robustas y variables de entorno cuando
+corresponda.
 
----
+**Importante:**
+- No compartir contraseñas ni claves de API en GitHub.
+- No subir archivos `.env` con información sensible.
+- Cambiar cualquier contraseña predeterminada antes de
+  utilizar la plataforma en producción.
+- Verificar que los permisos de acceso correspondan al rol
+  de cada usuario.
 
 ## Pruebas
 
@@ -486,15 +499,33 @@ pytest tests/test_api.py -v
 
 ---
 
+## Metodología
+
+El proyecto NormIA se desarrolla siguiendo un enfoque ágil basado en **Scrum**, con planificación de actividades por sprints, seguimiento de avances y revisión continua del producto.
+
+La documentación metodológica se encuentra en la carpeta [`docs/metodologia`](docs/metodologia/):
+
+- [Visión del Producto](docs/metodologia/Product_Vision.md): define el problema, los usuarios objetivo, la propuesta de valor y los objetivos del proyecto.
+- [Sprint Backlog](docs/metodologia/Sprint_Backlog.md): organiza los sprints y registra los avances del equipo respaldados por el historial de Git.
+- [Definition of Done](docs/metodologia/Definition_of_Done.md): propone los criterios que debe cumplir una tarea para considerarse terminada.
+- [Retrospectivas](docs/metodologia/Retrospectivas.md): documenta una revisión retrospectiva basada en la evidencia disponible y las oportunidades de mejora identificadas.
+
+> **Nota:** La documentación distingue entre la planificación original y los avances verificables del proyecto. Los criterios y acciones propuestos quedan sujetos a revisión del equipo.
+
+---
+
+
 ## Equipo
 
-| Rol | Nombre | Responsabilidades |
+| Integrante | Rol en el proyecto | Responsabilidades |
 |---|---|---|
-| Líder de Proyecto / Backend | Jordy Mondaca | Arquitectura, Auth, Integración IA, Despliegue |
-| Backend | Elías Vicencio | APIs, Modelos BD, Scripts de ingesta |
-| Frontend | Génesis Valdebeito | Pantallas, Componentes, i18n |
+| Justo Cano | Líder de proyecto / Analista | Coordinación del equipo, análisis de requisitos y seguimiento del proyecto. |
+| Raúl Barrera | Desarrollo backend | Desarrollo de APIs, lógica de negocio e integración con la base de datos. |
+| Celine Alcaíno | Desarrollo frontend | Desarrollo de interfaces, experiencia de usuario y adaptación de pantallas a dispositivos móviles. |
 
-Proyecto desarrollado para **Alloxentric IA** como parte del programa de formación técnica DUOC UC.
+**Proyecto:** NormIA — Plataforma GRC para la gestión del cumplimiento de ISO 27001:2022 y la Ley N.º 21.719.
+
+**Contexto académico:** Proyecto APT de la carrera Ingeniería en Informática, asignatura Capstone (Portafolio de Título), Duoc UC.
 
 ---
 
