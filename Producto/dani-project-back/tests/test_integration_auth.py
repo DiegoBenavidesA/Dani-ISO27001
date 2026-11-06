@@ -34,3 +34,21 @@ def test_employee_cannot_access_elevated_risk_write_route():
     )
 
     assert response.status_code == 403
+
+
+def test_superadmin_must_select_an_organization():
+    token = AuthService.create_access_token(
+        {
+            "sub": "superadmin@example.com",
+            "role": "superadmin",
+            "user_id": "superadmin-test-id",
+            "organization_id": None,
+        }
+    )
+
+    response = client.get(
+        "/api/risks/",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
