@@ -237,6 +237,45 @@ El frontend queda disponible en `http://localhost:3000`.
 
 ---
 
+## Ejecución con Docker
+
+Primero cree cada archivo local de variables desde el ejemplo, sin copiar valores reales ni claves:
+
+```bash
+cp Producto/dani-project-back/.env.example Producto/dani-project-back/.env
+cp Producto/dani-project-front/.env.example Producto/dani-project-front/.env
+```
+
+Complete `Producto/dani-project-back/.env` con una `DATABASE_URL` real de su entorno local o de Neon y configure las claves que vaya a probar. El backend exige `SECRET_KEY` y `DATABASE_URL`.
+
+### Construir y ejecutar el backend
+
+Desde la raíz del repositorio:
+
+```bash
+docker build -t normia-back Producto/dani-project-back
+docker run --name normia-back --env-file Producto/dani-project-back/.env -p 8000:8000 normia-back
+```
+
+Comprobación: `http://localhost:8000/health`.
+
+### Construir y ejecutar el frontend
+
+`REACT_APP_API_URL` se incorpora al JavaScript durante la construcción:
+
+```bash
+docker build \
+  --build-arg REACT_APP_API_URL=http://localhost:8000 \
+  -t normia-front Producto/dani-project-front
+docker run --name normia-front -p 3000:80 normia-front
+```
+
+Abrir: `http://localhost:3000`.
+
+Los contenedores pueden ejecutarse por separado; para sustituciones manuales o despliegues cloud, cambie `REACT_APP_API_URL` por la URL HTTPS pública del backend antes de construir el frontend. Nunca coloque claves reales dentro del Dockerfile o `.env.example`.
+
+---
+
 ## Variables de Entorno
 
 Crear el archivo `.env` en `Producto/dani-project-back/`:
