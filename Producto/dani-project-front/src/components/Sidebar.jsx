@@ -1,123 +1,48 @@
 /* eslint-disable */
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Search, FilePlus2, AlertTriangle, Database, FileText, FileCheck, Users, ChevronLeft, ChevronRight, ChevronDown, Shield, UserCircle, Building2, ClipboardCheck, Inbox, ShieldAlert, ClipboardList, BrainCircuit, Menu, X } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { getDomainScores, getComplianceScore } from '../services/api';
-
-function SidebarProgressRings({ theme: t, language, collapsed }) {
-  const [domains, setDomains] = useState(null);
-  const [overallProgress, setOverallProgress] = useState(null);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const [domainData, scoreData] = await Promise.all([getDomainScores(), getComplianceScore()]);
-        if (domainData && !domainData.detail) setDomains(domainData);
-        if (scoreData && !scoreData.detail) setOverallProgress(Math.round(scoreData.overall_score ?? 0));
-      } catch (_) {}
-    };
-    load();
-  }, []);
-
-  const domainProgress = [
-    { name: language === 'es' ? 'Personas' : 'People',     progress: domains?.people      ?? null, color: '#3b82f6' },
-    { name: language === 'es' ? 'Tecnología' : 'Technology', progress: domains?.technology ?? null, color: '#8b5cf6' },
-    { name: language === 'es' ? 'Físico' : 'Physical',     progress: domains?.physical     ?? null, color: '#004ac6' },
-    { name: language === 'es' ? 'Procesos' : 'Processes',  progress: domains?.processes    ?? null, color: '#f59e0b' }
-  ];
-
-  const displayOverall = overallProgress ?? Math.round(domainProgress.filter(d => d.progress !== null).reduce((s, d) => s + d.progress, 0) / (domainProgress.filter(d => d.progress !== null).length || 1));
-  const darkMode = t.bg.includes('#000000') || t.bg.includes('#0a0f1c'); // Infer dark mode from theme bg
-
-  if (collapsed) {
-    return (
-      <div style={{ padding: '12px 8px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
-        <div style={{ width: '48px', height: '48px', margin: '0 auto', position: 'relative' }}>
-          <svg width="48" height="48" viewBox="0 0 48 48">
-            <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
-            <circle cx="24" cy="24" r="20" fill="none" stroke="#004ac6" strokeWidth="4" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.26} 126`} transform="rotate(-90 24 24)" />
-          </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '11px', fontWeight: 700, color: '#004ac6' }}>{displayOverall ?? '--'}%</div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ padding: '16px', borderTop: `1px solid ${t.border}`, marginTop: 'auto' }}>
-      <div style={{ fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>{language === 'es' ? 'Análisis de Brechas' : 'Gap Analysis'}</div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-        <div style={{ width: '64px', height: '64px', position: 'relative' }}>
-          <svg width="64" height="64" viewBox="0 0 64 64">
-            <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-            <circle cx="32" cy="32" r="26" fill="none" stroke="url(#overallGradient)" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(displayOverall ?? 0) * 1.63} 163`} transform="rotate(-90 32 32)" />
-            <defs><linearGradient id="overallGradient" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stopColor="#004ac6" /><stop offset="100%" stopColor="#3b82f6" /></linearGradient></defs>
-          </svg>
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '16px', fontWeight: 700, color: '#004ac6' }}>{displayOverall ?? '--'}%</div>
-        </div>
-        <div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: t.text }}>{language === 'es' ? 'General' : 'Overall'}</div>
-          <div style={{ fontSize: '11px', color: t.textDim }}>4 {language === 'es' ? 'dominios' : 'domains'}</div>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {domainProgress.map((domain, i) => (
-          <div key={i}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-              <span style={{ fontSize: '11px', color: t.textMuted }}>{domain.name}</span>
-              <span style={{ fontSize: '11px', fontWeight: 600, color: domain.color }}>
-                {domain.progress !== null ? `${domain.progress}%` : '...'}
-              </span>
-            </div>
-            <div style={{ height: '6px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-              <div style={{ width: `${domain.progress ?? 0}%`, height: '100%', background: domain.color, borderRadius: '3px', transition: 'width 0.8s ease' }} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 import { useAuth } from '../contexts/AuthContext';
 
-const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed }) => {
+const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCollapsed, setCommandPaletteOpen, isMobile, mobileMenuOpen, setMobileMenuOpen }) => {
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
   const [comunOpen, setComunOpen] = useState(true);
   const [isoOpen, setIsoOpen] = useState(true);
   const [leyOpen, setLeyOpen] = useState(true);
-
-  // IDs de cada grupo para auto-expand y filtrado
   const ISO_IDS = ['audit-room', 'assessment'];
   const LEY_IDS = ['treatments', 'consents', 'data-requests', 'breaches', 'vendors', 'impact'];
 
-  // Auto-expandir el grupo si el usuario navega a un ítem colapsado
   useEffect(() => {
-    if (ISO_IDS.includes(activeScreen)) setIsoOpen(true);
-    if (LEY_IDS.includes(activeScreen)) setLeyOpen(true);
-  }, [activeScreen]);
-  const role = user?.role;
-  const superadminEnOrg = role === 'superadmin' && !!impersonatedOrg;   // dentro de una empresa
-  const superadminPlataforma = role === 'superadmin' && !impersonatedOrg; // panel de plataforma
-  // --- Matriz de permisos por rol (debe coincidir con el backend) ---
-  // owner y admin ven TODO. Los demás roles ven su subconjunto.
-  const DASH      = ['superadmin', 'owner', 'admin', 'manager', 'auditor', 'dpo']; // panel + documentos (todo el equipo, no empleados)
-  const ISO_MANAGE = ['superadmin', 'owner', 'admin', 'manager'];                  // gestionar ISO (crear/editar)
-  const ISO_VIEW   = ['superadmin', 'owner', 'admin', 'manager', 'auditor'];       // ver ISO / auditoría (incluye auditor)
-  const LEY        = ['superadmin', 'owner', 'admin', 'dpo'];                       // módulos Ley 21.719 (dpo)
-  const MANAGE_USERS = ['superadmin', 'owner', 'admin'];                           // gestión de usuarios
-  const PLATFORM = ['superadmin'];                                                 // ver/administrar TODAS las empresas
-  // roles: null = visible para todos los roles (incl. empleado).
 
+    if (ISO_IDS.includes(activeScreen)) setIsoOpen(true);
+
+    if (LEY_IDS.includes(activeScreen)) setLeyOpen(true);
+
+    // Si estamos en móvil y cambiamos de pantalla, cerramos el menú
+
+    if (isMobile && setMobileMenuOpen) setMobileMenuOpen(false);
+
+  }, [activeScreen, isMobile]);
+
+  const role = user?.role;
+  const superadminEnOrg = role === 'superadmin' && !!impersonatedOrg;
+  const superadminPlataforma = role === 'superadmin' && !impersonatedOrg;
+  const DASH      = ['superadmin', 'owner', 'admin', 'manager', 'auditor', 'dpo'];
+  const ISO_MANAGE = ['superadmin', 'owner', 'admin', 'manager'];
+  const ISO_VIEW   = ['superadmin', 'owner', 'admin', 'manager', 'auditor'];
+  const LEY        = ['superadmin', 'owner', 'admin', 'dpo'];
+  const MANAGE_USERS = ['superadmin', 'owner', 'admin'];
+  const PLATFORM = ['superadmin'];
   const navItems = [
+
     { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
     { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'general' },
     { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'comun' },
     { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'comun' },
+    { id: 'predictive', label: language === 'es' ? 'Análisis Predictivo IA' : 'AI Predictive Analysis', icon: BrainCircuit, roles: ISO_MANAGE, group: 'comun' },
     { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'comun' },
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
@@ -131,210 +56,319 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null, group: 'general' },
+
   ].filter(item => {
-    // Superadmin en el panel de PLATAFORMA: solo empresas y usuarios.
-    if (superadminPlataforma) {
-      return ['organizations', 'user-management'].includes(item.id);
-    }
-    // Superadmin DENTRO de una empresa: ve todos los módulos de esa empresa,
-    // menos "Gestión de Empresas" (eso es de plataforma; vuelve con el botón).
-    if (superadminEnOrg) {
-      return item.id !== 'organizations';
-    }
-    // Resto de roles: según su lista `roles`.
+
+    if (superadminPlataforma) return ['organizations', 'user-management'].includes(item.id);
+
+    if (superadminEnOrg) return item.id !== 'organizations';
+
     return !item.roles || item.roles.includes(role);
+
   });
 
+  // Estilos base de la barra lateral (varía si es móvil o escritorio)
+
+  const sidebarStyles = {
+
+    width: isMobile ? '280px' : (sidebarCollapsed ? '80px' : '260px'),
+
+    background: t.sidebarBg,
+
+    backdropFilter: 'blur(20px)',
+
+    borderRight: `1px solid ${t.border}`,
+
+    padding: '24px 16px',
+
+    display: 'flex',
+
+    flexDirection: 'column',
+
+    transition: 'all 0.3s ease',
+
+    position: isMobile ? 'fixed' : 'relative',
+
+    top: 0,
+
+    bottom: 0,
+
+    left: isMobile && !mobileMenuOpen ? '-100%' : '0',
+
+    zIndex: 9999,
+
+    height: '100vh',
+
+    boxShadow: isMobile && mobileMenuOpen ? '4px 0 24px rgba(0,0,0,0.15)' : 'none'
+
+  };
+
   return (
-    <aside
-      style={{
-        width: sidebarCollapsed ? '80px' : '260px',
-        background: t.sidebarBg,
-        backdropFilter: 'blur(20px)',
-        borderRight: `1px solid ${t.border}`,
-        padding: '24px 16px',
-        display: 'flex',
-        flexDirection: 'column',
-        transition: 'all 0.3s ease',
-        position: 'relative',
-        zIndex: 10
-      }}
-    >
-      {/* Logo */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          marginBottom: '32px',
-          padding: '0 8px'
-        }}
-      >
+
+    <>
+
+      {/* Overlay oscuro para cerrar el menú en móvil al hacer clic afuera */}
+
+      {isMobile && mobileMenuOpen && (
+
         <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
-        >
-          <img
-            src="/LogoNormia.png"
-            alt="NormIA"
-            style={{
-              width: '44px',
-              height: '44px',
-              objectFit: 'contain'
-            }}
-          />
-        </div>
 
-        {!sidebarCollapsed && (
-          <div>
-            <div
-              style={{
-                fontWeight: 700,
-                fontSize: '20px'
-              }}
-            >
-              NormIA
-            </div>
+          onClick={() => setMobileMenuOpen(false)}
 
-            <div
-              style={{
-                fontSize: '11px',
-                color: t.textDim,
-                textTransform: 'lowercase',
-                letterSpacing: '1px'
-              }}
-            >
-              Plataforma de gestión de cumplimiento
-            </div>
-          </div>
-        )}
-      </div>
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9998 }}
 
-      {/* Superadmin dentro de una empresa: banner + botón para volver a plataforma */}
-      {superadminEnOrg && (
-        <div style={{ marginBottom: '16px' }}>
-          {!sidebarCollapsed && (
-            <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', padding: '0 4px' }}>
-              Viendo empresa: <strong style={{ color: t.text }}>{impersonatedOrg.nombre}</strong>
-            </div>
-          )}
-          <button
-            onClick={() => exitOrg()}
-            title="Volver al panel de plataforma"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: sidebarCollapsed ? '12px' : '10px 14px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: '13px', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}
-          >
-            <ChevronLeft size={18} />
-            {!sidebarCollapsed && <span>Volver a plataforma</span>}
-          </button>
-        </div>
+        />
+
       )}
 
-      <nav style={{ flex: 1, overflowY: 'auto' }}>
-        {/* --- Helper para renderizar un nav button --- */}
-        {(() => {
-          const renderNavButton = (item, extraStyle = {}) => {
-            const isActive = activeScreen === item.id;
-            return (
-              <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: sidebarCollapsed ? 'center' : 'flex-start', ...extraStyle }}>
-                <item.icon size={20} />
-                {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
-              </button>
-            );
-          };
+      <aside style={sidebarStyles}>
 
-          const renderGroupHeader = (label, isOpen, toggle) => (
-            <button
-              onClick={toggle}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', marginBottom: '4px', marginTop: '12px', background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.2s ease' }}
-            >
-              <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} />
-              <span>{label}</span>
+        {/* Logo y Botón Cerrar (en móvil) */}
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', padding: '0 8px' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+            <img src="/LogoNormia.png" alt="NormIA" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+
+            {(!sidebarCollapsed || isMobile) && (
+
+              <div>
+
+                <div style={{ fontWeight: 700, fontSize: '20px' }}>NormIA</div>
+
+                <div style={{ fontSize: '11px', color: t.textDim, textTransform: 'lowercase', letterSpacing: '1px' }}>Plataforma</div>
+
+              </div>
+
+            )}
+
+          </div>
+
+          {isMobile && (
+
+            <button onClick={() => setMobileMenuOpen(false)} style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer' }}>
+
+              <X size={24} />
+
             </button>
-          );
 
-          // Ítems filtrados por grupo
-          const generalTop = navItems.filter(i => i.group === 'general' && ['dashboard', 'gap-analysis'].includes(i.id));
-          const comunItems = navItems.filter(i => i.group === 'comun');
-          const isoItems   = navItems.filter(i => i.group === 'iso');
-          const leyItems   = navItems.filter(i => i.group === 'ley');
-          const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'gap-analysis', 'employee-portal'].includes(i.id));
-          const employeePortal = navItems.find(i => i.id === 'employee-portal');
+          )}
 
-          return (
-            <>
-              {/* Ítems generales superiores: Panel, Análisis de Brechas */}
-              {generalTop.map(item => renderNavButton(item))}
+        </div>
 
-              {/* Grupo General / Transversal (sirve a ISO y Ley) */}
-              {comunItems.length > 0 && (
-                <>
-                  {!sidebarCollapsed && renderGroupHeader('General', comunOpen, () => setComunOpen(!comunOpen))}
-                  <div style={{
-                    maxHeight: sidebarCollapsed || comunOpen ? `${comunItems.length * 52}px` : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease',
-                  }}>
-                    {comunItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
-                  </div>
-                </>
-              )}
+        {/* Buscador (Cmd+K) */}
 
-              {/* Grupo ISO 27001 */}
-              {isoItems.length > 0 && (
-                <>
-                  {!sidebarCollapsed && renderGroupHeader('ISO 27001', isoOpen, () => setIsoOpen(!isoOpen))}
-                  <div style={{
-                    maxHeight: sidebarCollapsed || isoOpen ? `${isoItems.length * 52}px` : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease',
-                  }}>
-                    {isoItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
-                  </div>
-                </>
-              )}
+        {(!sidebarCollapsed || isMobile) && setCommandPaletteOpen && (
 
-              {/* Grupo Ley 21.719 */}
-              {leyItems.length > 0 && (
-                <>
-                  {!sidebarCollapsed && renderGroupHeader('Ley 21.719', leyOpen, () => setLeyOpen(!leyOpen))}
-                  <div style={{
-                    maxHeight: sidebarCollapsed || leyOpen ? `${leyItems.length * 52}px` : '0',
-                    overflow: 'hidden',
-                    transition: 'max-height 0.3s ease',
-                  }}>
-                    {leyItems.map(item => renderNavButton(item, !sidebarCollapsed ? { paddingLeft: '28px' } : {}))}
-                  </div>
-                </>
-              )}
+          <button
 
-              {/* Ítems generales inferiores: Gestión de Usuarios, Gestión de Empresas */}
-              {generalBottom.map(item => renderNavButton(item))}
+            onClick={() => { setCommandPaletteOpen(true); if(isMobile) setMobileMenuOpen(false); }}
 
-              {/* Employee Portal Link con estilo especial (dashed) */}
-              {employeePortal && (() => {
-                const isActive = activeScreen === employeePortal.id;
-                return (
-                  <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: sidebarCollapsed ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#004ac6' : t.textDim, cursor: 'pointer', justifyContent: sidebarCollapsed ? 'center' : 'flex-start' }}>
-                    <employeePortal.icon size={20} />
-                    {!sidebarCollapsed && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
-                  </button>
-                );
-              })()}
-            </>
-          );
-        })()}
-      </nav>
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.textDim, fontSize: '13px', cursor: 'pointer', marginBottom: '20px', width: '100%', textAlign: 'left' }}
 
+          >
 
-      {/* Collapse Button */}
-      <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ position: 'absolute', top: '50%', right: '-12px', width: '24px', height: '24px', borderRadius: '50%', background: t.cardBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.textDim }}>
-        {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-      </button>
-    </aside>
+            <Search size={16} />
+
+            <span style={{ flex: 1 }}>{language === 'es' ? 'Buscar...' : 'Search...'}</span>
+
+            {!isMobile && <kbd style={{ padding: '2px 6px', background: t.hoverBg || 'rgba(0,0,0,0.05)', borderRadius: '4px', fontSize: '10px', fontFamily: 'monospace' }}>⌘K</kbd>}
+
+          </button>
+
+        )}
+
+        {/* Botón Volver (Superadmin) */}
+
+        {superadminEnOrg && (
+
+          <div style={{ marginBottom: '16px' }}>
+
+            {(!sidebarCollapsed || isMobile) && (
+
+              <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', padding: '0 4px' }}>
+
+                Viendo empresa: <strong style={{ color: t.text }}>{impersonatedOrg.nombre}</strong>
+
+              </div>
+
+            )}
+
+            <button
+
+              onClick={() => exitOrg()}
+
+              title="Volver al panel de plataforma"
+
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '10px 14px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: '13px', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}
+
+            >
+
+              <ChevronLeft size={18} />
+
+              {(!sidebarCollapsed || isMobile) && <span>Volver a plataforma</span>}
+
+            </button>
+
+          </div>
+
+        )}
+
+        {/* Navegación (Enlaces) */}
+
+        <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+
+          {(() => {
+
+            const renderNavButton = (item, extraStyle = {}) => {
+
+              const isActive = activeScreen === item.id;
+
+              return (
+
+                <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start', ...extraStyle }}>
+
+                  <item.icon size={20} />
+
+                  {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+
+                </button>
+
+              );
+
+            };
+
+            const renderGroupHeader = (label, isOpen, toggle) => (
+
+              <button
+
+                onClick={toggle}
+
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', marginBottom: '4px', marginTop: '12px', background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.2s ease' }}
+
+              >
+
+                <ChevronDown size={14} style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 0.2s ease' }} />
+
+                <span>{label}</span>
+
+              </button>
+
+            );
+
+            const generalTop = navItems.filter(i => i.group === 'general' && ['dashboard', 'gap-analysis'].includes(i.id));
+
+            const comunItems = navItems.filter(i => i.group === 'comun');
+
+            const isoItems   = navItems.filter(i => i.group === 'iso');
+
+            const leyItems   = navItems.filter(i => i.group === 'ley');
+
+            const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'gap-analysis', 'employee-portal'].includes(i.id));
+
+            const employeePortal = navItems.find(i => i.id === 'employee-portal');
+
+            return (
+
+              <>
+
+                {generalTop.map(item => renderNavButton(item))}
+
+                {comunItems.length > 0 && (
+
+                  <>
+
+                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('General', comunOpen, () => setComunOpen(!comunOpen))}
+
+                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || comunOpen ? `${comunItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+
+                      {comunItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+
+                    </div>
+
+                  </>
+
+                )}
+
+                {isoItems.length > 0 && (
+
+                  <>
+
+                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('ISO 27001', isoOpen, () => setIsoOpen(!isoOpen))}
+
+                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || isoOpen ? `${isoItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+
+                      {isoItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+
+                    </div>
+
+                  </>
+
+                )}
+
+                {leyItems.length > 0 && (
+
+                  <>
+
+                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('Ley 21.719', leyOpen, () => setLeyOpen(!leyOpen))}
+
+                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || leyOpen ? `${leyItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+
+                      {leyItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+
+                    </div>
+
+                  </>
+
+                )}
+
+                {generalBottom.map(item => renderNavButton(item))}
+
+                {employeePortal && (() => {
+
+                  const isActive = activeScreen === employeePortal.id;
+
+                  return (
+
+                    <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#004ac6' : t.textDim, cursor: 'pointer', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}>
+
+                      <employeePortal.icon size={20} />
+
+                      {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
+
+                    </button>
+
+                  );
+
+                })()}
+
+              </>
+
+            );
+
+          })()}
+
+        </nav>
+
+        {/* Botón contraer/expandir SOLO visible en escritorio */}
+
+        {!isMobile && (
+
+          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} style={{ position: 'absolute', top: '50%', right: '-12px', width: '24px', height: '24px', borderRadius: '50%', background: t.cardBg, border: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: t.textDim }}>
+
+            {sidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+
+          </button>
+
+        )}
+
+      </aside>
+
+    </>
+
   );
+
 };
 
 export default Sidebar;

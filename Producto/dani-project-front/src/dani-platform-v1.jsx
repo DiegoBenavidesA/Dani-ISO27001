@@ -111,6 +111,7 @@ function CommandPalette({ isOpen, onClose, onNavigate, darkMode, theme: t, langu
     { id: 'gap-analysis', type: 'nav', name: { en: 'Gap Analysis', es: 'Análisis de Brechas', pt: 'Análise de Lacunas' }, icon: Search, shortcut: 'G G' },
     { id: 'doc-generator', type: 'nav', name: { en: 'Document Generator', es: 'Generador de Docs', pt: 'Gerador de Docs' }, icon: FilePlus2, shortcut: 'G O' },
     { id: 'risk-map', type: 'nav', name: { en: 'Risk Map', es: 'Mapa de Riesgos', pt: 'Mapa de Riscos' }, icon: AlertTriangle, shortcut: 'G R' },
+    { id: 'predictive', icon: <BrainCircuit size={20} />, label: 'Predicción IA'},
     { id: 'evidence', type: 'nav', name: { en: 'Evidence Center', es: 'Centro de Evidencias', pt: 'Centro de Evidências' }, icon: Database, shortcut: 'G E' },
     { id: 'audit-room', type: 'nav', name: { en: 'Audit Room', es: 'Sala de Auditoría', pt: 'Sala de Auditoria' }, icon: Eye, shortcut: 'G A' },
     { id: 'employee-portal', type: 'nav', name: { en: 'Employee Portal', es: 'Portal de Empleados', pt: 'Portal de Funcionários' }, icon: UserCircle, shortcut: 'G P' },

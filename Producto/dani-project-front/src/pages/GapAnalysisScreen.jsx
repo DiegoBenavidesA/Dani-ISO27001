@@ -1,14 +1,14 @@
 // src/pages/GapAnalysisScreen.jsx
 import React, { useState, useContext, useEffect, useMemo, useRef } from 'react';
 import {
-  Building2, Target, Users, Lock, Sparkles, Eye,
+  Building2, Target, Users, Lock, Eye,
   ChevronLeft, ChevronRight, Download, FolderUp, CheckCircle2,
-  AlertCircle, Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
+  Activity, Shield, Edit3, FileCheck, Globe, Wand2, Settings, Plus, Trash2, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceAPI } from '../services/api';
-import { getFullGapAnalysis, getComplianceScore, analyzeDocument } from '../services/gapAnalysisAPI';
+import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 
 function QuestionsAdminView({ t, dbQuestions, loadQuestions }) {

@@ -7,12 +7,16 @@ from pydantic import BaseModel
 
 from app.dependencies.database import get_db
 from app.models.risk import Risk, RiskLevel, RiskStatus, RiskCategory
+from app.models.data_breach import DataBreach
+from app.models.data_treatment import DataTreatment
 from app.dependencies.auth import get_current_user, get_current_org
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
-from app.services.deepseek_service import DeepSeekService
+
+# Corregido a AIService
+from app.services.ai_service import AIService
 
 router = APIRouter(prefix="/api/risks", tags=["Risks"])
-ai_processor = DeepSeekService()
+ai_processor = AIService()
 
 class RiskCreate(BaseModel):
     title: str
@@ -110,6 +114,41 @@ async def get_risk_statistics(
         "medium": sum(1 for r in risks if r.risk_level == RiskLevel.MEDIUM),
         "low": sum(1 for r in risks if r.risk_level == RiskLevel.LOW)
     }
+
+# =========================================================
+# NUEVO: Endpoint de Análisis Predictivo con IA
+# =========================================================
+@router.post("/predict")
+async def predict_future_risks(
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # 1. Recopilar contexto histórico
+        risks = (await db.execute(scope_to_org(select(Risk), Risk, org_id))).scalars().all()
+        risk_summary = "; ".join([f"{r.title} ({r.risk_level})" for r in risks])
+        
+        breaches = (await db.execute(scope_to_org(select(DataBreach), DataBreach, org_id))).scalars().all()
+        breach_summary = "; ".join([f"{b.descripcion} (Gravedad: {b.gravedad})" for b in breaches])
+        
+        treatments = (await db.execute(scope_to_org(select(DataTreatment), DataTreatment, org_id))).scalars().all()
+        treatment_summary = "; ".join([f"{t.nombre} (Datos: {t.categorias_datos})" for t in treatments])
+        
+        # 2. Armar prompt del estado general
+        context_data = f"""
+        RIESGOS ACTIVOS: {risk_summary or 'Ninguno registrado.'}
+        BRECHAS HISTÓRICAS RECIENTES: {breach_summary or 'Ninguna registrada.'}
+        TRATAMIENTOS DE DATOS CRÍTICOS: {treatment_summary or 'Ninguno registrado.'}
+        """
+        
+        # 3. Llamar a la IA
+        predictions = await ai_processor.predict_vulnerabilities(context_data)
+        
+        return {"predictions": predictions}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Fallo interno en el backend: {str(e)}")
 
 @router.put("/{risk_id}/status")
 async def update_risk_status(

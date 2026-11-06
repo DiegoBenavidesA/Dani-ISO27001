@@ -29,6 +29,10 @@ class Organization(Base):
     activo = Column(Boolean, default=True, nullable=False)
     # Plan contratado (a futuro para límites/facturación). Texto libre por ahora.
     plan = Column(String(50), default="basico", nullable=False)
+    
+    # NUEVO: Integraciones API con Sistemas Externos
+    erp_url = Column(String(500), nullable=True)
+    erp_api_key = Column(String(255), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

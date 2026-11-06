@@ -262,23 +262,6 @@ const DashboardScreen = ({ onNavigate }) => {
         lb(7);
       }
 
-      // Barra de progreso por cláusula
-      lb(5);
-      txt('Visualización de scores por cláusula:', M, 9, 'bold', [50, 50, 80]);
-      lb(7);
-      for (const c of (d.clause_gaps || [])) {
-        if (y > 265) newPage();
-        const sc = c.current_score ?? 0;
-        const barW = W - M * 2 - 45;
-        const filled = (sc / 100) * barW;
-        const bColor = sc >= 75 ? [0, 74, 198] : sc >= 50 ? [245,158,11] : [239,68,68];
-        txt(`C${c.clause_id}`, M, 8, 'bold', [60,60,80]);
-        setFill(220, 220, 220); doc.rect(M + 12, y - 4, barW, 5, 'F');
-        setFill(...bColor); doc.rect(M + 12, y - 4, filled, 5, 'F');
-        txt(`${sc.toFixed(0)}%`, M + 14 + barW, 7.5, 'normal', [80,80,80]);
-        lb(7);
-      }
-
       // ════════════════════════════════════════════════════════════════════
       // PÁGINA 4 — ANÁLISIS TÉCNICO (IA) + RIESGOS
       // ════════════════════════════════════════════════════════════════════
@@ -556,9 +539,7 @@ const DashboardScreen = ({ onNavigate }) => {
       <div className="normia-dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
         <div className="normia-dashboard-heading">
           <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: t.text }}>{tr('commandCenter')}</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>
-            Gestión de seguridad de la información y protección de datos personales
-          </p>
+          <p style={{ color: t.textDim, fontSize: '15px' }}>{tr('realtimeOverview')}</p>
         </div>
         <div className="normia-dashboard-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="normia-dashboard-status" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', background: 'rgba(0, 74, 198, 0.1)', borderRadius: '8px', fontSize: '13px', color: '#004ac6' }}>
