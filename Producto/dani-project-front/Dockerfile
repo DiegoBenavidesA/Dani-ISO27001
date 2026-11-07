@@ -3,7 +3,8 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# Igual que Vercel: npm install (el lock no está 100% sincronizado y npm ci lo rechaza)
+RUN npm install --no-audit --no-fund
 
 COPY . .
 
