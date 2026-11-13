@@ -39,17 +39,20 @@ El backend implementa JWT, roles, multiempresa y `organization_id`. El frontend 
 ```text
 Dani-ISO27001/
 ├── Producto/
+│   ├── docker-compose.yml        (base de datos, backend y frontend)
 │   ├── dani-project-back/
 │   │   ├── app/
 │   │   ├── tests/
 │   │   ├── requirements.txt
 │   │   ├── Dockerfile
+│   │   ├── .dockerignore
 │   │   └── .env.example
 │   └── dani-project-front/
 │       ├── src/
 │       ├── package.json
 │       ├── Dockerfile
 │       ├── nginx.conf
+│       ├── .dockerignore
 │       └── .env.example
 ├── docs/tecnico/
 ├── vercel.json
@@ -86,9 +89,65 @@ npm start
 
 Abrir `http://localhost:3000`. `REACT_APP_API_URL` debe apuntar al backend local.
 
-### Docker
+### Docker Compose (sistema completo con un comando)
 
-Consultar la sección Docker del README. Los archivos requieren completar secretos reales fuera del repositorio.
+Es la forma más simple de levantar NormIA en cualquier equipo, sin instalar Python, Node.js ni PostgreSQL. Solo se necesita Docker Desktop (Windows o macOS) o Docker Engine con el complemento Compose (Linux).
+
+`Producto/docker-compose.yml` define tres servicios:
+
+| Servicio | Imagen | Qué hace | Puerto en el equipo |
+|---|---|---|---|
+| `db` | `pgvector/pgvector:pg15` | PostgreSQL 15 con la extensión pgvector. Los datos se guardan en el volumen `postgres_data`. | Ninguno: solo el backend se conecta, por la red interna de Docker |
+| `backend` | Se construye desde `Producto/dani-project-back` | API FastAPI con uvicorn. Al iniciar crea las tablas, aplica las migraciones y crea el superadministrador. | `8000` |
+| `frontend` | Se construye desde `Producto/dani-project-front` | Compila React y lo sirve con nginx. | `3000` |
+
+El backend espera a que la base de datos pase su chequeo de salud antes de arrancar, y el frontend se inicia después del backend.
+
+Levantar el sistema (desde la raíz del repositorio):
+
+```bash
+cd Producto
+docker compose up --build
+```
+
+La primera vez tarda varios minutos, porque descarga las imágenes base e instala las dependencias. Cuando termina:
+
+- Frontend: `http://localhost:3000`
+- API y documentación Swagger: `http://localhost:8000/docs`
+- Chequeo de salud: `http://localhost:8000/health` debe responder `{"status":"healthy"}`
+- Usuario inicial: `superadmin@normia.local`, con la contraseña definida en `SUPERADMIN_PASSWORD` (por defecto `cambiar-esta-clave`).
+
+Variables de entorno. El compose trae valores por defecto que sirven solo para probar en local. Para cambiarlos se crea el archivo `Producto/.env` (Docker Compose lo lee automáticamente) con las variables que se quieran sobrescribir:
+
+| Variable | Valor por defecto | Para qué cambiarla |
+|---|---|---|
+| `POSTGRES_PASSWORD` | `normia_local` | Contraseña de la base de datos local |
+| `SECRET_KEY` | `clave-solo-para-pruebas-locales` | Firma de los tokens de sesión |
+| `SUPERADMIN_EMAIL` y `SUPERADMIN_PASSWORD` | `superadmin@normia.local` y `cambiar-esta-clave` | Usuario inicial de la plataforma |
+| `GROQ_API_KEY` o `DEEPSEEK_API_KEY` | vacía | Activar la evaluación con IA, el asistente y el análisis de vulneraciones |
+| `BREVO_API_KEY` | vacía | Enviar correos (invitaciones y avisos) |
+| `SUPABASE_URL` y `SUPABASE_SERVICE_KEY` | vacías | Guardar los archivos de evidencia |
+
+Sin claves de IA, correo o Supabase la plataforma funciona, pero esas funciones responden con un error controlado. `Producto/.env` no debe subirse al repositorio.
+
+Comandos de uso diario:
+
+| Acción | Comando (dentro de `Producto/`) |
+|---|---|
+| Levantar en segundo plano | `docker compose up --build -d` |
+| Ver el estado de los servicios | `docker compose ps` |
+| Ver los registros del backend | `docker compose logs -f backend` |
+| Aplicar cambios del código | `docker compose up --build -d` (vuelve a construir solo lo que cambió) |
+| Detener sin borrar datos | `docker compose down` |
+| Detener y borrar la base de datos local | `docker compose down -v` |
+
+Problemas frecuentes:
+
+- "port is already allocated": otro programa usa el puerto 8000 o 3000. Hay que cerrarlo o cambiar el puerto de la izquierda en `ports` (por ejemplo `"8001:8000"`).
+- El frontend no se conecta al backend: la dirección de la API (`REACT_APP_API_URL=http://localhost:8000`) se incorpora al compilar el frontend. Si se cambia el puerto del backend, hay que cambiar también ese valor en el compose y volver a construir con `--build`.
+- El backend se reinicia en bucle: revisar `docker compose logs backend`. Normalmente es la base de datos, que aún no termina de iniciar o tiene una contraseña distinta de la del volumen existente; `docker compose down -v` la recrea desde cero.
+
+El compose está pensado para desarrollo y pruebas. La producción usa Render, Vercel y Neon (sección 7).
 
 ## 4. Variables de entorno
 
@@ -177,7 +236,9 @@ El archivo raíz `vercel.json` ejecuta:
 
 Configurar `REACT_APP_API_URL` como variable de construcción y desplegarla con la URL pública HTTPS de Render. El cliente actual usa `process.env.REACT_APP_API_URL` o `http://127.0.0.1:8000`.
 
-### Docker
+### Contenedores por separado
+
+Para levantar todo junto se usa Docker Compose (sección 3). Si se necesita construir una sola imagen, por ejemplo para desplegarla en otro proveedor, cada parte tiene su Dockerfile. El backend usa una base de datos externa indicada en su `.env`.
 
 Backend:
 
