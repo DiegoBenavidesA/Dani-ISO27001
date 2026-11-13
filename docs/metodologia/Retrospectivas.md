@@ -1,170 +1,615 @@
-# Retrospectivas del proyecto NormIA / DANI
 
-> **Tipo de documento:** reconstrucción documental para revisión del equipo.
-> **Estado:** borrador pendiente de validación.
-> **Importante:** este archivo **no constituye un acta de reuniones realizadas**. Las observaciones se basan en la planificación de la fase de definición y en mensajes de commits del repositorio. No se atribuyen opiniones, acuerdos ni responsabilidades a integrantes sin evidencia.
+# Retrospectivas del proyecto — NormIA
 
-## 1. Propósito y criterio de elaboración
-
-El proyecto propone integrar requisitos de la Ley N.º 21.719 a una plataforma de gestión de cumplimiento ISO 27001 existente. En la definición inicial se contemplaron cuatro sprints funcionales: registro de actividades de tratamiento, consentimientos, derechos de titulares y vulneraciones de datos.
-
-Este documento contrasta esa planificación con cambios observables en Git. Los commits demuestran que hubo trabajo en determinadas áreas, **pero por sí solos no prueban** que se completó una historia, se aprobó una entrega, se realizó una reunión o se cumplió un sprint dentro de fechas específicas.
-
-**Datos pendientes para convertir estas reconstrucciones en retrospectivas validadas:** fechas reales de inicio y término de cada sprint, participantes, objetivos comprometidos, resultados de demostraciones, decisiones del equipo y responsables/plazos de acciones de mejora. Completar con evidencias reales, sin estimaciones presentadas como hechos.
+**Proyecto:** NormIA — Plataforma de Gobierno, Riesgo y Cumplimiento (GRC).  
+**Marco normativo:** ISO/IEC 27001:2022 y Ley N.º 21.719 de Chile.  
+**Metodología:** Enfoque ágil basado en Scrum.  
+**Etapa:** Cierre de fase 3 del proyecto académico.  
+**Equipo:** Justo Cano, Raúl Barrera y Celine Alcaíno.  
+**Repositorio:** `DiegoBenavidesA/Dani-ISO27001`.  
+**Rama de referencia:** `main`.
 
 ---
 
-## 2. Sprint 1 — Registro de actividades de tratamiento (RoPA)
+## 1. Introducción
 
-**Objetivo inicialmente planificado:** trabajar el módulo de registro de actividades de tratamiento y su integración con la plataforma.
+Las retrospectivas permiten analizar el trabajo desarrollado durante los sprints, identificar aspectos positivos, reconocer dificultades y establecer oportunidades de mejora para las siguientes iteraciones.
 
-**Periodo real del sprint:** [completar].
+En el proyecto NormIA, el desarrollo se orientó inicialmente a integrar funcionalidades relacionadas con la Ley N.º 21.719 en una plataforma GRC basada en ISO/IEC 27001:2022.
 
-### Evidencias del repositorio
+Durante la implementación se realizaron ajustes de arquitectura, integración, persistencia, experiencia de usuario y alcance funcional.
 
-- `6cfcb7c` (2026-10-09): corrección para retirar tratamientos de demostración y mostrar datos reales.
-- `2a2d255` (2026-10-09): ajustes de resultados y eliminación de tratamientos para evitar duplicados generados por IA.
-- `5767312` (2026-10-15): migraciones faltantes de `organization_id` en tratamientos e impacto.
-- `e4482d1` (2026-10-28): optimización de extracción de tratamientos RoPA durante la evaluación con IA.
+Estos cambios se encuentran reflejados en el historial de Git y en la versión actual del código fuente.
 
-### Aspectos positivos observables
+El presente documento organiza los aprendizajes del desarrollo en torno a los cuatro sprints funcionales considerados en la planificación original.
 
-Se registraron mejoras para utilizar información real, corregir duplicados, asociar registros a organizaciones y optimizar procesos relacionados con RoPA.
+### 1.1. Criterio de elaboración
 
-### Dificultades observables
+Las observaciones se fundamentan en:
 
-Los mensajes de commits reflejan ajustes de migraciones, datos de demostración y duplicación. No es posible determinar sus causas completas ni su impacto sin revisar incidencias y pruebas.
+- La planificación académica inicial.
+- El Sprint Backlog del proyecto.
+- Los cambios registrados en el repositorio GitHub.
+- La estructura y las funcionalidades presentes en la rama `main`.
+- Los archivos de pruebas incorporados al proyecto.
+- Los ajustes de alcance realizados durante el desarrollo.
 
-### Aprendizajes y acciones propuestas (no acuerdos confirmados)
+Las fechas indicadas para los commits corresponden al registro de Git y no representan necesariamente las fechas de inicio o término de cada sprint.
 
-- Verificar migraciones y aislamiento por organización antes de desplegar cambios de datos.
-- Incorporar pruebas para evitar duplicados y para distinguir datos reales de datos de demostración.
-- Documentar los criterios de aceptación del módulo y contrastarlos con su estado actual.
-
-**Resultado y aceptación del sprint:** [completar con evidencia del equipo].
+Las oportunidades de mejora presentadas son conclusiones del análisis retrospectivo. No se atribuyen como acuerdos de reuniones formales ni como declaraciones personales de los integrantes del equipo.
 
 ---
 
-## 3. Sprint 2 — Gestión de consentimientos
+## 2. Contexto de los sprints
 
-**Objetivo inicialmente planificado:** incorporar funcionalidades de gestión de consentimientos en el contexto de protección de datos.
+La planificación original contempló cuatro sprints funcionales relacionados con la protección de datos personales.
 
-**Periodo real del sprint:** [completar].
+| Sprint | Objetivo inicialmente planificado | Situación en la versión actual |
+|---|---|---|
+| Sprint 1 | Registro de actividades de tratamiento (RoPA) | Desarrollo histórico; módulo independiente retirado del alcance vigente |
+| Sprint 2 | Gestión de consentimientos | Desarrollo histórico; módulo independiente retirado del alcance vigente |
+| Sprint 3 | Derechos de los titulares | Alcance reformulado; módulo independiente retirado |
+| Sprint 4 | Registro y gestión de vulneraciones | Funcionalidad integrada en la versión actual |
 
-### Evidencias del repositorio
+La reorganización del producto permitió concentrar el trabajo relacionado con la Ley N.º 21.719 en dos áreas principales:
 
-- `3551b90` (2026-10-09): enlace al canal de solicitudes en un correo al titular.
-- `43db093` (2026-10-09): corrección de rutas de API de consentimientos para evitar una redirección que afectaba CORS.
-- `7e8e3f7` (2026-10-11): correcciones de migraciones relacionadas con estado y fecha de otorgamiento de consentimientos.
-- `390b324` (2026-10-30): separación de preguntas ISO y Ley N.º 21.719 y retiro de módulos descritos en el commit como «sin valor».
+1. Evaluación de requisitos legales mediante preguntas, evidencias y análisis de cumplimiento.
+2. Gestión de vulneraciones de seguridad y datos personales mediante un flujo específico.
 
-### Aspectos positivos observables
+El sistema de evaluación mantiene soporte para ISO/IEC 27001:2022 y Ley N.º 21.719.
 
-El historial evidencia trabajo en API, persistencia y comunicación vinculada a consentimientos.
-
-### Dificultades observables
-
-Se necesitaron correcciones de rutas y de estructura de datos. Además, el alcance del producto cambió posteriormente. El mensaje del commit del 30 de octubre **no basta por sí solo** para determinar qué funcionalidades concretas quedaron activas o fueron retiradas.
-
-### Aprendizajes y acciones propuestas (no acuerdos confirmados)
-
-- Definir contratos de API y comprobar rutas, CORS y migraciones en pruebas integradas.
-- Revisar con el equipo el estado actual del módulo y registrar formalmente cualquier cambio de alcance.
-- Actualizar historias y criterios de aceptación cuando se retire o reemplace una funcionalidad.
-
-**Resultado y aceptación del sprint:** [completar con evidencia del equipo].
+La versión actual incluye el catálogo de obligaciones legales definido en `app/data/catalogo_ley21719.json`, compuesto por ocho categorías y 24 preguntas.
 
 ---
 
-## 4. Sprint 3 — Derechos de los titulares
+## 3. Retrospectiva del Sprint 1 — Registro de actividades de tratamiento (RoPA)
 
-**Objetivo inicialmente planificado:** desarrollar funcionalidades para gestionar solicitudes y derechos de los titulares de datos personales.
+### 3.1. Objetivo inicial
 
-**Periodo real del sprint:** [completar].
+El primer sprint contempló incorporar funcionalidades para registrar y consultar actividades de tratamiento de datos personales.
 
-### Evidencias del repositorio
+El propósito era apoyar la identificación de tratamientos, finalidades, categorías de datos y otra información relevante para la gestión del cumplimiento.
 
-- `3551b90` (2026-10-09): referencia a un canal de solicitudes en un correo al titular.
-- `390b324` (2026-10-30): cambio de alcance que separa preguntas ISO y Ley N.º 21.719 y retira módulos.
+### 3.2. Trabajo realizado y evidencias
 
-**Límite de la evidencia:** en el extracto de 80 commits revisado no aparece una secuencia suficiente para acreditar la implementación y aceptación completa de un módulo de derechos de titulares. El enlace a un canal de solicitudes no equivale a demostrar un flujo integral de recepción, gestión y respuesta.
+El historial del repositorio contiene los siguientes cambios relacionados:
 
-### Aspectos positivos observables
+| Commit | Fecha | Cambio registrado |
+|---|---|---|
+| `6cfcb7c` | 09-10-2026 | Eliminación de tratamientos de demostración para mostrar información real |
+| `2a2d255` | 09-10-2026 | Correcciones de resultados y tratamiento de registros duplicados |
+| `5767312` | 15-10-2026 | Ajustes de migraciones relacionados con `organization_id` |
+| `e4482d1` | 28-10-2026 | Optimización de extracción de tratamientos durante evaluaciones con IA |
 
-Se consideró un canal de contacto o solicitudes como parte de la experiencia de los titulares.
+Estos cambios demuestran trabajo técnico en la representación de información real, la persistencia y la integración de tratamientos con procesos de evaluación.
 
-### Dificultades o preguntas pendientes
+Posteriormente, el módulo independiente de RoPA fue retirado de las rutas activas del producto.
 
-No está acreditado el alcance final, el estado actual ni la validación funcional de las historias previstas para este sprint.
+### 3.3. Aspectos positivos identificados
 
-### Aprendizajes y acciones propuestas (no acuerdos confirmados)
+**Uso de información real**
 
-- Revisar código, tablero de tareas y decisiones del equipo para identificar qué historias se implementaron, cambiaron o descartaron.
-- Documentar el flujo esperado, permisos, trazabilidad y criterios de aceptación solo si siguen dentro del alcance aprobado.
-- Registrar expresamente las funcionalidades pospuestas o retiradas, sin presentarlas como terminadas.
+La eliminación de registros de demostración permitió orientar la interfaz hacia información obtenida de las operaciones reales del sistema.
 
-**Resultado y aceptación del sprint:** [completar con evidencia del equipo].
+**Corrección de duplicaciones**
+
+Los ajustes relacionados con registros duplicados contribuyeron a mejorar la coherencia de los datos generados o procesados.
+
+**Integración con organizaciones**
+
+Los cambios de `organization_id` reflejan la necesidad de asociar correctamente la información a cada organización.
+
+**Optimización de procesos**
+
+La extracción de tratamientos durante evaluaciones asistidas por IA muestra un esfuerzo por mejorar la integración entre funcionalidades.
+
+### 3.4. Dificultades identificadas
+
+- Se requirieron correcciones para diferenciar datos reales de registros de demostración.
+- Fue necesario ajustar la persistencia y la asociación de registros a organizaciones.
+- La duplicación de información representó un problema que debió corregirse.
+- El alcance funcional original cambió durante el desarrollo.
+
+### 3.5. Aprendizajes
+
+El trabajo de este sprint permite reconocer la importancia de utilizar datos reales desde las primeras etapas de integración.
+
+También evidencia que los modelos de datos deben considerar desde el inicio el contexto de organización y las relaciones entre registros.
+
+Otro aprendizaje es que una funcionalidad puede tener avances técnicos relevantes y, aun así, dejar de formar parte del alcance final.
+
+Por ello, el estado del producto debe determinarse a partir de su versión vigente y no únicamente del historial de commits.
+
+### 3.6. Oportunidades de mejora
+
+- Definir casos de prueba para detectar duplicaciones.
+- Revisar las migraciones antes de incorporar cambios en el esquema.
+- Comprobar el aislamiento de datos por organización.
+- Mantener diferenciados los datos de demostración y los datos reales.
+- Actualizar el backlog cuando una funcionalidad cambie de alcance.
+
+### 3.7. Resultado retrospectivo
+
+El sprint presenta evidencia de desarrollo y correcciones relacionadas con RoPA.
+
+Sin embargo, el módulo independiente no forma parte del alcance activo de la versión revisada.
+
+El aprendizaje principal se relaciona con la calidad de los datos, la integración y la necesidad de mantener la planificación alineada con las decisiones de producto.
 
 ---
 
-## 5. Sprint 4 — Vulneraciones de datos y seguridad
+## 4. Retrospectiva del Sprint 2 — Gestión de consentimientos
 
-**Objetivo inicialmente planificado:** implementar funcionalidades relacionadas con la gestión de vulneraciones de datos.
+### 4.1. Objetivo inicial
 
-**Periodo real del sprint:** [completar].
+El segundo sprint contempló implementar funcionalidades para registrar y gestionar consentimientos relacionados con el tratamiento de datos personales.
 
-### Evidencias del repositorio
+La planificación consideraba operaciones de registro, consulta y seguimiento de información.
 
-- `71841df` (2026-10-10): gestión de brechas de datos y chatbot.
-- `ec31c77` (2026-11-02): vulneraciones de seguridad y mapa de calor en resultados ISO.
-- `f31bdbc` (2026-11-03): corrección en Vulneraciones y Generador de Documentos.
-- `f259ef3` (2026-11-05): análisis con IA, revisión humana, aviso a responsables y cierre de vulneraciones.
+### 4.2. Trabajo realizado y evidencias
 
-### Aspectos positivos observables
+El historial del repositorio registra los siguientes cambios:
 
-El historial registra una evolución funcional desde la gestión de brechas hacia análisis asistido por IA y etapas de revisión y cierre. También aparecen ajustes en la presentación de resultados.
+| Commit | Fecha | Cambio registrado |
+|---|---|---|
+| `3551b90` | 09-10-2026 | Incorporación de un enlace al canal de solicitudes en un correo |
+| `43db093` | 09-10-2026 | Corrección de rutas de consentimientos para evitar redirecciones que afectaban CORS |
+| `7e8e3f7` | 11-10-2026 | Ajustes de migraciones relacionados con estado y fecha de consentimiento |
+| `390b324` | 30-10-2026 | Reorganización de preguntas ISO y Ley N.º 21.719 y retiro de módulos |
 
-### Dificultades observables
+El código histórico demuestra que se trabajó en la API, la estructura de datos y elementos relacionados con la comunicación.
 
-Se documentó al menos una corrección posterior en la pantalla de Vulneraciones. La existencia de un commit funcional no demuestra por sí sola cobertura de pruebas ni aprobación del flujo completo.
+Posteriormente, el módulo independiente de consentimientos fue retirado de las rutas activas del sistema.
 
-### Aprendizajes y acciones propuestas (no acuerdos confirmados)
+### 4.3. Aspectos positivos identificados
 
-- Probar el flujo completo de registro, análisis, revisión humana, aviso y cierre con roles autorizados.
-- Confirmar que las recomendaciones de IA estén sujetas a validación humana y sean trazables.
-- Revisar criterios de privacidad, autorización y registro de acciones antes de considerar cerrada la historia.
+**Integración entre componentes**
 
-**Resultado y aceptación del sprint:** [completar con evidencia del equipo].
+Los cambios muestran trabajo para conectar las operaciones de consentimiento con la API y la persistencia.
+
+**Corrección de problemas de comunicación**
+
+El ajuste de rutas permitió abordar un problema concreto relacionado con redirecciones HTTP y CORS.
+
+**Evolución del modelo de datos**
+
+Las correcciones de estado y fecha de otorgamiento reflejan la necesidad de representar correctamente la información de consentimiento.
+
+**Revisión del valor funcional**
+
+La reorganización posterior permitió revisar qué funcionalidades debían mantenerse dentro del producto final.
+
+### 4.4. Dificultades identificadas
+
+- Se presentaron problemas de integración relacionados con rutas de API.
+- Fue necesario corregir aspectos del esquema de datos.
+- Los cambios de alcance afectaron la continuidad del módulo independiente.
+- El desarrollo histórico no constituye evidencia suficiente de aceptación final de la funcionalidad.
+
+### 4.5. Aprendizajes
+
+Este sprint evidencia la importancia de definir contratos claros entre frontend y backend.
+
+Una diferencia aparentemente menor en una ruta puede provocar redirecciones que afectan la comunicación entre componentes.
+
+También se reconoce la necesidad de evaluar el valor de cada funcionalidad respecto del objetivo general del proyecto.
+
+La reorganización del alcance permitió diferenciar entre funcionalidades desarrolladas durante la exploración y capacidades que finalmente se mantienen en la plataforma.
+
+### 4.6. Oportunidades de mejora
+
+- Estandarizar las rutas de API utilizadas por frontend y backend.
+- Incorporar pruebas de integración para las operaciones principales.
+- Revisar los cambios de esquema antes de integrar nuevas funcionalidades.
+- Actualizar las historias de usuario cuando se modifique el alcance.
+- Evitar presentar funcionalidades retiradas como módulos activos del producto.
+
+### 4.7. Resultado retrospectivo
+
+El historial demuestra trabajo técnico en la gestión de consentimientos.
+
+No obstante, el módulo independiente fue retirado del alcance vigente.
+
+El aprendizaje principal se relaciona con la integración entre componentes y la importancia de ajustar la planificación a las prioridades reales del producto.
 
 ---
 
-## 6. Mejoras transversales identificadas después o entre los trabajos funcionales
+## 5. Retrospectiva del Sprint 3 — Derechos de los titulares
 
-Estas actividades **no se asignan a un sprint específico** porque no se dispone de un calendario validado:
+### 5.1. Objetivo inicial
 
-| Área | Evidencia en Git | Oportunidad de mejora propuesta |
-| --- | --- | --- |
-| Experiencia móvil | `82d5766` (2026-10-29), `95066b0` (2026-10-30), `3890d2e` y `12ac1ed` (2026-11-05), `7b29e9c` (2026-11-06) | Definir y probar resoluciones mínimas para pantallas prioritarias. |
-| Evidencias y rendimiento | `c7618f6` (2026-10-28), `b9fdcae` (2026-11-04), `217a9ba` (2026-11-05) | Medir tiempos de carga, recuperación ante errores y consumo de recursos. |
-| Pruebas y control de acceso | `ae8e442`, `737e338`, `09001cc`, `fd459a7`, `2c5a036` (2026-11-06) | Mantener pruebas automatizadas para autenticación, roles y selección de organización. |
-| Documentación y despliegue | `12eb528`, `3c40f60`, `20ce476`, `1c7adf9`, `d023ff3` (2026-11-06) | Verificar que manuales, README y configuración de despliegue reflejen el sistema actual. |
-| Ajustes de alcance | `390b324` (2026-10-30) | Registrar decisiones de producto y actualizar el backlog para no mantener funcionalidades obsoletas como compromisos vigentes. |
+El tercer sprint contempló incorporar funcionalidades para gestionar solicitudes relacionadas con los derechos de los titulares de datos personales.
 
-## 7. Registro de validación pendiente
+Entre los objetivos previstos se encontraban la recepción, consulta y seguimiento de solicitudes.
 
-Antes de dar este documento por aprobado, el equipo debe confirmar:
+### 5.2. Trabajo realizado y evidencias
 
-- **Participantes de cada retrospectiva real (si existió):** [completar].
-- **Fechas de los sprints y de las reuniones:** [completar].
-- **Qué funcionó bien según el equipo:** [completar; no atribuir opiniones sin consulta].
-- **Qué dificultades fueron efectivamente discutidas:** [completar].
-- **Acuerdos adoptados, responsables y plazos:** [completar].
-- **Estado final de los módulos tras los cambios de alcance:** [completar].
-- **Aprobación o revisión del documento:** [completar].
+Las evidencias documentadas incluyen:
 
-## 8. Fuentes y alcance
+| Commit | Fecha | Cambio registrado |
+|---|---|---|
+| `3551b90` | 09-10-2026 | Referencia a un canal de solicitudes en una comunicación |
+| `390b324` | 30-10-2026 | Reorganización del alcance funcional relacionado con la Ley N.º 21.719 |
 
-1. Documento de definición inicial del proyecto, fase 1: objetivos, equipo, metodología Scrum y planificación funcional de cuatro sprints.
-2. Historial del repositorio `DiegoBenavidesA/Dani-ISO27001`, extracto de los 80 commits sin merges compartido el **2026-11-06** mediante `git --no-pager log --all --date=short --pretty=format:"%h | %ad | %s" --no-merges -80`.
+La versión actual del repositorio no mantiene activo el módulo independiente de solicitudes de titulares.
 
-**Advertencia metodológica:** los mensajes de commit sirven como indicios verificables de trabajo técnico; no sustituyen actas, revisiones de sprint, pruebas de aceptación ni decisiones documentadas del equipo.
+El historial revisado tampoco permite acreditar la finalización y aceptación de un flujo integral de gestión de derechos.
+
+La incorporación de un enlace a un canal de solicitudes no demuestra por sí sola la existencia de un sistema completo de recepción, seguimiento y respuesta.
+
+### 5.3. Aspectos positivos identificados
+
+**Consideración de la comunicación con titulares**
+
+La planificación y los cambios históricos reflejan que se contempló un mecanismo de contacto relacionado con solicitudes.
+
+**Revisión de prioridades**
+
+La reorganización del alcance permitió concentrar el desarrollo en funcionalidades que permanecieron integradas en el producto.
+
+**Separación de responsabilidades funcionales**
+
+La evaluación de requisitos legales quedó diferenciada de los módulos operativos de gestión de datos personales.
+
+### 5.4. Dificultades identificadas
+
+- No se dispone de evidencia suficiente para declarar completado el módulo independiente.
+- El alcance original fue modificado.
+- No corresponde atribuir aceptación funcional a historias que no permanecen implementadas en la versión vigente.
+- La relación entre obligaciones legales y funcionalidades específicas necesitó reorganizarse.
+
+### 5.5. Aprendizajes
+
+El principal aprendizaje es que los cambios de alcance deben reflejarse tanto en el código como en la documentación del proyecto.
+
+Mantener historias originales sin distinguir su estado puede producir inconsistencias entre el backlog, la visión del producto y la aplicación entregada.
+
+También se reconoce la importancia de diferenciar una funcionalidad completa de un mecanismo parcial de comunicación.
+
+### 5.6. Oportunidades de mejora
+
+- Mantener actualizada la relación entre requisitos y funcionalidades vigentes.
+- Registrar los cambios de alcance en los documentos del proyecto.
+- Evitar clasificar como terminadas las historias retiradas.
+- Definir criterios de aceptación específicos para los flujos que se incorporen en futuras versiones.
+- Mantener trazabilidad entre la planificación y las decisiones de implementación.
+
+### 5.7. Resultado retrospectivo
+
+El sprint corresponde a un objetivo inicialmente planificado cuyo alcance fue reformulado.
+
+El módulo independiente de derechos de titulares no se presenta como funcionalidad activa del producto final.
+
+El aprendizaje principal es la necesidad de mantener coherencia entre planificación, implementación y documentación.
+
+---
+
+## 6. Retrospectiva del Sprint 4 — Gestión de vulneraciones de seguridad
+
+### 6.1. Objetivo inicial
+
+El cuarto sprint contempló implementar funcionalidades para registrar y gestionar vulneraciones de datos personales.
+
+El objetivo era apoyar el seguimiento de incidentes y las actividades relacionadas con su evaluación y notificación.
+
+### 6.2. Trabajo realizado y evidencias
+
+El historial del repositorio registra una evolución de esta funcionalidad:
+
+| Commit | Fecha | Cambio registrado |
+|---|---|---|
+| `71841df` | 10-10-2026 | Incorporación de gestión de brechas de datos y chatbot |
+| `ec31c77` | 02-11-2026 | Desarrollo relacionado con vulneraciones y resultados de evaluación |
+| `f31bdbc` | 03-11-2026 | Correcciones en Vulneraciones y Generador de Documentos |
+| `f259ef3` | 05-11-2026 | Análisis con IA, revisión humana, avisos a responsables y cierre |
+
+A diferencia de los módulos independientes anteriores, la gestión de vulneraciones permanece integrada en la rama `main`.
+
+La implementación actual incluye:
+
+- Registro de una vulneración con descripción y fecha de detección.
+- Asociación del registro a una organización.
+- Análisis asistido por inteligencia artificial.
+- Propuesta de gravedad y recomendaciones.
+- Revisión y confirmación humana de la gravedad.
+- Registro de información sobre datos y personas afectadas.
+- Gestión de estados del incidente.
+- Avisos a responsables mediante los servicios configurados.
+- Registro de la confirmación de notificación.
+- Resolución y cierre con causa raíz y descripción de la solución.
+- Restricciones de acceso para las operaciones de gestión.
+
+### 6.3. Aspectos positivos identificados
+
+**Evolución incremental**
+
+El módulo avanzó desde el registro de incidentes hacia un flujo que incorpora análisis, revisión, notificación registrada y cierre.
+
+**Integración de inteligencia artificial**
+
+La IA se utiliza como apoyo para evaluar preliminarmente la gravedad y sugerir acciones.
+
+**Participación humana en decisiones relevantes**
+
+La implementación requiere que un responsable autorizado confirme la gravedad antes de determinadas operaciones.
+
+**Control de acceso**
+
+El backend utiliza autenticación, contexto de organización y restricciones de roles para proteger las operaciones.
+
+**Trazabilidad de la gestión**
+
+El modelo contempla información sobre detección, confirmación, notificación y resolución.
+
+### 6.4. Dificultades identificadas
+
+- El historial registra correcciones posteriores a la incorporación de funcionalidades.
+- El flujo combina frontend, backend, base de datos y servicios externos, aumentando las necesidades de integración.
+- La generación de resultados con IA requiere tratamiento de errores y validación humana.
+- La gestión de notificaciones exige distinguir entre avisos internos y notificaciones a una autoridad.
+- La existencia de archivos de pruebas no acredita automáticamente que todos los casos hayan sido ejecutados satisfactoriamente.
+
+### 6.5. Aprendizajes
+
+**La IA debe apoyar, no reemplazar, la revisión humana.**
+
+El módulo contempla que la gravedad sugerida por la IA sea revisada por un responsable.
+
+**Los estados de un incidente deben tener reglas claras.**
+
+La implementación incluye restricciones para impedir determinadas operaciones antes de completar pasos previos.
+
+**Las integraciones externas requieren tratamiento de errores.**
+
+Los servicios de IA y notificaciones pueden fallar, por lo que el sistema debe contemplar estas situaciones.
+
+**La trazabilidad es importante para la gestión de incidentes.**
+
+Registrar fechas, responsables y acciones permite mantener un historial de la atención de una vulneración.
+
+**La documentación debe describir exactamente el comportamiento implementado.**
+
+La operación de notificación a la Agencia registra la confirmación de que se notificó; no realiza un envío automático a la autoridad.
+
+### 6.6. Oportunidades de mejora
+
+- Ejecutar y documentar las pruebas del flujo completo.
+- Comprobar permisos para diferentes roles.
+- Verificar el aislamiento de incidentes entre organizaciones.
+- Revisar los casos de error de los servicios externos.
+- Comprobar las transiciones de estado y las validaciones de cierre.
+- Mantener diferenciadas las recomendaciones de IA y las decisiones humanas.
+- Revisar los mensajes de la interfaz para evitar interpretaciones incorrectas sobre las notificaciones.
+
+### 6.7. Resultado retrospectivo
+
+El módulo de vulneraciones presenta evidencia de implementación en frontend y backend.
+
+La versión actual incorpora el flujo de registro, análisis asistido por IA, revisión humana, registro de notificación y cierre.
+
+El repositorio contiene pruebas específicas relacionadas con permisos, lógica y flujo de vulneraciones.
+
+La validación integral de su funcionamiento se realizará mediante la ejecución y documentación de las pruebas correspondientes.
+
+El aprendizaje principal de este sprint se relaciona con la integración de múltiples componentes y la necesidad de mantener control humano, seguridad y trazabilidad en la gestión de incidentes.
+
+---
+
+## 7. Retrospectiva transversal del desarrollo
+
+Además de los objetivos funcionales, el historial del proyecto permite identificar mejoras y dificultades que afectaron distintas áreas.
+
+Estas actividades no se asignan a un sprint específico cuando no existe evidencia suficiente para establecer su correspondencia temporal.
+
+### 7.1. Experiencia de usuario y adaptación móvil
+
+**Evidencias:**
+
+- `82d5766`
+- `95066b0`
+- `3890d2e`
+- `12ac1ed`
+- `7b29e9c`
+
+El historial registra ajustes de diseño y adaptación de pantallas para dispositivos móviles.
+
+**Aprendizaje:** la adaptación visual debe considerarse durante el desarrollo de cada pantalla y no solamente al finalizar la integración.
+
+**Oportunidad de mejora:** comprobar las pantallas prioritarias en resoluciones representativas de escritorio y móvil.
+
+### 7.2. Gestión de evidencias y rendimiento
+
+**Evidencias:**
+
+- `c7618f6`
+- `b9fdcae`
+- `217a9ba`
+
+El historial contiene cambios relacionados con evidencias, optimización y comportamiento de la plataforma.
+
+**Aprendizaje:** las funcionalidades que procesan documentos y resultados requieren atención a los tiempos de respuesta y al manejo de errores.
+
+**Oportunidad de mejora:** realizar comprobaciones de rendimiento sobre las operaciones principales de carga, consulta y procesamiento.
+
+### 7.3. Autenticación y control de acceso
+
+**Evidencias:**
+
+- `ae8e442`
+- `737e338`
+- `09001cc`
+- `fd459a7`
+- `2c5a036`
+
+La versión actual contiene mecanismos de autenticación JWT, autorización por roles y asociación de usuarios a organizaciones.
+
+También incorpora el archivo `tests/test_integration_auth.py`, con casos relacionados con rutas protegidas, restricciones de roles y selección de organización.
+
+**Aprendizaje:** los permisos deben verificarse en el backend, además de controlar la navegación y las acciones visibles en el frontend.
+
+**Oportunidad de mejora:** mantener pruebas de acceso no autorizado, restricciones por rol y aislamiento por organización.
+
+### 7.4. Documentación y despliegue
+
+**Evidencias:**
+
+- `12eb528`
+- `3c40f60`
+- `20ce476`
+- `1c7adf9`
+- `d023ff3`
+
+El proyecto contiene documentación técnica, instrucciones de ejecución y archivos de configuración de infraestructura.
+
+**Aprendizaje:** los cambios técnicos deben reflejarse en la documentación para evitar diferencias entre las instrucciones y el funcionamiento actual.
+
+**Oportunidad de mejora:** comprobar las instrucciones de instalación, configuración y ejecución en un entorno reproducible.
+
+### 7.5. Ajustes de alcance y priorización
+
+**Evidencia principal:** `390b324` del 30-10-2026.
+
+Este cambio reorganizó las preguntas de evaluación de ISO y Ley N.º 21.719 y retiró módulos del alcance activo.
+
+El mensaje del commit también hace referencia a retroalimentación docente sobre el flujo del producto.
+
+**Aprendizaje:** la retroalimentación durante el desarrollo puede requerir cambios significativos en la estructura y las prioridades de una solución.
+
+**Oportunidad de mejora:** actualizar de forma coordinada la visión del producto, los requisitos, el backlog y los documentos de cierre cuando se modifique el alcance.
+
+---
+
+## 8. Síntesis de aprendizajes
+
+El análisis retrospectivo del desarrollo permite identificar cinco aprendizajes principales.
+
+### 8.1. Mantener coherencia entre alcance e implementación
+
+El proyecto evolucionó desde una planificación con varios módulos independientes hacia una versión centrada en evaluación de cumplimiento y gestión de vulneraciones.
+
+La documentación debe reflejar esa evolución.
+
+### 8.2. Fortalecer la integración entre frontend y backend
+
+Las correcciones de rutas, persistencia y comunicación muestran la importancia de definir interfaces claras entre componentes.
+
+### 8.3. Incorporar seguridad desde el desarrollo
+
+La autenticación, las restricciones por rol y el aislamiento entre organizaciones deben formar parte de la implementación y de sus criterios de aceptación.
+
+### 8.4. Mantener supervisión humana en las funciones de IA
+
+Las recomendaciones generadas por inteligencia artificial requieren revisión cuando intervienen en decisiones relacionadas con seguridad o cumplimiento.
+
+### 8.5. Relacionar la finalización de tareas con evidencias
+
+La implementación de una funcionalidad no equivale automáticamente a su aceptación.
+
+La Definition of Done permite establecer condiciones de calidad y la ejecución de pruebas permite respaldar su cumplimiento.
+
+---
+
+## 9. Acciones de mejora identificadas
+
+A partir de los problemas y cambios observados, se identifican las siguientes acciones para fortalecer la calidad del producto y su documentación.
+
+| Área | Acción de mejora | Evidencia que permitiría comprobarla |
+|---|---|---|
+| Integración | Revisar los contratos entre frontend y backend | Pruebas de operaciones y respuestas de API |
+| Seguridad | Comprobar autenticación, roles y aislamiento por organización | Resultados de pruebas de acceso |
+| Vulneraciones | Validar el flujo de registro, revisión, notificación registrada y cierre | Pruebas funcionales del módulo |
+| Inteligencia artificial | Comprobar errores, respuestas inválidas y revisión humana | Pruebas de lógica y casos de error |
+| Base de datos | Revisar migraciones y persistencia | Resultados de pruebas de integración |
+| Experiencia móvil | Comprobar las pantallas prioritarias | Registro de revisión visual |
+| Infraestructura | Verificar la ejecución de los servicios configurados | Resultados de ejecución y conectividad |
+| Documentación | Mantener los documentos alineados con `main` | Revisión cruzada de archivos y funcionalidades |
+
+Estas acciones representan oportunidades de mejora derivadas del análisis técnico.
+
+No se presentan como acuerdos formales de reuniones ni se asignan responsables o fechas que no estén documentados.
+
+La comprobación técnica detallada se realizará en una etapa de validación separada.
+
+---
+
+## 10. Relación con Scrum y la Definition of Done
+
+Las retrospectivas complementan el seguimiento del proyecto y la aplicación de la Definition of Done.
+
+| Elemento | Función dentro del proyecto |
+|---|---|
+| Product Vision | Define el propósito, los usuarios y el valor del producto |
+| Sprint Backlog | Organiza las tareas y los objetivos del desarrollo |
+| Criterios de aceptación | Describen el comportamiento esperado de cada historia |
+| Definition of Done | Establece las condiciones de calidad para declarar terminada una tarea |
+| Retrospectivas | Identifican dificultades, aprendizajes y oportunidades de mejora |
+
+El análisis retrospectivo ayuda a reconocer qué aspectos del proceso de desarrollo pueden fortalecerse.
+
+La DoD, por su parte, establece cómo determinar si una tarea reúne las condiciones necesarias para considerarse terminada.
+
+Ambos documentos se complementan, pero no reemplazan los resultados de pruebas ni los registros formales de aceptación.
+
+---
+
+## 11. Conclusión general
+
+El desarrollo de NormIA evidencia un proceso de evolución funcional y técnica en el que se realizaron implementaciones, correcciones, integraciones y ajustes de alcance.
+
+Los primeros sprints contemplaron módulos independientes relacionados con actividades de tratamiento, consentimientos y derechos de titulares.
+
+Durante el proyecto, estas funcionalidades fueron reformuladas o retiradas del alcance activo.
+
+La evaluación de requisitos asociados a la Ley N.º 21.719 se integró al sistema de preguntas y análisis de cumplimiento, mientras que la gestión de vulneraciones permaneció como módulo independiente.
+
+El historial de Git permite identificar avances y dificultades relacionados con persistencia, integración, experiencia móvil, seguridad, inteligencia artificial y documentación.
+
+Los principales aprendizajes se concentran en mantener coherencia entre la planificación y la implementación, fortalecer la integración entre componentes, incorporar controles de seguridad y respaldar la finalización de tareas mediante evidencias.
+
+Estas retrospectivas constituyen una síntesis documentada del proceso de desarrollo para el cierre de la fase 3.
+
+Su contenido no sustituye las actas de reuniones Scrum ni atribuye al equipo decisiones o acuerdos que no estén respaldados por registros.
+
+La validación técnica final del producto se documentará por separado, mediante las pruebas y comprobaciones correspondientes.
+
+---
+
+## 12. Referencias
+
+### Documentación del proyecto
+
+- `docs/metodologia/Product_Vision.md`
+- `docs/metodologia/Sprint_Backlog.md`
+- `docs/metodologia/Definition_of_Done.md`
+- `README.md`
+
+### Implementación técnica
+
+- `Producto/dani-project-back/app/main.py`
+- `Producto/dani-project-back/app/routes/assessment_questions.py`
+- `Producto/dani-project-back/app/routes/breaches.py`
+- `Producto/dani-project-back/app/dependencies/auth.py`
+- `Producto/dani-project-back/app/dependencies/tenant.py`
+- `Producto/dani-project-back/app/data/catalogo_ley21719.json`
+- `Producto/dani-project-front/src/pages/BreachesScreen.jsx`
+
+### Pruebas existentes
+
+- `Producto/dani-project-back/tests/test_integration_auth.py`
+- `Producto/dani-project-back/tests/test_breaches_flujo.py`
+- `Producto/dani-project-back/tests/test_breaches_logica.py`
+- `Producto/dani-project-back/tests/test_breaches_permisos.py`
+
+### Historial de desarrollo
+
+- Repositorio: https://github.com/DiegoBenavidesA/Dani-ISO27001
+- Rama revisada: `main`
+- Cambios de alcance: commit `390b324`
+- Evolución del módulo de vulneraciones: commit `f259ef3`
+
+---
+
+**Documento:** Retrospectivas — NormIA.  
+**Etapa:** Cierre de fase 3.  
+**Base documental:** Planificación académica, Sprint Backlog, historial Git y código fuente.  
+**Tipo de registro:** Análisis retrospectivo documentado del desarrollo.
