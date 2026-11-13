@@ -23,7 +23,7 @@ El repositorio no demuestra una fixture global de base de datos de prueba ni una
 | Unitarias | Validar funciones y servicios sin servidor externo | pytest; mocks de proveedor, BD y almacenamiento. |
 | Integración API | Validar rutas, serialización, CORS, JWT y dependencias | `fastapi.testclient.TestClient` o `httpx.AsyncClient` con `ASGITransport`. |
 | Seguridad | Validar 401/403, roles y aislamiento de organizaciones | JWT firmado localmente y usuarios por organización; ningún secreto real. |
-| Rendimiento | Medir latencia p95 y concurrencia | `pytest`/herramienta de carga sobre entorno representativo; registrar percentiles y no afirmar SLA sin datos. |
+| Rendimiento | Medir latencia p95 y concurrencia | Script `tests/performance/prueba_rendimiento.py` (httpx asíncrono) contra el sistema levantado con Docker Compose; registra p50, p95 y máximo. |
 | Acceso/end-to-end | Validar navegación React y llamadas reales | Actualmente se realizan de forma manual en el navegador. Herramienta propuesta para automatizarlas: Playwright. |
 
 ## 4. Casos propuestos
@@ -89,8 +89,42 @@ Estado actual de cada archivo de `tests/`:
 | `test_breaches_flujo.py` | Sesión falsa y mocks de acceso a datos; no ejecuta IA ni notificaciones reales | `pytest tests/test_breaches_flujo.py -v` (flujo de revisión, notificación, cierre y plazo de 72 horas) |
 | `test_general.py` | Nada: usa `TestClient` sin depender de BD externa | `pytest tests/test_general.py -v` (PT-01 y PT-21; validación de login con `password` omitido) |
 | `test_api.py` | Backend levantado en `http://localhost:8000` y base de datos con usuario de prueba | `pytest tests/test_api.py -v` |
+| `performance/prueba_rendimiento.py` | Backend levantado (`docker compose up`) y un usuario de prueba en `PERF_EMAIL` y `PERF_PASSWORD` | `python tests/performance/prueba_rendimiento.py --url http://localhost:8000` (PT-18, PT-19, RNF-01, RNF-13 y RNF-17; ver sección 5.1) |
 | `check_db.py` | `DATABASE_URL` válida | `python tests/check_db.py` (comprobación manual) |
 | `test_deepseek.py` | Clave de IA real | `python tests/test_deepseek.py` (comprobación manual; no forma parte de la suite porque no tiene aserciones) |
+
+### 5.1 Resultados de las pruebas de rendimiento
+
+El script `tests/performance/prueba_rendimiento.py` se ejecutó contra el sistema completo levantado con `docker compose up` (PostgreSQL con pgvector y backend en contenedores, en un equipo de desarrollo con Windows 11). Como el usuario es superadmin, el script creó una empresa de prueba con 50 riesgos para que los listados tuvieran datos.
+
+Cada endpoint de lectura recibió 100 solicitudes seguidas (RNF-01). Para la concurrencia (RNF-17) se enviaron 5 rondas de 20 solicitudes simultáneas repartidas entre los mismos endpoints.
+
+Fecha de ejecución: 2026-11-13 18:16  
+Servidor: http://localhost:8000  
+Empresa de prueba: Prueba rendimiento 20261113-181537 (50 riesgos de ejemplo)
+
+| Requisito | Prueba | Solicitudes | p50 (ms) | p95 (ms) | Máx (ms) | Errores | Criterio | Resultado |
+|---|---|---|---|---|---|---|---|---|
+| RNF-13 | GET /health | 100 | 3 | 5 | 28 | 0 | 200 y healthy | Aprobado |
+| Referencia | POST /api/auth/login | 10 | 352 | 433 | 433 | 0 | sin límite definido | Aprobado |
+| RNF-01 | GET /api/risks/ | 100 | 59 | 91 | 105 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/breaches/ | 100 | 59 | 77 | 95 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/assessment-questions/ | 100 | 44 | 59 | 68 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/notifications/ | 100 | 73 | 95 | 107 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/capas/ | 100 | 44 | 57 | 79 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/evidence/ | 100 | 49 | 77 | 104 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/gap-analysis/score | 100 | 42 | 54 | 59 | 0 | p95 < 2 s | Aprobado |
+| RNF-17 | 20 lecturas concurrentes x 5 rondas | 100 | 776 | 916 | 942 | 0 | p95 < 5 s | Aprobado |
+
+Resultado general: APROBADO
+
+Observaciones:
+
+- Todas las lecturas quedan muy por debajo del límite de 2 segundos: el p95 más alto es 95 ms (`/api/notifications/`).
+- Con 20 solicitudes simultáneas, la mediana sube a 776 ms. El backend corre con un solo proceso de uvicorn y abre una conexión nueva a la base de datos por solicitud (`NullPool`), por lo que las solicitudes concurrentes esperan su turno. Aun así, el p95 (916 ms) cumple el límite de 5 segundos.
+- El inicio de sesión tarda unos 350 ms porque verifica la contraseña con bcrypt, que es lento a propósito para dificultar ataques de fuerza bruta.
+- Estos tiempos son de un entorno local. En producción (Render gratuito y Neon) se suman la latencia de red y, si el servidor estaba inactivo, cerca de un minuto de reactivación en la primera solicitud.
+- PT-20 (subida de una evidencia de 10 MB) queda pendiente: requiere Supabase Storage configurado y hoy no existe un límite de tamaño (ver RNF-03).
 
 ## 6. Datos y entorno
 
