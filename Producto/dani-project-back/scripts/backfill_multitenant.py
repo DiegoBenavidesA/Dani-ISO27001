@@ -1,5 +1,5 @@
 """
-Backfill multi-tenant (N7 del PLAN_MULTITENANT).
+Backfill multi-tenant (tarea N7 del plan multi-tenant).
 
 Deja lista una base EXISTENTE para multi-empresa sin perder datos:
   1. Crea (si no existe) una EMPRESA POR DEFECTO.

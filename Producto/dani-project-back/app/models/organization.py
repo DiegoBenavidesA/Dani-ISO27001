@@ -8,7 +8,7 @@ class Organization(Base):
     """
     Empresa / organización que usa la plataforma (multi-tenant).
 
-    Tarea N1 del PLAN_MULTITENANT. Cada organización es un "inquilino": sus
+    Tarea N1 del plan multi-tenant. Cada organización es un "inquilino": sus
     usuarios y sus datos (riesgos, evidencias, tratamientos, etc.) quedan
     aislados de las demás empresas mediante el campo organization_id que llevan
     las tablas por-empresa. Los catálogos globales (controles ISO, preguntas,
