@@ -1,13 +1,44 @@
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.database import get_db
 from app.services.auth_service import AuthService
 
 security = HTTPBearer()
 
-async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    token = credentials.credentials
-    payload = AuthService.verify_token(token)
+
+async def token_payload(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Valida la firma, la expiración y el tipo del token."""
+    return AuthService.verify_token(credentials.credentials)
+
+
+async def usuario_activo(payload: dict = Depends(token_payload), db: AsyncSession = Depends(get_db)) -> dict:
+    """
+    Comprueba que el usuario del token siga existiendo y esté activo.
+
+    El token dura varias horas; sin esta consulta, un usuario suspendido o
+    eliminado seguiría entrando con el token que obtuvo antes. FastAPI reutiliza
+    la misma sesión de base de datos durante toda la petición, así que solo
+    agrega una consulta liviana.
+    """
+    from app.models.user import User  # import diferido: evita ciclos al cargar los modelos
+
+    user_id = payload.get("user_id")
+    consulta = select(User.is_active).where(User.id == user_id) if user_id else \
+        select(User.is_active).where(User.email == payload.get("sub"))
+    activo = (await db.execute(consulta)).scalar_one_or_none()
+    if not activo:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="La sesión ya no es válida. Inicia sesión nuevamente.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+
+async def get_current_user(payload: dict = Depends(usuario_activo)):
     return {
         "email": payload.get("sub"),
         "role": payload.get("role", "user"),
