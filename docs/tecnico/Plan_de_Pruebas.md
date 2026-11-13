@@ -90,6 +90,9 @@ Estado actual de cada archivo de `tests/`:
 | `test_general.py` | Nada: usa `TestClient` sin depender de BD externa | `pytest tests/test_general.py -v` (PT-01 y PT-21; validación de login con `password` omitido) |
 | `test_api.py` | Backend levantado en `http://localhost:8000` y base de datos con usuario de prueba | `pytest tests/test_api.py -v` |
 | `performance/prueba_rendimiento.py` | Backend levantado (`docker compose up`) y un usuario de prueba en `PERF_EMAIL` y `PERF_PASSWORD` | `python tests/performance/prueba_rendimiento.py --url http://localhost:8000` (PT-18, PT-19, RNF-01, RNF-13 y RNF-17; ver sección 5.1) |
+| `test_seguridad.py` | Nada: tokens JWT locales y sesión de base de datos simulada | `pytest tests/test_seguridad.py -v` (validación de tokens, alcance por empresa, roles, contraseñas, usuario suspendido y límite de intentos; ver sección 5.2) |
+| `security/prueba_seguridad.py` | Backend levantado con una base de datos de prueba (crea empresas y usuarios) | `python tests/security/prueba_seguridad.py --url http://localhost:8000` (PT-05, PT-07, PT-08, PT-09 y aislamiento entre empresas; ver sección 5.2) |
+| `conftest.py` | No es una prueba | En las pruebas sin servidor reemplaza solo la consulta de usuario activo; la validación del token sigue siendo real. |
 | `check_db.py` | `DATABASE_URL` válida | `python tests/check_db.py` (comprobación manual) |
 | `test_deepseek.py` | Clave de IA real | `python tests/test_deepseek.py` (comprobación manual; no forma parte de la suite porque no tiene aserciones) |
 
@@ -99,32 +102,76 @@ El script `tests/performance/prueba_rendimiento.py` se ejecutó contra el sistem
 
 Cada endpoint de lectura recibió 100 solicitudes seguidas (RNF-01). Para la concurrencia (RNF-17) se enviaron 5 rondas de 20 solicitudes simultáneas repartidas entre los mismos endpoints.
 
-Fecha de ejecución: 2026-11-13 18:16  
+Fecha de ejecución: 2026-11-13 18:26  
 Servidor: http://localhost:8000  
-Empresa de prueba: Prueba rendimiento 20261113-181537 (50 riesgos de ejemplo)
+Empresa de prueba: Prueba rendimiento 20261113-182527 (50 riesgos de ejemplo)
 
 | Requisito | Prueba | Solicitudes | p50 (ms) | p95 (ms) | Máx (ms) | Errores | Criterio | Resultado |
 |---|---|---|---|---|---|---|---|---|
-| RNF-13 | GET /health | 100 | 3 | 5 | 28 | 0 | 200 y healthy | Aprobado |
-| Referencia | POST /api/auth/login | 10 | 352 | 433 | 433 | 0 | sin límite definido | Aprobado |
-| RNF-01 | GET /api/risks/ | 100 | 59 | 91 | 105 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/breaches/ | 100 | 59 | 77 | 95 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/assessment-questions/ | 100 | 44 | 59 | 68 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/notifications/ | 100 | 73 | 95 | 107 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/capas/ | 100 | 44 | 57 | 79 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/evidence/ | 100 | 49 | 77 | 104 | 0 | p95 < 2 s | Aprobado |
-| RNF-01 | GET /api/gap-analysis/score | 100 | 42 | 54 | 59 | 0 | p95 < 2 s | Aprobado |
-| RNF-17 | 20 lecturas concurrentes x 5 rondas | 100 | 776 | 916 | 942 | 0 | p95 < 5 s | Aprobado |
+| RNF-13 | GET /health | 100 | 2 | 3 | 27 | 0 | 200 y healthy | Aprobado |
+| Referencia | POST /api/auth/login | 10 | 334 | 404 | 404 | 0 | sin límite definido | Aprobado |
+| RNF-01 | GET /api/risks/ | 100 | 50 | 66 | 83 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/breaches/ | 100 | 48 | 65 | 76 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/assessment-questions/ | 100 | 41 | 57 | 77 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/notifications/ | 100 | 65 | 78 | 84 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/capas/ | 100 | 47 | 61 | 77 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/evidence/ | 100 | 44 | 57 | 62 | 0 | p95 < 2 s | Aprobado |
+| RNF-01 | GET /api/gap-analysis/score | 100 | 38 | 47 | 71 | 0 | p95 < 2 s | Aprobado |
+| RNF-17 | 20 lecturas concurrentes x 5 rondas | 100 | 584 | 621 | 627 | 0 | p95 < 5 s | Aprobado |
 
 Resultado general: APROBADO
 
 Observaciones:
 
-- Todas las lecturas quedan muy por debajo del límite de 2 segundos: el p95 más alto es 95 ms (`/api/notifications/`).
-- Con 20 solicitudes simultáneas, la mediana sube a 776 ms. El backend corre con un solo proceso de uvicorn y abre una conexión nueva a la base de datos por solicitud (`NullPool`), por lo que las solicitudes concurrentes esperan su turno. Aun así, el p95 (916 ms) cumple el límite de 5 segundos.
-- El inicio de sesión tarda unos 350 ms porque verifica la contraseña con bcrypt, que es lento a propósito para dificultar ataques de fuerza bruta.
+- Todas las lecturas quedan muy por debajo del límite de 2 segundos: el p95 más alto es 78 ms (`/api/notifications/`).
+- Con 20 solicitudes simultáneas, la mediana sube a 584 ms. El backend corre con un solo proceso de uvicorn y abre una conexión nueva a la base de datos por solicitud (`NullPool`), por lo que las solicitudes concurrentes esperan su turno. Aun así, el p95 (621 ms) cumple el límite de 5 segundos.
+- Estas mediciones incluyen la verificación de usuario activo agregada en la sección 5.2, que suma una consulta por solicitud.
+- El inicio de sesión tarda unos 330 ms porque verifica la contraseña con bcrypt, que es lento a propósito para dificultar ataques de fuerza bruta.
 - Estos tiempos son de un entorno local. En producción (Render gratuito y Neon) se suman la latencia de red y, si el servidor estaba inactivo, cerca de un minuto de reactivación en la primera solicitud.
 - PT-20 (subida de una evidencia de 10 MB) queda pendiente: requiere Supabase Storage configurado y hoy no existe un límite de tamaño (ver RNF-03).
+
+### 5.2 Resultados de las pruebas de seguridad
+
+Las pruebas de seguridad se hicieron en dos niveles:
+
+1. `tests/test_seguridad.py` (pytest, sin servidor): tokens firmados con otra clave, expirados, sin firma, alterados o de activación de cuenta; regla de alcance por empresa (`X-Org-Id`); matriz de asignación de roles; almacenamiento de contraseñas con bcrypt; rechazo de usuarios suspendidos y límite de intentos de inicio de sesión. Resultado: todas aprobadas.
+2. `tests/security/prueba_seguridad.py` contra el sistema levantado con Docker Compose: crea dos empresas (A y B) con un owner cada una, y en A un admin y un empleado, y luego intenta accesos que deben ser rechazados.
+
+Fecha de ejecución: 2026-11-13 18:25  
+Servidor: http://localhost:8000  
+Resultado: 21 de 21 pruebas aprobadas
+
+| Requisito | Prueba | Esperado | Obtenido | Resultado |
+|---|---|---|---|---|
+| RNF-05 | Login con contraseña incorrecta | 401 | 401 | Aprobado |
+| RNF-05 | Login con correo inexistente | 401 | 401 | Aprobado |
+| RNF-05 | Mismo mensaje para correo inexistente y contraseña incorrecta (no revela cuentas) | mensajes iguales | iguales | Aprobado |
+| RNF-05 | Inyección SQL en el login | 401 | 401 | Aprobado |
+| RNF-11 | Login y listados de usuarios no incluyen la contraseña ni su hash | sin contraseña | sin contraseña | Aprobado |
+| RNF-08 | La empresa B no ve los riesgos de A | no aparece | no aparece | Aprobado |
+| RNF-08 | B envía la cabecera X-Org-Id de A y sigue sin ver sus riesgos | no aparece | no aparece | Aprobado |
+| RNF-08 | B intenta modificar un riesgo de A | 404 | 404 | Aprobado |
+| RNF-08 | B intenta borrar un riesgo de A | 404 | 404 | Aprobado |
+| RNF-08 | El riesgo de A sigue intacto después de los intentos | existe | existe | Aprobado |
+| RNF-08 | B consulta un usuario de A | 404 | 404 | Aprobado |
+| RNF-06 | Un admin intenta crear un usuario owner | 403 | 403 | Aprobado |
+| RNF-06 | Un admin intenta crear un usuario superadmin | 403 | 403 | Aprobado |
+| RNF-06 | Un empleado accede a /api/risks/ | 403 | 403 | Aprobado |
+| RNF-06 | Un empleado accede a /api/breaches/ | 403 | 403 | Aprobado |
+| RNF-06 | Un empleado accede a /api/users/ | 403 | 403 | Aprobado |
+| RNF-06 | Un empleado accede a /api/evidence/ | 403 | 403 | Aprobado |
+| Gestión de usuarios | Un usuario suspendido intenta iniciar sesión | 403 | 403 | Aprobado |
+| Gestión de usuarios | Un usuario suspendido usa el token que tenía antes de la suspensión | 401 o 403 | 401 | Aprobado |
+| RNF-05 | Token inválido en /api/auth/me | 401 | 401 | Aprobado |
+| RNF-05 | 15 intentos fallidos seguidos de inicio de sesión | bloqueo o 429 | 429 tras varios intentos | Aprobado |
+
+Hallazgos corregidos durante estas pruebas:
+
+| Hallazgo | Riesgo | Corrección |
+|---|---|---|
+| El enlace de activación de cuenta, que llega por correo, servía como token de sesión. | Quien tuviera el enlace podía usar la API como ese usuario durante 7 días, aunque sin empresa asignada. | `AuthService.verify_token` rechaza los tokens de propósito especial (campo `purpose`). |
+| Un usuario suspendido seguía usando la plataforma con el token obtenido antes de la suspensión (hasta 4 horas). | Suspender a un trabajador no le quitaba el acceso de inmediato. | `get_current_user` consulta en cada solicitud que el usuario exista y esté activo; si no, responde 401 y el frontend cierra la sesión. |
+| El inicio de sesión aceptaba intentos ilimitados. | Ataques de fuerza bruta contra las contraseñas. | Tras 5 intentos fallidos para el mismo correo desde la misma IP, el login responde 429 durante 15 minutos (`app/services/login_limiter.py`). El contador vive en memoria, lo que basta para el despliegue actual de un solo proceso. |
 
 ## 6. Datos y entorno
 
