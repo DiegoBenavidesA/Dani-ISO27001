@@ -129,3 +129,73 @@ def test_contrasena_se_guarda_como_hash_bcrypt():
     assert hash_.startswith("$2")
     assert AuthService.verify_password("Clave-de-prueba-123", hash_)
     assert not AuthService.verify_password("otra-clave", hash_)
+
+
+# ---------- Usuario suspendido o eliminado ----------
+
+class _BDFalsa:
+    """Sesión mínima que responde a la consulta de usuario activo."""
+    def __init__(self, activo):
+        self.activo = activo
+
+    async def execute(self, _consulta):
+        valor = self.activo
+
+        class _Resultado:
+            def scalar_one_or_none(self):
+                return valor
+        return _Resultado()
+
+
+@pytest.mark.parametrize("activo", [False, None])
+def test_token_de_usuario_suspendido_o_eliminado_es_rechazado(activo):
+    from app.dependencies.auth import usuario_activo
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(usuario_activo(token_admin(), _BDFalsa(activo)))
+    assert e.value.status_code == 401
+
+
+def test_token_de_usuario_activo_es_aceptado():
+    from app.dependencies.auth import usuario_activo
+    assert asyncio.run(usuario_activo(token_admin(), _BDFalsa(True)))["user_id"] == "u-a"
+
+
+# ---------- Límite de intentos de inicio de sesión ----------
+
+def test_limitador_bloquea_tras_cinco_fallos_y_se_libera():
+    from app.services.login_limiter import LimitadorLogin
+    lim = LimitadorLogin(max_intentos=5, ventana_segundos=900)
+    for _ in range(4):
+        lim.registrar_fallo("ip|correo")
+    assert lim.segundos_de_bloqueo("ip|correo") == 0
+    lim.registrar_fallo("ip|correo")
+    assert lim.segundos_de_bloqueo("ip|correo") > 0
+    assert lim.segundos_de_bloqueo("otra-ip|correo") == 0
+    lim.limpiar("ip|correo")
+    assert lim.segundos_de_bloqueo("ip|correo") == 0
+
+
+def test_limitador_olvida_los_fallos_al_pasar_la_ventana(monkeypatch):
+    from app.services import login_limiter
+    reloj = [1000.0]
+    monkeypatch.setattr(login_limiter.time, "monotonic", lambda: reloj[0])
+    lim = login_limiter.LimitadorLogin(max_intentos=2, ventana_segundos=60)
+    lim.registrar_fallo("k"); lim.registrar_fallo("k")
+    assert lim.segundos_de_bloqueo("k") > 0
+    reloj[0] += 61
+    assert lim.segundos_de_bloqueo("k") == 0
+
+
+def test_login_bloqueado_responde_429_sin_consultar_la_base():
+    from app.services.login_limiter import limitador_login
+    correo = "bloqueado@prueba.local"
+    clave = f"203.0.113.9|{correo}"
+    for _ in range(limitador_login.max_intentos):
+        limitador_login.registrar_fallo(clave)
+    try:
+        r = client.post("/api/auth/login", json={"email": correo, "password": "x"},
+                        headers={"X-Forwarded-For": "203.0.113.9"})
+        assert r.status_code == 429
+        assert int(r.headers["Retry-After"]) > 0
+    finally:
+        limitador_login.limpiar(clave)
