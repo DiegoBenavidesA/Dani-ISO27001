@@ -25,3 +25,5 @@ __pycache__/
 *.pyc
 test_db.py
 run_local.py
+# Normas ISO con derechos de autor: no se publican en el repositorio
+Documentación/ISO*.pdf

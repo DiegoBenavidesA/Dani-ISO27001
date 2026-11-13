@@ -45,7 +45,8 @@ _p = urlsplit(DATABASE_URL)
 _q = [(k, v) for k, v in parse_qsl(_p.query) if k not in ("sslmode", "channel_binding")]
 DATABASE_URL = urlunsplit((_p.scheme, _p.netloc, _p.path, urlencode(_q), _p.fragment))
 
-print(f"🔗 Conectando a BD: {DATABASE_URL[:60]}...")
+# Solo host y base de datos: la URL completa incluye usuario y contraseña.
+print(f"🔗 Conectando a BD: {_p.hostname}{_p.path}")
 
 USING_PGBOUNCER = ":6543" in DATABASE_URL
 

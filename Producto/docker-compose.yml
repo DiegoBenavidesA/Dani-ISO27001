@@ -1,34 +1,63 @@
-# docker-compose.yml
-version: '3.8'
+# NormIA — entorno local completo con un solo comando.
+#
+#   cd Producto
+#   docker compose up --build
+#
+# Frontend: http://localhost:3000   Backend: http://localhost:8000/docs
+#
+# Los valores por defecto sirven SOLO para pruebas locales. Para cambiarlos (por
+# ejemplo, agregar GROQ_API_KEY y que funcione la IA), crea Producto/.env con
+# las variables que quieras sobrescribir. Nunca subas ese archivo al repositorio.
 
 services:
-  postgres:
+  db:
     image: pgvector/pgvector:pg15
-    container_name: dani_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: dani12345
-      POSTGRES_DB: dani_project_db
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: normia
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-normia_local}
+      POSTGRES_DB: normia
+    # Sin "ports": el backend llega a la base por la red interna de Docker,
+    # así no choca con un PostgreSQL que ya esté usando el puerto en el equipo.
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U normia -d normia"]
       interval: 5s
       timeout: 5s
-      retries: 5
-
-  redis:
-    image: redis:7-alpine
-    container_name: dani_redis
-    ports:
-      - "6380:6379"
+      retries: 10
     restart: unless-stopped
-    volumes:
-      - redis_data:/data
+
+  backend:
+    build: ./dani-project-back
+    environment:
+      DATABASE_URL: postgresql+asyncpg://normia:${POSTGRES_PASSWORD:-normia_local}@db:5432/normia
+      SECRET_KEY: ${SECRET_KEY:-clave-solo-para-pruebas-locales}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      BREVO_API_KEY: ${BREVO_API_KEY:-}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:-}
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-superadmin@normia.local}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-cambiar-esta-clave}
+      FRONTEND_URL: http://localhost:3000
+      FRONTEND_BASE_URL: http://localhost:3000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./dani-project-front
+      args:
+        REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
 
 volumes:
   postgres_data:
-  redis_data:

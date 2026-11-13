@@ -46,6 +46,8 @@ Integra inteligencia artificial generativa compatible con **Groq** y **DeepSeek*
 - Auditorías de último minuto llenas de estrés
 - Dificultad para mapear controles técnicos a la normativa
 
+Qué hace diferente a NormIA y qué valor agrega se explica en [Innovación](docs/Innovacion.md).
+
 ---
 
 ## Stack Tecnológico
@@ -243,6 +245,25 @@ El frontend queda disponible en `http://localhost:3000`.
 ---
 
 ## Ejecución con Docker
+
+### Opción rápida: todo con un solo comando
+
+Levanta la base de datos (PostgreSQL + pgvector), el backend y el frontend:
+
+```bash
+cd Producto
+docker compose up --build
+```
+
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8000/docs`
+- Usuario inicial: `superadmin@normia.local` con la contraseña definida en `SUPERADMIN_PASSWORD` (por defecto `cambiar-esta-clave`, solo para pruebas locales).
+
+Los valores por defecto sirven solo para probar en local. Para activar la IA u otros servicios, cree `Producto/.env` con las variables que quiera sobrescribir (por ejemplo `GROQ_API_KEY=...`, `SECRET_KEY=...`, `SUPERADMIN_PASSWORD=...`). Ese archivo no debe subirse al repositorio.
+
+Para detener todo: `docker compose down` (agregue `-v` para borrar también la base de datos local).
+
+### Opción manual: cada contenedor por separado
 
 Primero cree cada archivo local de variables desde el ejemplo, sin copiar valores reales ni claves:
 
@@ -506,6 +527,7 @@ El proyecto NormIA se desarrolla siguiendo un enfoque ágil basado en **Scrum**,
 La documentación metodológica se encuentra en la carpeta [`docs/metodologia`](docs/metodologia/):
 
 - [Visión del Producto](docs/metodologia/Product_Vision.md): define el problema, los usuarios objetivo, la propuesta de valor y los objetivos del proyecto.
+- [Product Backlog](docs/metodologia/Product_Backlog.md): todas las historias de usuario priorizadas, con su estado verificado en el código.
 - [Sprint Backlog](docs/metodologia/Sprint_Backlog.md): organiza los sprints y registra los avances del equipo respaldados por el historial de Git.
 - [Definition of Done](docs/metodologia/Definition_of_Done.md): propone los criterios que debe cumplir una tarea para considerarse terminada.
 - [Retrospectivas](docs/metodologia/Retrospectivas.md): documenta una revisión retrospectiva basada en la evidencia disponible y las oportunidades de mejora identificadas.
