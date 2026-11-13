@@ -23,6 +23,7 @@
 - [Despliegue en Producción](#despliegue-en-producción)
 - [Credenciales y Seguridad](#credenciales-y-seguridad)
 - [Pruebas](#pruebas)
+- [Documentación técnica](#documentación-técnica)
 - [Metodología](#metodología)
 - [Equipo](#equipo)
 
@@ -89,6 +90,10 @@ Qué hace diferente a NormIA y qué valor agrega se explica en [Innovación](doc
 ---
 
 ## Arquitectura del Sistema
+
+![Diagrama de arquitectura de NormIA](docs/tecnico/diagramas/arquitectura.png)
+
+El detalle de cada componente, la comunicación entre servicios y las decisiones técnicas está en el [documento de diseño](docs/tecnico/Documento_de_Diseno.md). El esquema siguiente resume los módulos:
 
 ```
 
@@ -517,6 +522,20 @@ pytest tests/test_api.py -v
 | 9 | Estadísticas de cumplimiento | 200 |
 | 10 | Exportar SOA en PDF | 200 + content-type PDF |
 | 11 | Health check del servidor | 200 |
+
+---
+
+## Documentación técnica
+
+La documentación técnica está en la carpeta [`docs/tecnico`](docs/tecnico/):
+
+- [Documento de diseño](docs/tecnico/Documento_de_Diseno.md): arquitectura, componentes, comunicación entre servicios, decisiones técnicas y diagramas UML de casos de uso y de secuencia.
+- [Modelo de datos](docs/tecnico/Modelo_de_Datos.md): diagrama entidad-relación.
+- [Diagrama de clases](docs/tecnico/UML_Clases.md) y [diagrama de componentes](docs/tecnico/UML_Componentes.md).
+- [Requisitos no funcionales](docs/tecnico/Requisitos_No_Funcionales.md).
+- [Manual técnico](docs/tecnico/Manual_Tecnico.md): instalación, variables de entorno, Docker Compose y despliegue.
+- [Plan de pruebas](docs/tecnico/Plan_de_Pruebas.md) y [plan de pruebas por sprint](docs/tecnico/Plan_de_Pruebas_por_Sprint.md), con los resultados de las pruebas de rendimiento y seguridad.
+- [Innovación](docs/Innovacion.md): qué problema resuelve NormIA, qué la diferencia y qué valor agrega.
 
 ---
 
