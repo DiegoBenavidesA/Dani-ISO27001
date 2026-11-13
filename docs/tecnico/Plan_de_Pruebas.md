@@ -1,5 +1,7 @@
 # Plan de Pruebas - NormIA
 
+El detalle de qué se probó en cada sprint, los defectos encontrados y sus resultados está en el [Plan de pruebas por sprint](Plan_de_Pruebas_por_Sprint.md).
+
 ## 1. Alcance
 
 El plan cubre backend FastAPI, autenticación JWT, autorización por roles, aislamiento multiempresa, rutas ISO 27001 y Ley 21.719, PostgreSQL/Neon, integración con Groq u otros proveedores compatibles, Supabase Storage, correo, frontend React y despliegues en Render/Vercel.
