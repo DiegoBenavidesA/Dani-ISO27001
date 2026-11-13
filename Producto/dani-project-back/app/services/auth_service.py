@@ -34,13 +34,18 @@ class AuthService:
     def verify_token(token: str):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            return payload
         except JWTError:
+            payload = None
+        # Los tokens de un solo propósito (p. ej. el enlace de activación que
+        # llega por correo) están firmados con la misma clave, pero no son una
+        # sesión: no deben dar acceso a la API.
+        if payload is None or payload.get("purpose"):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        return payload
 
     # --- Tokens de activación de cuenta (invitación por correo) ---
     @staticmethod
