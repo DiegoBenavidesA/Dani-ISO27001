@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +8,7 @@ import logging
 
 from app.dependencies.auth import get_current_user
 from app.services.auth_service import AuthService
+from app.services.login_limiter import limitador_login
 from app.dependencies.database import get_db
 from app.models import User
 from app.models.user import UserRole
@@ -91,17 +92,34 @@ async def register(register_data: RegisterRequest, db: AsyncSession = Depends(ge
         raise HTTPException(status_code=500, detail=f"Error al registrar: {str(e)}")
 
     
+def _clave_intentos(request: Request, email: str) -> str:
+    # En Render la IP real llega en X-Forwarded-For (la primera de la lista).
+    ip = (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()         or (request.client.host if request.client else "desconocida")
+    return f"{ip}|{email.strip().lower()}"
+
+
 @router.post("/login", response_model=TokenResponse)
-async def login(login_data: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(login_data: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    clave = _clave_intentos(request, login_data.email)
+    espera = limitador_login.segundos_de_bloqueo(clave)
+    if espera:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Demasiados intentos fallidos. Intenta de nuevo en {max(1, round(espera / 60))} minuto(s).",
+            headers={"Retry-After": str(espera)},
+        )
+
     query = select(User).where(User.email == login_data.email)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
     if not user or not AuthService.verify_password(login_data.password, user.hashed_password):
+        limitador_login.registrar_fallo(clave)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Credenciales incorrectas"
         )
+    limitador_login.limpiar(clave)
     
     if not user.is_active:
         raise HTTPException(
