@@ -140,6 +140,8 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Exportación de reporte vía `window.print()`
 
 ### Gap Analysis
+- Selector de marco: "Evaluar contra ISO 27001" o "Evaluar contra Ley N.º 21.719"; cada marco tiene su propio banco de preguntas y su propio prompt de auditor
+- Evaluación con IA a partir de los documentos subidos, en segundo plano y con avance visible
 - Wizard de evaluación en 4 fases (cláusulas 4-10 ISO 27001)
 - SOA (Statement of Applicability) interactiva con 93 controles del Anexo A
 - Exportación de SOA en PDF (`GET /api/compliance/soa/export`) con tabla completa de controles, badges de estado y portada con métricas
@@ -147,6 +149,20 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Auditoría individual de controles: evaluación de documentos mediante IA según el proveedor configurado.
 - Auditoría masiva RAG: embeddings, similitud coseno y evaluación asistida por IA.
 - Vista de Resultados: score general, brechas por cláusula, plan de remediación, KPIs
+
+### Ley N.º 21.719: evaluación de cumplimiento
+- Banco de 24 preguntas organizadas en las 8 obligaciones de la ley (`app/data/catalogo_ley21719.json`)
+- Se evalúa desde Gap Analysis eligiendo el marco Ley N.º 21.719; la IA responde cada pregunta con veredicto, justificación y nivel de confianza
+- Las preguntas que no aplican a la empresa se pueden marcar como "no aplica" y quedan fuera de la evaluación
+
+### Vulneraciones de Seguridad (Ley N.º 21.719)
+- Registro simple: solo se describe lo ocurrido y cuándo se detectó
+- Análisis con IA: gravedad, datos posiblemente afectados, si corresponde notificar a la Agencia y a los titulares, acciones inmediatas y preguntas pendientes
+- Aviso automático a owner, admin y DPO, en la plataforma y por correo
+- Revisión humana: una persona confirma o corrige la gravedad, los afectados y las medidas de contención
+- Control del plazo de 72 horas para notificar a la Agencia, con alerta cuando está por vencer o vencido
+- Registro de la notificación a la Agencia y cierre con causa raíz y resolución
+- Disponible para superadmin (con empresa seleccionada), owner, admin y DPO
 
 ### Doc Generator
 - Genera capítulos completos del Manual SGSI (capítulos 4-10 ISO 27001)
@@ -173,8 +189,17 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 
 ### Gestión de Usuarios
 - CRUD completo (crear, editar, desactivar, eliminar)
+- Invitación por correo con enlace de activación
 - Modal de edición con campos: nombre, email, rol, estado activo
-- Protegido por RBAC (solo admin)
+- Disponible para owner y admin; nadie puede asignar un rol superior al propio
+- Un usuario suspendido pierde el acceso de inmediato
+
+### Gestión de Empresas y Banco de Preguntas (superadmin)
+- Crear, editar, suspender y reactivar empresas; entrar a una empresa para ver su panel
+- Administrar los bancos de preguntas de ISO 27001 y de la Ley N.º 21.719, con importación desde Excel
+
+### Notificaciones
+- Campana con alertas de evidencias, documentos, acciones correctivas y vulneraciones por revisar o con el plazo de 72 horas en riesgo
 
 ### Employee Portal
 - Vista de políticas publicadas con acuse de recibo digital
@@ -182,7 +207,7 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 
 ### Chat DANI AI
 - RAG bidireccional: evidencias internas + normativa ISO oficial (pgvector)
-- Fallback con respuesta simulada si la API no responde
+- Contexto de la empresa: avance de la SOA y vulneraciones registradas
 - Autenticación JWT requerida
 
 ### Sidebar
