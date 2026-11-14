@@ -324,10 +324,12 @@ El diagrama de componentes está en [UML_Componentes.md](UML_Componentes.md). La
 | Separación entre empresas | La empresa sale del token; `X-Org-Id` solo lo acepta para el superadmin | `test_seguridad.py`, `security/prueba_seguridad.py` |
 | CORS | Solo orígenes locales y dominios de Vercel; cabeceras permitidas `Authorization`, `Content-Type` y `X-Org-Id` | `test_general.py` |
 | Secretos | Solo en variables de entorno; `.env.example` sin valores reales; el log no muestra la contraseña de la base de datos | Revisión del repositorio |
+| Datos enviados a la IA | Groq procesa las solicitudes en Estados Unidos y actúa como encargado del tratamiento (transferencia internacional regulada por la Ley 21.719). La cuenta de producción tiene activada la retención cero de datos (*Zero Data Retention*, global y de inferencia): Groq no guarda las entradas ni las salidas, ni siquiera los registros temporales de hasta 30 días que hace por defecto. Solo se envían fragmentos relacionados con cada pregunta, nunca documentos completos | Configuración de *Data Controls* en la consola de Groq, verificada el 14-11-2026 |
 
 ## 8. Diseño de la inteligencia artificial
 
 - El cliente de IA (`ai_service.py`) usa Groq si existe `GROQ_API_KEY` y, si no, DeepSeek. Ambos se llaman con el SDK de OpenAI.
+- La cuenta de Groq de producción tiene activada la retención cero de datos, por lo que el proveedor no conserva las solicitudes. Si se usa DeepSeek como alternativa, ese proveedor no tiene esta garantía configurada.
 - Las instrucciones piden la respuesta en JSON con un formato fijo, y el backend lo interpreta de forma tolerante: acepta el JSON dentro de bloques de código y normaliza valores inválidos.
 - La evaluación de cumplimiento usa instrucciones de auditor distintas para ISO 27001 y para la Ley 21.719, y nunca mezcla los marcos.
 - Los veredictos posibles son `cumple`, `parcial`, `no_cumple` y `sin_evidencia`; la empresa puede marcar una pregunta como `no_aplica`.
