@@ -135,9 +135,9 @@ Defectos encontrados y corregidos:
 
 | Commit | Defecto | Caso |
 |---|---|---|
-| `5a82ce1` | El enlace de activación de cuenta servía como token de sesión | SC-T05 |
-| `794627d` | Un usuario suspendido seguía entrando con su token anterior | SC-T08 |
-| `9b6003a` | El inicio de sesión aceptaba intentos ilimitados | SC-T09 |
+| `2396b87` | El enlace de activación de cuenta servía como token de sesión | SC-T05 |
+| `fc46c10` | Un usuario suspendido seguía entrando con su token anterior | SC-T08 |
+| `0def249` | El inicio de sesión aceptaba intentos ilimitados | SC-T09 |
 | `4e2ac59` | El Dockerfile del frontend fallaba en `npm ci` porque el lock no estaba sincronizado | SC-T12 |
 | `4f7f302` | El log de arranque mostraba el usuario y la contraseña de la base de datos | SC-T12 |
 | `9538731` | El docker-compose anterior no levantaba el backend ni el frontend | SC-T12 |
