@@ -3,7 +3,7 @@
 > **Proyecto:** Integración de requerimientos de la Ley N.º 21.719 en una plataforma GRC orientada a ISO/IEC 27001.
 > **Metodología:** Enfoque ágil basado en Scrum, definido en la Entrega 1.
 > **Base del registro:** Planificación y avance del proyecto según la Entrega 1 y el historial de Git.
-> **Evidencia revisada:** Commits del proyecto hasta el 06-11-2026 y actualización de `main` hasta `fcb1f4e`.
+> **Evidencia revisada:** Commits del proyecto hasta el 13-11-2026.
 
 ## 1. Propósito y criterios de lectura
 
@@ -14,7 +14,7 @@ Este Sprint Backlog relaciona la planificación académica del equipo con los av
 - **Estado de las tareas:** Se distingue entre trabajo completado y funcionalidades que posteriormente fueron retiradas del alcance por indicación del docente.
 - **Alcance vigente:** Las obligaciones de la Ley N.º 21.719 se evalúan actualmente en el Análisis de Brechas; el flujo de vulneraciones permanece vigente.
 
-Los identificadores S1-01 a S4-03 organizan las historias y tareas derivadas de la planificación de Entrega 1. Los datos del tablero del equipo, las estimaciones y la aceptación formal se registran como pendientes de confirmación en la sección 5.
+Los identificadores S1-01 a S4-03 organizan las historias y tareas derivadas de la planificación de Entrega 1. La sección 5 explica cómo se hizo el seguimiento del trabajo.
 
 ## 2. Contexto de la planificación original
 
@@ -115,7 +115,7 @@ La guía asigna a Justo Cano la función de líder/analista en el levantamiento 
 - `f31bdbc` (03-11-2026): corrección en pantalla de vulneraciones.
 - `f259ef3` (05-11-2026): análisis con IA, revisión humana, aviso a responsables, notificación a la Agencia y cierre del flujo de vulneraciones.
 
-**Vigencia:** El módulo de vulneraciones continúa en el alcance actual. El flujo se probó manualmente; los detalles de pruebas automatizadas se registran en las secciones 4 y 5.
+**Vigencia:** El módulo de vulneraciones continúa en el alcance actual. Sus reglas de negocio y permisos tienen 17 pruebas automatizadas (`test_breaches_permisos.py`, `test_breaches_logica.py` y `test_breaches_flujo.py`), todas aprobadas.
 
 **Resultado del sprint:** **Completado**.
 
@@ -125,30 +125,30 @@ Estas actividades forman parte de la planificación general o están respaldadas
 
 | Área | Evidencia o referencia | Situación documental |
 |---|---|---|
-| Levantamiento de requerimientos | Entrega 1: semanas 1–2; líder/analista Justo Cano | Actividad planificada; actas y aceptación pendientes de confirmación con el equipo (sección 5). |
-| Análisis de plataforma y definición de backlog | Entrega 1: semanas 2–3 | Actividades planificadas; tablero y priorización pendientes de confirmación con el equipo (sección 5). |
+| Levantamiento de requerimientos | Entrega 1: semanas 1–2; líder/analista Justo Cano | Realizada en reuniones con el docente en el rol de cliente (ver sección 5). |
+| Análisis de plataforma y definición de backlog | Entrega 1: semanas 2–3 | La priorización de las historias está en el [Product Backlog](Product_Backlog.md). |
 | Diseño de datos e interfaces | Entrega 1: semanas 5–6 | Actividades planificadas; `c07d1cc` documenta el modelo entidad-relación (06-11-2026). |
 | Evaluación ISO y Ley 21.719 | `390b324`, `dc291d1`, `d9eb095`, `220f3a7` | Las obligaciones legales se evalúan en Análisis de Brechas mediante 24 preguntas basadas en las 8 obligaciones de la ley. |
 | Evidencias y documentos | `b2fce95`, `ea86be5`, `b9fdcae`, `217a9ba` | Persistencia, eliminación, subida e indexación de evidencias. |
 | Experiencia móvil | `82d5766`, `761b356`, `95066b0`, `3890d2e`, `12ac1ed` | Ajustes responsive registrados en Git. |
-| Pruebas y QA | Entrega 1: semanas 14–15; `12eb528`, `ae8e442`, `09001cc`, `fd459a7`, `2c5a036` | 3 pruebas automatizadas de autenticación y roles pasan (`tests/test_integration_auth.py`); `test_api.py` requiere el servidor levantado; el flujo de vulneraciones se probó manualmente. |
+| Pruebas y QA | Entrega 1: semanas 14–15; pruebas automatizadas de autenticación, vulneraciones, seguridad y rendimiento | 49 pruebas automatizadas aprobadas con pytest, más pruebas de seguridad y rendimiento contra el sistema levantado con Docker. Detalle en el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
 | Documentación técnica | `3c40f60`, `c07d1cc`, `f833c1d`, `3d39d10`, `12eb528` | Se añadieron manual, modelos, diagramas y plan de pruebas. |
 | Despliegue e infraestructura | `1c7adf9`, `d023ff3`, `20ce476` | Dockerfiles e instrucciones de ejecución; infraestructura de despliegue documentada. |
 | Product Vision | `d63b1fc` (06-11-2026) | Documento de visión agregado en un commit independiente. |
 
 **Decisión de alcance del 30-10-2026 (`390b324`):** Por indicación del docente se retiraron los módulos independientes de **Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto**. Los requisitos de la Ley N.º 21.719 se evalúan ahora en el **Análisis de Brechas**, mediante **24 preguntas basadas en las 8 obligaciones de la ley**. **Las tablas de los módulos retirados se conservan en la base de datos.**
 
-## 5. Seguimiento y datos por confirmar con el equipo
+## 5. Seguimiento del trabajo
 
-| Elemento | Dato pendiente o estado | Responsable de confirmar |
-|---|---|---|
-| Tablero Scrum real | Enlace a Trello/Jira/GitHub Projects y orden de prioridad: `[completar]` | Equipo / líder del proyecto |
-| Fechas reales de los sprints | Inicio y cierre de cada iteración: `[completar]` | Equipo |
-| Estimaciones | Puntos de historia, capacidad o esfuerzo: `[completar]` | Equipo |
-| Aceptación | Evidencia de revisión y aceptación formal por sprint: `[completar]` | Equipo / cliente |
+| Elemento | Cómo se hizo |
+|---|---|
+| Tablero | No se usó un tablero digital (Trello, Jira o GitHub Projects). El orden de prioridad de las historias está en el [Product Backlog](Product_Backlog.md) y el avance quedó registrado en el historial de Git. |
+| Fechas de los sprints | Según la carta Gantt de la Entrega 1: sprint 1 en las semanas 6 a 8, sprint 2 en las semanas 8 a 10, sprint 3 en las semanas 10 a 12 y sprint 4 en las semanas 12 a 14; las pruebas, en las semanas 14 y 15. |
+| Estimaciones | No se estimó con puntos de historia. El esfuerzo se planificó por semanas en la carta Gantt, y el tamaño relativo de cada historia (S, M o L) se registró en el Product Backlog. |
+| Revisión y aceptación | El equipo se reunió cuatro veces por semana por Google Meet para revisar el avance, resolver bloqueos y redistribuir tareas. El docente, en el rol de cliente, revisó el avance en cada entrega; su retroalimentación llevó, por ejemplo, al retiro de módulos del 30-10-2026. |
+| Actas | No se guardaron actas de las reuniones. La evidencia del trabajo es el historial de Git desde el inicio del proyecto, con los commits de cada integrante, y los documentos de cada entrega. |
 | Estado actual de módulos retirados | Por indicación del docente, se retiraron Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto (`390b324`, 30-10-2026). Sus requisitos de la Ley 21.719 se evalúan en Análisis de Brechas mediante 24 preguntas basadas en las 8 obligaciones; las tablas se conservan en la base de datos. | Decisión de alcance informada por el equipo |
-| Pruebas | 3 pruebas automatizadas de autenticación y roles pasan (`tests/test_integration_auth.py`); `test_api.py` requiere el servidor levantado; el flujo de vulneraciones se probó manualmente. | Equipo de desarrollo |
-| Sprint Review y retrospectivas | Actas y acuerdos reales: `[completar]` | Equipo |
+| Pruebas | 49 pruebas automatizadas aprobadas con pytest (autenticación, permisos, vulneraciones y seguridad), 21 pruebas de seguridad y 10 mediciones de rendimiento contra el sistema en Docker. Ver el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
 
 ## 6. Fuentes y trazabilidad
 
@@ -157,4 +157,4 @@ Estas actividades forman parte de la planificación general o están respaldadas
 3. **Cambios incorporados desde `main`:** Actualización hasta `fcb1f4e` (06-11-2026), incluyendo archivos adicionales de pruebas. La retirada de módulos independientes se relaciona con el cambio de alcance del commit `390b324`.
 4. **Confirmaciones del equipo:** Decisión del docente sobre los módulos retirados, cobertura actual de la Ley N.º 21.719 y resultados de pruebas indicados en las secciones 4 y 5.
 
-Las fechas de los commits se utilizan como evidencia de cambios en el repositorio, no como sustituto de las fechas reales de cada sprint. El tablero, las estimaciones, la aceptación formal y las actas se completarán con información confirmada por el equipo.
+Las fechas de los commits muestran cuándo se hizo cada cambio en el repositorio; las semanas de cada sprint corresponden a la carta Gantt de la Entrega 1.
