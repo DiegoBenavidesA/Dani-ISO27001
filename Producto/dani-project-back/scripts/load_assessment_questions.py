@@ -6,9 +6,13 @@ Cada catálogo pertenece a un marco normativo:
     ley21719 -> app/data/catalogo_ley21719.json
 
 Uso:
-    python scripts/load_assessment_questions.py                    # carga ambos marcos
-    python scripts/load_assessment_questions.py --marco ley21719   # solo un marco
-    python scripts/load_assessment_questions.py --limit 5          # solo las primeras 5 de cada marco (prueba)
+    python scripts/load_assessment_questions.py --marco iso27001          # solo ISO 27001
+    python scripts/load_assessment_questions.py --marco iso27001 --limit 5
+
+Hay que indicar siempre el marco. La Ley 21.719 se evalúa en producción con las
+265 preguntas del listado de cumplimiento de la AEPD, que no están en
+catalogo_ley21719.json; cargar ese archivo las borraría. Por eso ley21719 solo
+se carga si además se pasa --forzar.
 
 Es idempotente: antes de cargar un marco borra SUS preguntas (y las respuestas
 asociadas), así no duplica si lo corres de nuevo y no toca el otro marco.
@@ -88,10 +92,12 @@ if __name__ == "__main__":
     limit = None
     if "--limit" in sys.argv:
         limit = int(sys.argv[sys.argv.index("--limit") + 1])
-    marcos = list(CATALOGOS)
-    if "--marco" in sys.argv:
-        elegido = sys.argv[sys.argv.index("--marco") + 1]
-        if elegido not in CATALOGOS:
-            sys.exit(f"Marco no válido: {elegido}. Usa: {', '.join(CATALOGOS)}")
-        marcos = [elegido]
+    if "--marco" not in sys.argv:
+        sys.exit("Indica el marco: --marco iso27001")
+    elegido = sys.argv[sys.argv.index("--marco") + 1]
+    if elegido not in CATALOGOS:
+        sys.exit(f"Marco no válido: {elegido}. Usa: {', '.join(CATALOGOS)}")
+    if elegido == "ley21719" and "--forzar" not in sys.argv:
+        sys.exit("Cargar ley21719 reemplazaría las 265 preguntas de la AEPD. Si de verdad quieres hacerlo, agrega --forzar.")
+    marcos = [elegido]
     asyncio.run(main(marcos, limit))

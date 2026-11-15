@@ -52,7 +52,7 @@ Objetivos específicos:
 
 El producto mínimo entregado incluye:
 
-- Evaluación con IA de ISO 27001 (117 preguntas) y de la Ley 21.719 (265 preguntas del listado de cumplimiento de la AEPD entregado por el docente, en 7 temas), con Análisis de Brechas y Declaración de Aplicabilidad.
+- Evaluación con IA de ISO 27001 (339 preguntas sobre 24 requisitos y 93 controles) y de la Ley 21.719 (265 preguntas del listado de cumplimiento de la AEPD entregado por el docente, en 7 temas), con Análisis de Brechas y Declaración de Aplicabilidad.
 - Gestión de vulneraciones de seguridad con análisis de IA, revisión humana, aviso a los responsables, control de 72 horas, registro de la notificación a la Agencia y cierre con causa raíz.
 - Gestión de empresas, usuarios y roles, con datos separados por organización.
 - Centro de evidencias, generador de documentos, mapa de riesgos y asistente con el contexto de la empresa.
