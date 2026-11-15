@@ -58,7 +58,7 @@ La reorganización del producto permitió concentrar el trabajo relacionado con 
 
 El sistema de evaluación mantiene soporte para ISO/IEC 27001:2022 y Ley N.º 21.719.
 
-La versión actual incluye el catálogo de obligaciones legales definido en `app/data/catalogo_ley21719.json`, compuesto por ocho categorías y 24 preguntas.
+La versión actual evalúa la ley con un banco de 265 preguntas tomado del Listado de cumplimiento normativo del RGPD de la Agencia Española de Protección de Datos (AEPD, 2018), entregado por el docente, que reemplazó al catálogo inicial de 24 preguntas creado por el equipo.
 
 ---
 

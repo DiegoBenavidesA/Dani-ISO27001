@@ -114,7 +114,7 @@ Resultado de la ejecución automatizada (13-11-2026): 17 de 17 pruebas aprobadas
 
 ## Sprint de cierre: evaluación de la Ley 21.719, seguridad, rendimiento y despliegue
 
-Después del retiro de módulos, la Ley 21.719 pasó a evaluarse con 24 preguntas y se reforzaron la seguridad, el rendimiento y el despliegue. En este sprint todas las pruebas se automatizaron.
+Después del retiro de módulos, la Ley 21.719 pasó a evaluarse con el banco de 265 preguntas del listado de cumplimiento de la AEPD y se reforzaron la seguridad, el rendimiento y el despliegue. En este sprint todas las pruebas se automatizaron.
 
 | ID | Caso | Resultado esperado | Archivo de prueba |
 |---|---|---|---|
@@ -144,7 +144,7 @@ Defectos encontrados y corregidos:
 
 Resultados (13-11-2026):
 
-- `pytest tests --ignore=tests/test_api.py`: 49 de 49 pruebas aprobadas, de las cuales 32 corresponden a este sprint (25 de seguridad, 4 generales y 3 de autenticación).
+- `pytest tests --ignore=tests/test_api.py`: 56 de 56 pruebas aprobadas, de las cuales 39 corresponden a este sprint (25 de seguridad, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
 - `security/prueba_seguridad.py` contra el sistema en Docker: 21 de 21 aprobadas.
 - `performance/prueba_rendimiento.py` contra el sistema en Docker: 10 de 10 mediciones dentro de los límites. El detalle está en las secciones 5.1 y 5.2 del [Plan de Pruebas](Plan_de_Pruebas.md).
 

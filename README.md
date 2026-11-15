@@ -151,7 +151,7 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Vista de Resultados: score general, brechas por cláusula, plan de remediación, KPIs
 
 ### Ley N.º 21.719: evaluación de cumplimiento
-- Banco de 24 preguntas organizadas en las 8 obligaciones de la ley (`app/data/catalogo_ley21719.json`)
+- Banco de 265 preguntas tomado del Listado de cumplimiento normativo del RGPD de la Agencia Española de Protección de Datos (AEPD, 2018), entregado por el docente; la plataforma las agrupa en 7 temas. Se usa ese listado porque la Ley 21.719 sigue el modelo del reglamento europeo
 - Se evalúa desde Gap Analysis eligiendo el marco Ley N.º 21.719; la IA responde cada pregunta con veredicto, justificación y nivel de confianza
 - Las preguntas que no aplican a la empresa se pueden marcar como "no aplica" y quedan fuera de la evaluación
 

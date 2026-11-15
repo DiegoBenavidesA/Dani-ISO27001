@@ -39,7 +39,7 @@ La planificación original contempló módulos independientes de tratamientos, c
 
 Durante el desarrollo, estos módulos fueron retirados de las rutas activas de la API.
 
-La evaluación de aspectos de la Ley N.º 21.719 se incorporó al sistema de preguntas y análisis de cumplimiento. El archivo `app/data/catalogo_ley21719.json` contiene ocho categorías de obligaciones y 24 preguntas asociadas.
+La evaluación de aspectos de la Ley N.º 21.719 se incorporó al sistema de preguntas y análisis de cumplimiento. La evaluación usa un banco de 265 preguntas tomado del Listado de cumplimiento normativo del RGPD de la Agencia Española de Protección de Datos (AEPD, 2018), entregado por el docente.
 
 El módulo de vulneraciones permanece integrado mediante `/api/breaches`.
 

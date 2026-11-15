@@ -28,7 +28,7 @@ La evidencia recuperada ayuda a fundamentar el diagnóstico, pero su calidad dep
 
 ### 2.2 ISO 27001 y Ley 21.719 en la misma plataforma
 
-La plataforma tiene un banco de 117 preguntas para ISO 27001 (`app/data/catalogo_iso27001.json`) y un catálogo con 8 obligaciones y 24 subpreguntas para la Ley 21.719 (`app/data/catalogo_ley21719.json`). El usuario elige contra qué marco evaluar y la IA usa instrucciones de auditor distintas para cada uno.
+La plataforma tiene un banco de 117 preguntas para ISO 27001 (`app/data/catalogo_iso27001.json`) y un banco de 265 preguntas para la Ley 21.719, tomado del Listado de cumplimiento normativo del RGPD de la Agencia Española de Protección de Datos (AEPD, 2018) y entregado por el docente, que la plataforma agrupa en 7 temas. Se usa ese listado porque la Ley 21.719 sigue el modelo del reglamento europeo (RGPD); los ítems que mencionan instituciones europeas se interpretan con sus equivalentes chilenos, como la Agencia de Protección de Datos Personales. El usuario elige contra qué marco evaluar y la IA usa instrucciones de auditor distintas para cada uno.
 
 Ambos marcos pueden compartir evidencia pertinente, aunque cumplir uno no implica automáticamente cumplir el otro.
 

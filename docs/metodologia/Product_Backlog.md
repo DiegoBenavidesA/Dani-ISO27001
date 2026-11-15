@@ -32,7 +32,7 @@ El Product Backlog reúne todas las historias de usuario del producto, ordenadas
 
 | ID | Historia de usuario | Criterios de aceptación | Prioridad | Tamaño | Sprint | Estado | Evidencia |
 |---|---|---|---|---|---|---|---|
-| PB-09 | Como **encargado de cumplimiento**, quiero evaluar mi empresa contra la Ley 21.719, para saber cuánto me falta. | Banco de 24 preguntas basado en las 8 obligaciones de la ley. | Must | M | Transversal | Hecho | `app/data/catalogo_ley21719.json` |
+| PB-09 | Como **encargado de cumplimiento**, quiero evaluar mi empresa contra la Ley 21.719, para saber cuánto me falta. | Banco de 265 preguntas del listado de cumplimiento de la AEPD, entregado por el docente, agrupado en 7 temas. | Must | M | Transversal | Hecho | Banco cargado en producción; ver Innovacion.md |
 | PB-10 | Como **encargado de cumplimiento**, quiero elegir si evalúo ISO 27001 o Ley 21.719, para no mezclar los marcos. | Cada evaluación usa solo las preguntas y el prompt de auditor del marco elegido. | Must | M | Transversal | Hecho | columna `marco`, `GapAnalysisScreen.jsx` |
 | PB-11 | Como **encargado de cumplimiento**, quiero que la IA responda las preguntas usando los documentos que subí, para que el diagnóstico tenga respaldo. | Veredicto, nivel de confianza y justificación por pregunta, a partir de la evidencia (RAG). | Must | L | Transversal | Hecho | `assessment_questions.py`, `embedding_service.py` |
 | PB-12 | Como **administrador**, quiero cargar preguntas desde un Excel, para actualizar el banco sin programar. | Valida formato `.xlsx`, evita duplicados dentro del mismo marco y ofrece plantilla. | Should | M | Transversal | Hecho | carga masiva en `assessment_questions.py` |
@@ -60,7 +60,7 @@ El Product Backlog reúne todas las historias de usuario del producto, ordenadas
 
 | ID | Historia de usuario | Criterios de aceptación | Prioridad | Tamaño | Sprint | Estado | Evidencia |
 |---|---|---|---|---|---|---|---|
-| PB-22 | Como **equipo**, queremos pruebas automáticas de permisos y del flujo de vulneraciones, para detectar errores antes de publicar. | 24 pruebas que se ejecutan sin base de datos ni IA real. | Must | M | Transversal | Hecho | `Producto/dani-project-back/tests/` |
+| PB-22 | Como **equipo**, queremos pruebas automáticas de permisos y del flujo de vulneraciones, para detectar errores antes de publicar. | 56 pruebas que se ejecutan sin base de datos ni IA real. | Must | M | Transversal | Hecho | `Producto/dani-project-back/tests/` |
 | PB-23 | Como **evaluador**, quiero levantar el proyecto con un solo comando, para revisarlo sin configurar nada. | `docker compose up --build` levanta base de datos, backend y frontend. | Should | M | Transversal | Hecho | `Producto/docker-compose.yml` |
 | PB-24 | Como **equipo**, queremos pruebas de punta a punta en el navegador, para validar los flujos completos. | Login, evaluación y vulneraciones automatizados (Playwright). | Could | L | — | Por hacer | Hoy se prueban manualmente |
 

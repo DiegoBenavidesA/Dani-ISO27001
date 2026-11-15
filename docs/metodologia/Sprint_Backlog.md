@@ -128,15 +128,15 @@ Estas actividades forman parte de la planificación general o están respaldadas
 | Levantamiento de requerimientos | Entrega 1: semanas 1–2; líder/analista Justo Cano | Realizada en reuniones con el docente en el rol de cliente (ver sección 5). |
 | Análisis de plataforma y definición de backlog | Entrega 1: semanas 2–3 | La priorización de las historias está en el [Product Backlog](Product_Backlog.md). |
 | Diseño de datos e interfaces | Entrega 1: semanas 5–6 | Actividades planificadas; `c07d1cc` documenta el modelo entidad-relación (06-11-2026). |
-| Evaluación ISO y Ley 21.719 | `390b324`, `dc291d1`, `d9eb095`, `220f3a7` | Las obligaciones legales se evalúan en Análisis de Brechas mediante 24 preguntas basadas en las 8 obligaciones de la ley. |
+| Evaluación ISO y Ley 21.719 | `390b324`, `dc291d1`, `d9eb095`, `220f3a7` | Las obligaciones legales se evalúan en Análisis de Brechas mediante 265 preguntas del listado de cumplimiento de la AEPD entregado por el docente. |
 | Evidencias y documentos | `b2fce95`, `ea86be5`, `b9fdcae`, `217a9ba` | Persistencia, eliminación, subida e indexación de evidencias. |
 | Experiencia móvil | `82d5766`, `761b356`, `95066b0`, `3890d2e`, `12ac1ed` | Ajustes responsive registrados en Git. |
-| Pruebas y QA | Entrega 1: semanas 14–15; pruebas automatizadas de autenticación, vulneraciones, seguridad y rendimiento | 49 pruebas automatizadas aprobadas con pytest, más pruebas de seguridad y rendimiento contra el sistema levantado con Docker. Detalle en el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
+| Pruebas y QA | Entrega 1: semanas 14–15; pruebas automatizadas de autenticación, vulneraciones, seguridad y rendimiento | 56 pruebas automatizadas aprobadas con pytest, más pruebas de seguridad y rendimiento contra el sistema levantado con Docker. Detalle en el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
 | Documentación técnica | `3c40f60`, `c07d1cc`, `f833c1d`, `3d39d10`, `12eb528` | Se añadieron manual, modelos, diagramas y plan de pruebas. |
 | Despliegue e infraestructura | `1c7adf9`, `d023ff3`, `20ce476` | Dockerfiles e instrucciones de ejecución; infraestructura de despliegue documentada. |
 | Product Vision | `d63b1fc` (06-11-2026) | Documento de visión agregado en un commit independiente. |
 
-**Decisión de alcance del 30-10-2026 (`390b324`):** Por indicación del docente se retiraron los módulos independientes de **Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto**. Los requisitos de la Ley N.º 21.719 se evalúan ahora en el **Análisis de Brechas**, mediante **24 preguntas basadas en las 8 obligaciones de la ley**. **Las tablas de los módulos retirados se conservan en la base de datos.**
+**Decisión de alcance del 30-10-2026 (`390b324`):** Por indicación del docente se retiraron los módulos independientes de **Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto**. Los requisitos de la Ley N.º 21.719 se evalúan ahora en el **Análisis de Brechas**, mediante **265 preguntas del listado de cumplimiento de la AEPD entregado por el docente**, que reemplazó al catálogo propio inicial de 24 preguntas. **Las tablas de los módulos retirados se conservan en la base de datos.**
 
 ## 5. Seguimiento del trabajo
 
@@ -147,8 +147,8 @@ Estas actividades forman parte de la planificación general o están respaldadas
 | Estimaciones | No se estimó con puntos de historia. El esfuerzo se planificó por semanas en la carta Gantt, y el tamaño relativo de cada historia (S, M o L) se registró en el Product Backlog. |
 | Revisión y aceptación | El equipo se reunió cuatro veces por semana por Google Meet para revisar el avance, resolver bloqueos y redistribuir tareas. El docente, en el rol de cliente, revisó el avance en cada entrega; su retroalimentación llevó, por ejemplo, al retiro de módulos del 30-10-2026. |
 | Actas | No se guardaron actas de las reuniones. La evidencia del trabajo es el historial de Git desde el inicio del proyecto, con los commits de cada integrante, y los documentos de cada entrega. |
-| Estado actual de módulos retirados | Por indicación del docente, se retiraron Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto (`390b324`, 30-10-2026). Sus requisitos de la Ley 21.719 se evalúan en Análisis de Brechas mediante 24 preguntas basadas en las 8 obligaciones; las tablas se conservan en la base de datos. | Decisión de alcance informada por el equipo |
-| Pruebas | 49 pruebas automatizadas aprobadas con pytest (autenticación, permisos, vulneraciones y seguridad), 21 pruebas de seguridad y 10 mediciones de rendimiento contra el sistema en Docker. Ver el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
+| Estado actual de módulos retirados | Por indicación del docente, se retiraron Tratamientos, Consentimientos, Solicitudes de titulares, Proveedores y Evaluación de impacto (`390b324`, 30-10-2026). Sus requisitos de la Ley 21.719 se evalúan en Análisis de Brechas mediante 265 preguntas del listado de cumplimiento de la AEPD entregado por el docente; las tablas se conservan en la base de datos. | Decisión de alcance informada por el equipo |
+| Pruebas | 56 pruebas automatizadas aprobadas con pytest (autenticación, permisos, vulneraciones y seguridad), 21 pruebas de seguridad y 10 mediciones de rendimiento contra el sistema en Docker. Ver el [plan de pruebas por sprint](../tecnico/Plan_de_Pruebas_por_Sprint.md). |
 
 ## 6. Fuentes y trazabilidad
 
