@@ -67,6 +67,9 @@ const DashboardScreen = ({ onNavigate }) => {
       if (!res.ok) throw new Error('Error al obtener datos del informe');
       const report = await res.json();
       const d = report.data;
+      // Meta interna de la empresa (no es un umbral de ISO 27001).
+      let metaInterna = 85;
+      try { const s = await getComplianceScore(); if (s && s.meta) metaInterna = s.meta; } catch (_) {}
 
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       const W = 210;
@@ -195,7 +198,7 @@ const DashboardScreen = ({ onNavigate }) => {
 
       // Score destacado en portada
       const score = d.overall_score?.overall_score ?? 0;
-      const scoreColor = score >= 85 ? [0, 74, 198] : score >= 70 ? [245, 158, 11] : [239, 68, 68];
+      const scoreColor = score >= metaInterna ? [0, 74, 198] : score >= metaInterna - 15 ? [245, 158, 11] : [239, 68, 68];
       setFill(...scoreColor);
       doc.roundedRect(M, y, 80, 28, 3, 3, 'F');
       doc.setFontSize(26);
@@ -208,15 +211,15 @@ const DashboardScreen = ({ onNavigate }) => {
 
       setFill(245, 245, 245);
       doc.roundedRect(M + 85, y, 85, 28, 3, 3, 'F');
-      const readiness = score >= 85 ? 'LISTO PARA CERTIFICACIÓN' : score >= 70 ? 'CASI LISTO' : score >= 50 ? 'EN PROGRESO' : 'ETAPA INICIAL';
+      const readiness = score >= metaInterna ? 'META INTERNA ALCANZADA' : score >= metaInterna - 15 ? 'CERCA DE LA META' : score >= 50 ? 'EN PROGRESO' : 'ETAPA INICIAL';
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       setColor(...scoreColor);
       doc.text(readiness, M + 88, y + 10);
       doc.setFont('helvetica', 'normal');
       setColor(80, 80, 80);
-      doc.text(`Controles: ${d.control_gaps?.implemented_controls ?? 0}/${d.control_gaps?.total_controls ?? 114}`, M + 88, y + 17);
-      doc.text(`Umbral certificación: 85%`, M + 88, y + 23);
+      doc.text(`Controles: ${d.control_gaps?.implemented_controls ?? 0}/${d.control_gaps?.total_controls ?? 93}`, M + 88, y + 17);
+      doc.text(`Meta interna: ${metaInterna}% (no es requisito ISO)`, M + 88, y + 23);
 
       footer();
 
