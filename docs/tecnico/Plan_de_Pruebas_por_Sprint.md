@@ -17,7 +17,7 @@ Este documento detalla qué se probó en cada sprint, cómo se probó, qué defe
 | 2 | Consentimientos | 8 a 10 | Manual | 6 | 5 | Retirado |
 | 3 | Solicitudes de titulares | 10 a 12 | Manual | 4 | 2 | Retirado |
 | 4 | Brechas, luego Vulneraciones de seguridad | 12 a 14 | Manual y automatizada | 9 | 2 | 17 pruebas automatizadas aprobadas |
-| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 32 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 6 | Todas aprobadas |
+| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 60 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 8 | Todas aprobadas |
 
 ## Sprint 1: Registro de actividades de tratamiento (RoPA)
 
@@ -130,6 +130,8 @@ Después del retiro de módulos, la Ley 21.719 pasó a evaluarse con el banco de
 | SC-T10 | Dos empresas reales: ver, modificar o borrar datos de la otra | 404 y los datos quedan intactos | `security/prueba_seguridad.py` |
 | SC-T11 | Lecturas sin IA (100 solicitudes por endpoint) y 20 lecturas concurrentes | p95 bajo 2 s y bajo 5 s | `performance/prueba_rendimiento.py` |
 | SC-T12 | Levantar el sistema completo con `docker compose up --build` | Backend responde `healthy`, frontend carga y el login funciona | Manual |
+| SC-T13 | Subir evidencias en Word, Excel, PDF dañado e imagen | Word y Excel se leen como texto; el PDF dañado y la imagen quedan sin texto y no rompen la subida | `test_evidencias_solicitudes.py` |
+| SC-T14 | Solicitudes de evidencia: permisos, datos incompletos y subida del usuario asignado | Auditor solo lee, empleado y DPO no acceden, faltan datos da 422 y la subida pasa la solicitud a "subida" | `test_evidencias_solicitudes.py` |
 
 Defectos encontrados y corregidos:
 
@@ -141,10 +143,12 @@ Defectos encontrados y corregidos:
 | `4e2ac59` | El Dockerfile del frontend fallaba en `npm ci` porque el lock no estaba sincronizado | SC-T12 |
 | `4f7f302` | El log de arranque mostraba el usuario y la contraseña de la base de datos | SC-T12 |
 | `9538731` | El docker-compose anterior no levantaba el backend ni el frontend | SC-T12 |
+| `5c94ceb` | Los Word y las imágenes se guardaban como bytes leídos como texto y la IA los evaluaba así | SC-T13 |
+| `5c94ceb` | Las solicitudes de evidencia se guardaban solo en el navegador de quien las creaba y "Reenviar" no hacía nada | SC-T14 |
 
-Resultados (13-11-2026):
+Resultados (15-11-2026):
 
-- `pytest tests --ignore=tests/test_api.py`: 56 de 56 pruebas aprobadas, de las cuales 39 corresponden a este sprint (25 de seguridad, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
+- `pytest tests --ignore=tests/test_api.py`: 77 de 77 pruebas aprobadas, de las cuales 60 corresponden a este sprint (25 de seguridad, 21 de lectura de evidencias y solicitudes de evidencia, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
 - `security/prueba_seguridad.py` contra el sistema en Docker: 21 de 21 aprobadas.
 - `performance/prueba_rendimiento.py` contra el sistema en Docker: 10 de 10 mediciones dentro de los límites. El detalle está en las secciones 5.1 y 5.2 del [Plan de Pruebas](Plan_de_Pruebas.md).
 
