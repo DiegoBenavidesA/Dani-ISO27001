@@ -9,7 +9,7 @@ import {
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { complianceAPI, documentsAPI, API_URL, assessmentQuestionsAPI, evidenceAPI } from '../services/api';
-import { getFullGapAnalysis, getComplianceScore } from '../services/gapAnalysisAPI';
+import { getFullGapAnalysis, getComplianceScore, setMetaCumplimiento } from '../services/gapAnalysisAPI';
 import { getControlName } from '../translations/controls';
 import ResultadoBrechas, { impactoISO } from '../components/ResultadoBrechas';
 
@@ -75,6 +75,9 @@ function GapAnalysisScreen({ onNavigate }) {
   const [pageSize, setPageSize] = useState(10);
   const [overallScore, setOverallScore] = useState(null);
   const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false);
+  const [metaDraft, setMetaDraft] = useState(null); // texto mientras se edita la meta interna
+  const [metaSaving, setMetaSaving] = useState(false);
+  const [metaError, setMetaError] = useState(null);
   
   const [dbQuestions, setDbQuestions] = useState([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
@@ -496,7 +499,9 @@ function GapAnalysisScreen({ onNavigate }) {
     else if (sortBy === 'audited') cmp = (!!a.justification === !!b.justification) ? 0 : a.justification ? -1 : 1;
     return sortDir === 'asc' ? cmp : -cmp;
   });
-  const pagedControls = sortedFilteredControls.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.max(1, Math.ceil(sortedFilteredControls.length / pageSize));
+  const paginaActual = Math.min(currentPage, totalPages);
+  const pagedControls = sortedFilteredControls.slice((paginaActual - 1) * pageSize, paginaActual * pageSize);
   const appliesCount = Array.isArray(controls) ? controls.filter(c => c.applicable).length : 0;
   const implementedCount = Array.isArray(controls) ? controls.filter(c => c.applicable && c.status === 'implemented').length : 0;
 
@@ -580,6 +585,29 @@ function GapAnalysisScreen({ onNavigate }) {
           </tbody>
         </table>
       </div>
+      <div className="soa-paginacion" style={{ padding: '10px 16px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', fontSize: '12px', color: t.textMuted }}>
+        <span>
+          {sortedFilteredControls.length === 0 ? 'Sin controles' : `Mostrando ${(paginaActual - 1) * pageSize + 1}–${Math.min(paginaActual * pageSize, sortedFilteredControls.length)} de ${sortedFilteredControls.length} controles`}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            Por página
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1); }} aria-label="Controles por página"
+              style={{ padding: '4px 6px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.text, fontSize: '12px' }}>
+              {[10, 25, 50, 100].map((n) => <option key={n} value={n}>{n === 100 ? 'Todos' : n}</option>)}
+            </select>
+          </label>
+          <button type="button" onClick={() => setCurrentPage(paginaActual - 1)} disabled={paginaActual <= 1} aria-label="Página anterior"
+            style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: paginaActual <= 1 ? 'not-allowed' : 'pointer', opacity: paginaActual <= 1 ? .4 : 1 }}>
+            <ChevronLeft size={14} />
+          </button>
+          <span style={{ fontVariantNumeric: 'tabular-nums' }}>Página {paginaActual} de {totalPages}</span>
+          <button type="button" onClick={() => setCurrentPage(paginaActual + 1)} disabled={paginaActual >= totalPages} aria-label="Página siguiente"
+            style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${t.border}`, background: t.cardBg, color: t.text, cursor: paginaActual >= totalPages ? 'not-allowed' : 'pointer', opacity: paginaActual >= totalPages ? .4 : 1 }}>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
       <div style={{ padding: '10px 16px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#2563eb', fontWeight: 600, background: '#eff6ff' }}>
         <CheckCircle2 size={14} /><span>{tText.autoSaved}</span>
       </div>
@@ -604,22 +632,54 @@ function GapAnalysisScreen({ onNavigate }) {
     if (isLoadingAnalysis) return <div style={{ padding: '40px', textAlign: 'center', color: t.textDim }}>Calculando análisis...</div>;
 
     const score = overallScore?.overall_score ?? 0;
-    const gap = overallScore?.gap_to_certification ?? 100;
+    const meta = overallScore?.meta ?? 85;
+    const faltan = overallScore?.brecha_meta ?? Math.max(0, meta - score);
+    const guardarMeta = async () => {
+      const valor = Number(metaDraft);
+      if (!Number.isInteger(valor) || valor < 1 || valor > 100) { setMetaError('La meta debe ser un número entero entre 1 y 100.'); return; }
+      setMetaSaving(true); setMetaError(null);
+      try { await setMetaCumplimiento(valor); setMetaDraft(null); await loadAnalysis(); }
+      catch (e) { setMetaError(e.message); }
+      finally { setMetaSaving(false); }
+    };
     
     return (
       <div className="resultados-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginTop: '16px' }}>
         <div style={{ background: t.cardBg, border: `2px solid ${getScoreColor(score)}40`, borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
           <div style={{ fontSize: '48px', fontWeight: 800, color: getScoreColor(score), lineHeight: 1 }}>{score}%</div>
           <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Cumplimiento según la SOA</div>
+          <div style={{ fontSize: '11px', color: t.textDim, marginTop: '4px' }}>{overallScore?.implemented ?? 0} de {overallScore?.applicable ?? 0} controles aplicables implementados</div>
         </div>
         <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '48px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>85%</div>
-          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Meta ISO 27001</div>
+          {metaDraft === null ? (
+            <>
+              <div style={{ fontSize: '48px', fontWeight: 800, color: '#3b82f6', lineHeight: 1 }}>{meta}%</div>
+              <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                Meta interna
+                <button type="button" onClick={() => { setMetaDraft(String(meta)); setMetaError(null); }} title="Cambiar la meta interna" aria-label="Cambiar la meta interna"
+                  style={{ background: 'none', border: 'none', padding: '2px', cursor: 'pointer', color: t.textDim, display: 'inline-flex' }}><Edit3 size={13} /></button>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+              <label htmlFor="meta-interna" style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Meta interna (%)</label>
+              <input id="meta-interna" type="number" min={1} max={100} value={metaDraft} onChange={(e) => setMetaDraft(e.target.value)} autoFocus
+                style={{ width: '90px', padding: '6px 8px', textAlign: 'center', fontSize: '16px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text }} />
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <button type="button" onClick={() => { setMetaDraft(null); setMetaError(null); }} style={{ padding: '5px 10px', borderRadius: '6px', border: `1px solid ${t.border}`, background: 'transparent', color: t.textMuted, fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="button" onClick={guardarMeta} disabled={metaSaving} style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', fontSize: '12px', fontWeight: 600, cursor: metaSaving ? 'wait' : 'pointer' }}>{metaSaving ? 'Guardando…' : 'Guardar'}</button>
+              </div>
+            </div>
+          )}
+          {metaError && <p role="alert" style={{ fontSize: '11px', color: '#dc2626', margin: '8px 0 0' }}>{metaError}</p>}
         </div>
         <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '24px', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-          <div style={{ fontSize: '48px', fontWeight: 800, color: '#dc2626', lineHeight: 1 }}>{gap}%</div>
-          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>Brecha restante</div>
+          <div style={{ fontSize: '48px', fontWeight: 800, color: faltan > 0 ? '#dc2626' : '#15803d', lineHeight: 1 }}>{faltan}</div>
+          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '8px', fontWeight: 600, textTransform: 'uppercase' }}>{faltan > 0 ? 'Puntos para la meta' : 'Meta alcanzada'}</div>
         </div>
+        <p style={{ gridColumn: '1 / -1', fontSize: '12px', color: t.textDim, margin: 0, lineHeight: 1.5 }}>
+          La meta es un objetivo interno que define cada empresa. ISO 27001 no exige un porcentaje: para certificar se deben cumplir todas las cláusulas 4 a 10 y los controles declarados como aplicables en la SOA, sin no conformidades mayores.
+        </p>
       </div>
     );
   };
@@ -687,8 +747,8 @@ function GapAnalysisScreen({ onNavigate }) {
                 );
               })}
             </nav>
-            {activeMainTab !== 'assessment' && saveStatus !== 'idle' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, color: saveStatus === 'error' ? '#dc2626' : t.textDim }}>
+            {activeMainTab !== 'assessment' && (
+              <span aria-live="polite" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 600, minWidth: '135px', whiteSpace: 'nowrap', visibility: saveStatus === 'idle' ? 'hidden' : 'visible', color: saveStatus === 'error' ? '#dc2626' : t.textDim }}>
                 {saveStatus === 'error' ? <AlertCircle size={14} /> : <CheckCircle2 size={14} color={saveStatus === 'saved' ? '#2563eb' : undefined} />}
                 {saveStatus === 'saved' ? 'Cambios guardados' : saveStatus === 'error' ? 'No se pudo guardar' : 'Guardando...'}
               </span>
@@ -994,11 +1054,11 @@ function GapAnalysisScreen({ onNavigate }) {
           )}
         </>
       ) : activeMainTab === 'soa' ? (
-        <InteractiveSOA />
+        InteractiveSOA()
       ) : activeMainTab === 'resultados' ? (
         <>
         {evalInfo && <div role="status" style={{ marginTop: '16px', padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
-        <ResultadosView />
+        {ResultadosView()}
         <div style={{ marginTop: '20px' }}>
           <ResultadoBrechas phases={phases} answers={answers} noAplica={noAplica} aiResults={aiResults} valorDe={valorRespuesta}
             marcoLabel="ISO 27001" questionsById={questionsById} onIrAPregunta={irAPregunta} impactoDe={impactoISO}
