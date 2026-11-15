@@ -70,6 +70,13 @@ class StorageService:
             resp = await client.get(url, headers=self._headers())
         return resp.status_code == 200
 
+    async def check_bucket(self) -> int:
+        """Código HTTP de la consulta del bucket (200 si existe y la clave sirve)."""
+        url = f"{self.base_url}/storage/v1/bucket/{self.bucket}"
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(url, headers=self._headers())
+        return resp.status_code
+
     def public_url(self, path: str) -> str:
         """Solo válido si el bucket es público. Para buckets privados, usar
         signed URLs (create_signed_url) en vez de esto."""

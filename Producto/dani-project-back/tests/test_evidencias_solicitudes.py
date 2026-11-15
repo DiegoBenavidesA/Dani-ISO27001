@@ -155,3 +155,21 @@ def test_subida_sin_usuario_no_toca_solicitudes():
     db = _SesionFalsa([_solicitud()])
     assert asyncio.run(vincular_subida(db, "org", None, "ev-9")) == 0
     assert db.ultima_consulta is None
+
+
+# ---------------------------------------------------------------- diagnóstico del almacenamiento
+
+@pytest.mark.parametrize("rol", ["manager", "auditor"])
+def test_diagnostico_de_almacenamiento_solo_para_administradores(rol):
+    assert client.get("/api/evidence/almacenamiento", headers=headers(rol)).status_code == 403
+
+
+def test_diagnostico_sin_configuracion_no_expone_claves(monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "SUPABASE_URL", "")
+    monkeypatch.setattr(settings, "SUPABASE_SERVICE_KEY", "")
+    r = client.get("/api/evidence/almacenamiento", headers=headers("admin"))
+    assert r.status_code == 200
+    datos = r.json()
+    assert datos["configurado"] is False and datos["bucket_accesible"] is False
+    assert set(datos) == {"configurado", "url_definida", "clave_definida", "bucket", "bucket_accesible", "detalle"}

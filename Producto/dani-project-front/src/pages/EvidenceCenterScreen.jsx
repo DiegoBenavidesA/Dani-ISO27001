@@ -247,6 +247,19 @@ function EvidenceCenterScreen() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [errorSol, setErrorSol] = useState(null);
   const [modalSolicitud, setModalSolicitud] = useState(false);
+  const [diagnostico, setDiagnostico] = useState(null);
+  const [revisando, setRevisando] = useState(false);
+
+  const revisarAlmacenamiento = async () => {
+    setRevisando(true);
+    try {
+      setDiagnostico(await evidenceAPI.storageStatus());
+    } catch (e) {
+      setDiagnostico({ error: e.message });
+    } finally {
+      setRevisando(false);
+    }
+  };
 
   const inputArchivo = useRef(null);
   const solicitudDeSubida = useRef(null);
@@ -305,6 +318,9 @@ function EvidenceCenterScreen() {
           agregarAviso('warning', `"${archivo.name}" no tiene texto legible (por ejemplo, un PDF escaneado). La IA no podrá usarlo.`);
         } else {
           agregarAviso('ok', `"${archivo.name}" se subió y la IA podrá leerlo.`);
+        }
+        if (r.archivo_guardado === false) {
+          agregarAviso('warning', `"${archivo.name}": el archivo original no se pudo guardar. ${r.motivo_no_guardado || ''} La IA puede usar su texto, pero no podrás abrir ni descargar el original.`);
         }
         if (r.solicitudes_vinculadas > 0) avisoSolicitud = true;
       } catch (e) {
@@ -382,6 +398,7 @@ function EvidenceCenterScreen() {
     return true;
   });
 
+  const sinArchivo = evidencias.filter((e) => e.archivo_guardado === false).length;
   const estadoDe = (s) => (s.vencida ? 'vencida' : s.estado);
   const pendientes = solicitudes.filter((s) => s.estado === 'pendiente').length;
   const porRevisar = solicitudes.filter((s) => s.estado === 'subida' && s.puedo_gestionar).length;
@@ -449,6 +466,25 @@ function EvidenceCenterScreen() {
           <Bell size={16} color="#f59e0b" />
           Tienes {misPendientes} {misPendientes === 1 ? 'solicitud' : 'solicitudes'} de evidencia por subir.
           <button onClick={() => setPestana('requests')} style={{ background: 'none', border: 'none', color: '#004ac6', fontWeight: 600, cursor: 'pointer', fontSize: '14px', padding: 0 }}>Ver solicitudes</button>
+        </div>
+      )}
+
+      {puedeEliminar && sinArchivo > 0 && (
+        <div style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: t.cardBg, border: `1px solid ${t.border}`, fontSize: '13px', color: t.text }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <AlertTriangle size={16} color="#f59e0b" />
+            <span style={{ flex: 1, minWidth: '220px' }}>{sinArchivo} {sinArchivo === 1 ? 'evidencia no tiene' : 'evidencias no tienen'} el archivo original guardado: la IA usa su texto, pero no se pueden abrir ni descargar.</span>
+            <button onClick={revisarAlmacenamiento} disabled={revisando} style={{ padding: '7px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{revisando ? 'Revisando…' : 'Revisar almacenamiento'}</button>
+          </div>
+          {diagnostico && (
+            <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${t.border}`, color: diagnostico.bucket_accesible ? '#16a34a' : '#dc2626', lineHeight: 1.5 }}>
+              {diagnostico.error
+                ? diagnostico.error
+                : diagnostico.bucket_accesible
+                  ? `El almacenamiento funciona (bucket "${diagnostico.bucket}"). Las evidencias sin archivo se subieron cuando fallaba: elimínalas y vuelve a subirlas.`
+                  : `El almacenamiento no funciona. ${diagnostico.detalle || ''} URL definida: ${diagnostico.url_definida ? 'sí' : 'no'}; clave definida: ${diagnostico.clave_definida ? 'sí' : 'no'}; bucket: "${diagnostico.bucket}".`}
+            </div>
+          )}
         </div>
       )}
 
@@ -546,7 +582,10 @@ function EvidenceCenterScreen() {
                           <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#004ac612', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconoArchivo size={17} color="#004ac6" /></div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: t.text, overflowWrap: 'anywhere' }}>{ev.name}</div>
-                            <div style={{ fontSize: '11px', color: t.textDim }}>{ev.subido_por ? `Subida por ${ev.subido_por}` : ev.source}</div>
+                            <div style={{ fontSize: '11px', color: t.textDim }}>
+                              {ev.subido_por ? `Subida por ${ev.subido_por}` : ev.source}
+                              {ev.archivo_guardado === false && <span style={{ color: '#b45309' }}> · Solo texto, sin archivo original</span>}
+                            </div>
                           </div>
                         </div>
                       </td>

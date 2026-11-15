@@ -256,6 +256,13 @@ export const evidenceAPI = {
     const blob = await response.blob();
     return URL.createObjectURL(blob);
   },
+  storageStatus: async () => {
+    const activeToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/almacenamiento`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo revisar el almacenamiento');
+    return body;
+  },
   getText: async (evidenceId, token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/texto`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });

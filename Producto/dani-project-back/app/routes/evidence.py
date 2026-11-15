@@ -94,6 +94,7 @@ async def get_all_evidence(
             "tiene_texto": bool(texto_guardado_valido(ev.extracted_text, ev.file_name or ev.title or "")),
             "subido_por": nombres.get(ev.uploaded_by),
             "indexing_status": ev.indexing_status,
+            "archivo_guardado": bool(ev.file_url) and not ev.file_url.startswith("local:"),
         }
         for ev in evidences
     ]
@@ -118,17 +119,25 @@ async def upload_evidence(
         safe_filename = "".join(c for c in safe_filename if c.isalnum() or c in "._-") or "file"
         storage_path = f"{org_id}/{uuid.uuid4()}_{safe_filename}" # Aislamiento físico en storage
 
-        try:
-            from app.config import settings
-            if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY:
+        # Si el archivo no llega al almacenamiento, la evidencia se guarda igual
+        # con su texto (la IA puede evaluarla), pero se avisa al usuario y queda
+        # el motivo en el log, en vez de fallar en silencio como antes.
+        motivo_no_guardado = None
+        from app.config import settings
+        if not (settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY):
+            motivo_no_guardado = "El almacenamiento de archivos no está configurado en el servidor (faltan SUPABASE_URL o SUPABASE_SERVICE_KEY)."
+        else:
+            try:
                 await storage_service.upload(
                     path=storage_path,
                     content=file_bytes,
                     content_type=file.content_type or "application/octet-stream",
                 )
-            else:
-                storage_path = f"local:{file.filename}"
-        except Exception as se:
+            except Exception as se:
+                motivo_no_guardado = "El almacenamiento rechazó el archivo. El detalle quedó en el registro del servidor."
+                print(f"[storage] No se pudo guardar '{file.filename}' en el bucket '{settings.SUPABASE_STORAGE_BUCKET}': {se}")
+        if motivo_no_guardado:
+            print(f"[storage] Evidencia '{file.filename}' guardada sin archivo original: {motivo_no_guardado}")
             storage_path = f"local:{file.filename}"
 
         # Extraer el texto AHORA y guardarlo en la BD, para que la evaluación
@@ -186,10 +195,44 @@ async def upload_evidence(
             "texto_extraido": bool(extracted_text),
             "es_imagen": es_imagen(file.filename),
             "solicitudes_vinculadas": vinculadas,
+            "archivo_guardado": motivo_no_guardado is None,
+            "motivo_no_guardado": motivo_no_guardado,
         }
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al subir archivo: {str(e)}")
+
+@router.get("/almacenamiento")
+async def storage_status(current_user: dict = Depends(RequireRole(["admin"]))):
+    """Diagnóstico del almacenamiento de archivos, sin mostrar las claves: si
+    está configurado y si el bucket responde."""
+    from app.config import settings
+    configurado = bool(settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY)
+    resultado = {
+        "configurado": configurado,
+        "url_definida": bool(settings.SUPABASE_URL),
+        "clave_definida": bool(settings.SUPABASE_SERVICE_KEY),
+        "bucket": settings.SUPABASE_STORAGE_BUCKET,
+        "bucket_accesible": False,
+        "detalle": None,
+    }
+    if not configurado:
+        resultado["detalle"] = "Faltan SUPABASE_URL o SUPABASE_SERVICE_KEY en las variables de entorno del servidor."
+        return resultado
+    try:
+        estado = await storage_service.check_bucket()
+        resultado["bucket_accesible"] = estado == 200
+        if estado != 200:
+            resultado["detalle"] = {
+                400: "El bucket no existe o la URL de Supabase no es correcta.",
+                401: "La clave de Supabase no es válida.",
+                403: "La clave de Supabase no tiene permiso sobre el bucket (usa la clave service_role).",
+                404: "El bucket no existe con ese nombre.",
+            }.get(estado, f"Supabase respondió con el código {estado}.")
+    except Exception as e:
+        resultado["detalle"] = f"No se pudo conectar con Supabase: {type(e).__name__}"
+    return resultado
+
 
 @router.get("/{evidence_id}/status")
 async def get_evidence_status(
