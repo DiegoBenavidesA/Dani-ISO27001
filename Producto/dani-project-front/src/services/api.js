@@ -182,6 +182,31 @@ export const authAPI = {
   }
 };
 
+// Solicitudes de evidencia: se guardan en el servidor (antes vivían en localStorage).
+const _solicitudFetch = async (ruta, opciones = {}) => {
+  const activeToken = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/api/evidence-requests${ruta}`, {
+    ...opciones,
+    headers: { ...(opciones.body && { 'Content-Type': 'application/json' }), ...(activeToken && { Authorization: `Bearer ${activeToken}` }) },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const detalle = Array.isArray(body.detail) ? 'Revisa los campos del formulario.' : body.detail;
+    throw new Error(detalle || `Error ${response.status}`);
+  }
+  return body;
+};
+
+export const evidenceRequestsAPI = {
+  list: () => _solicitudFetch('/'),
+  assignableUsers: () => _solicitudFetch('/usuarios'),
+  create: (datos) => _solicitudFetch('/', { method: 'POST', body: JSON.stringify(datos) }),
+  remind: (id) => _solicitudFetch(`/${id}/recordatorio`, { method: 'POST' }),
+  markReceived: (id) => _solicitudFetch(`/${id}/recibida`, { method: 'POST' }),
+  sendBack: (id) => _solicitudFetch(`/${id}/devolver`, { method: 'POST' }),
+  remove: (id) => _solicitudFetch(`/${id}`, { method: 'DELETE' }),
+};
+
 export const evidenceAPI = {
   getAll: async (token) => {
     const resolvedToken = token || localStorage.getItem('token');
@@ -217,12 +242,25 @@ export const evidenceAPI = {
     if (!response.ok) { const err = await response.json().catch(() => ({})); throw new Error(err.detail || 'No se pudo eliminar la evidencia.'); }
     return response.json();
   },
-  download: async (evidenceId, token) => {
+  // Devuelve un blob URL del archivo original. Lanza error con status 404 si
+  // el archivo no está en el almacenamiento (entonces se muestra su texto).
+  download: async (evidenceId, token, inline = false) => {
     const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/download`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error('Error al descargar evidencia');
+    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/download${inline ? '?inline=true' : ''}`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const e = new Error(err.detail || 'Error al descargar evidencia');
+      e.status = response.status;
+      throw e;
+    }
     const blob = await response.blob();
     return URL.createObjectURL(blob);
+  },
+  getText: async (evidenceId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/evidence/${evidenceId}/texto`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
+    if (!response.ok) throw new Error('No se pudo leer el texto de la evidencia');
+    return response.json();
   },
   exportZip: async (token) => {
     const activeToken = token || localStorage.getItem('token');

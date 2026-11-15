@@ -21,6 +21,7 @@ from app.routes import report
 from app.routes import breaches
 from app.routes import assessment_questions
 from app.routes import integrations # NUEVO ROUTER DE INTEGRACIONES
+from app.routes import evidence_requests
 
 from app.routes import organizations
 from fastapi import Depends
@@ -34,6 +35,7 @@ from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
 from app.models.document import Document, DocumentAcknowledgement
 from app.models.evidence import Evidence
+from app.models.evidence_request import EvidenceRequest
 
 # --- Modelos Ley N° 21.719 ---
 from app.models.data_treatment import DataTreatment
@@ -241,6 +243,7 @@ app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(risk.router, dependencies=[Depends(RequireRole(ELEVATED_WRITE))]) 
 app.include_router(evidence.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))]) 
+app.include_router(evidence_requests.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])
 app.include_router(documents.router) 
 app.include_router(compliance.router, dependencies=[Depends(RequireRole(ELEVATED_READ))]) 
 app.include_router(chat.router) 

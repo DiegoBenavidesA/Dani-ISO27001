@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import StreamingResponse
+from urllib.parse import quote
 import zipfile
 import io
 import asyncio
@@ -17,6 +18,8 @@ from app.models.evidence import Evidence, EvidenceType
 from app.models.evidence_chunk import EvidenceChunk
 from app.services.embedding_service import embedding_service
 from app.services.storage_service import storage_service
+from app.services.text_extraction import extraer_texto, es_imagen, texto_guardado_valido
+from app.models.user import User
 
 router = APIRouter(prefix="/api/evidence", tags=["Evidence"])
 
@@ -69,22 +72,28 @@ async def get_all_evidence(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    stmt = scope_to_org(select(Evidence), Evidence, org_id)
+    stmt = scope_to_org(select(Evidence), Evidence, org_id).order_by(Evidence.created_at.desc())
     result = await db.execute(stmt)
     evidences = result.scalars().all()
+
+    ids_usuarios = {ev.uploaded_by for ev in evidences if ev.uploaded_by}
+    nombres = {}
+    if ids_usuarios:
+        filas = (await db.execute(select(User.id, User.full_name).where(User.id.in_(ids_usuarios)))).all()
+        nombres = {i: n for i, n in filas}
 
     return [
         {
             "id": ev.id,
             "name": ev.title,
-            "control": ev.evidence_metadata.get("control", "N/A") if ev.evidence_metadata else "N/A",
-            "type": ev.evidence_metadata.get("type", "manual") if ev.evidence_metadata else "manual",
-            "source": ev.evidence_metadata.get("source", "Manual") if ev.evidence_metadata else "Manual",
-            "sourceIcon": ev.evidence_metadata.get("sourceIcon", "📄") if ev.evidence_metadata else "📄",
-            "lastUpdated": ev.verified_at.isoformat() if ev.verified_at else datetime.utcnow().isoformat(),
-            "validityDays": ev.evidence_metadata.get("validityDays", 30) if ev.evidence_metadata else 30,
-            "file_url": ev.file_url,
-            "file_size": ev.file_size
+            "control": (ev.evidence_metadata or {}).get("control", "General"),
+            "source": (ev.evidence_metadata or {}).get("source", "Manual"),
+            "lastUpdated": (ev.verified_at or ev.created_at or datetime.utcnow()).isoformat(),
+            "mime_type": ev.mime_type,
+            "file_size": ev.file_size,
+            "tiene_texto": bool(texto_guardado_valido(ev.extracted_text, ev.file_name or ev.title or "")),
+            "subido_por": nombres.get(ev.uploaded_by),
+            "indexing_status": ev.indexing_status,
         }
         for ev in evidences
     ]
@@ -95,7 +104,8 @@ async def upload_evidence(
     file: UploadFile = File(...),
     control: str = Form("General"),
     source: str = Form("Manual"),
-    validityDays: int = Form(30),
+    validityDays: int = Form(30),  # ya no se usa; se mantiene para no romper clientes antiguos
+    request_id: Optional[str] = Form(None),  # solicitud de evidencia que responde esta subida
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(RequireRole(ELEVATED_WRITE)),  # solo owner/admin/manager (auditor no sube)
@@ -121,28 +131,10 @@ async def upload_evidence(
         except Exception as se:
             storage_path = f"local:{file.filename}"
 
-        # Extraer el texto AHORA (síncrono) y guardarlo en la BD, para que la
-        # evaluación con IA no dependa del almacenamiento ni del indexado.
-        extracted_text = ""
-        fn = (file.filename or "").lower()
-        try:
-            if fn.endswith(".pdf"):
-                try:
-                    from pypdf import PdfReader
-                    pdf = PdfReader(io.BytesIO(file_bytes))
-                    for page in pdf.pages:
-                        t = page.extract_text()
-                        if t:
-                            extracted_text += t + "\n"
-                except Exception as pe:
-                    print(f"No se pudo extraer texto del PDF: {pe}")
-            else:
-                try:
-                    extracted_text = file_bytes.decode("utf-8")
-                except Exception:
-                    extracted_text = file_bytes.decode("latin-1", errors="ignore")
-        except Exception as ee:
-            print(f"Extracción de texto falló: {ee}")
+        # Extraer el texto AHORA y guardarlo en la BD, para que la evaluación
+        # con IA no dependa del almacenamiento ni del indexado. Las imágenes se
+        # guardan como respaldo, pero no tienen texto que la IA pueda leer.
+        extracted_text = extraer_texto(file_bytes, file.filename)
 
         now = datetime.utcnow()
         new_evidence = Evidence(
@@ -155,13 +147,12 @@ async def upload_evidence(
             verified_at=now,
             indexing_status="pending",
             organization_id=org_id,
-            extracted_text=(extracted_text.strip() or None),
+            uploaded_by=current_user.get("user_id"),
+            extracted_text=(extracted_text or None),
             evidence_metadata={
                 "control": control,
                 "type": "manual",
                 "source": source,
-                "sourceIcon": "📄",
-                "validityDays": validityDays
             }
         )
 
@@ -170,18 +161,31 @@ async def upload_evidence(
         await db.refresh(new_evidence)
 
         evidence_id = new_evidence.id
+
+        # Si quien sube tenía solicitudes pendientes, pasan a "subida" y quien
+        # las pidió ve el aviso en la campana.
+        from app.routes.evidence_requests import vincular_subida
+        vinculadas = await vincular_subida(db, org_id, current_user.get("user_id"), evidence_id, request_id)
+
         tmp_path = os.path.join(TMP_DIR, f"{evidence_id}_{safe_filename[:60]}")
         mime = file.content_type or ""
 
-        background_tasks.add_task(
-            _index_evidence_background, evidence_id, org_id, file_bytes, mime, tmp_path
-        )
+        if extracted_text:
+            background_tasks.add_task(
+                _index_evidence_background, evidence_id, org_id, file_bytes, mime, tmp_path
+            )
+        else:
+            new_evidence.indexing_status = "done"
+            await db.commit()
 
         return {
             "message": "Evidencia subida correctamente. Indexando en segundo plano...",
             "id": evidence_id,
             "filename": file.filename,
-            "indexing_status": "pending"
+            "indexing_status": "pending" if extracted_text else "done",
+            "texto_extraido": bool(extracted_text),
+            "es_imagen": es_imagen(file.filename),
+            "solicitudes_vinculadas": vinculadas,
         }
     except Exception as e:
         await db.rollback()
@@ -222,20 +226,50 @@ async def delete_evidence(
 @router.get("/{evidence_id}/download")
 async def download_evidence(
     evidence_id: str,
+    inline: bool = False,
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
     evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
+    ruta = evidence.file_url or ""
+    if not ruta or ruta.startswith("local:"):
+        # El archivo no llegó al almacenamiento cuando se subió (solo quedó el texto).
+        raise HTTPException(status_code=404, detail="El archivo original no está guardado en el almacenamiento.")
     try:
-        content = await storage_service.download(evidence.file_url)
-    except Exception:
-        raise HTTPException(status_code=404, detail="El archivo físico no se encuentra en Supabase Storage")
+        content = await storage_service.download(ruta)
+    except Exception as e:
+        print(f"No se pudo descargar la evidencia {evidence_id} ({ruta}): {e}")
+        raise HTTPException(status_code=404, detail="El archivo original no se encuentra en el almacenamiento.")
 
+    # El nombre va codificado (RFC 5987): con tildes o ñ, una cabecera en
+    # latin-1 hacía fallar la respuesta.
+    nombre = evidence.file_name or "evidencia"
+    ascii_nombre = nombre.encode("ascii", "ignore").decode().replace('"', "") or "evidencia"
+    disposicion = "inline" if inline else "attachment"
     return StreamingResponse(
         io.BytesIO(content),
-        media_type=evidence.mime_type,
-        headers={"Content-Disposition": f'attachment; filename="{evidence.file_name}"'}
+        media_type=evidence.mime_type or "application/octet-stream",
+        headers={"Content-Disposition": f"{disposicion}; filename=\"{ascii_nombre}\"; filename*=UTF-8''{quote(nombre)}"}
     )
+
+
+@router.get("/{evidence_id}/texto")
+async def evidence_text(
+    evidence_id: str,
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db)
+):
+    """Texto que se extrajo al subir la evidencia: es lo que lee la IA."""
+    evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
+    from app.services.text_extraction import texto_guardado_valido
+    texto = texto_guardado_valido(evidence.extracted_text, evidence.file_name or evidence.title or "")
+    return {
+        "id": evidence.id,
+        "nombre": evidence.title,
+        "texto": texto[:200_000],
+        "recortado": len(texto) > 200_000,
+        "es_imagen": es_imagen(evidence.file_name or evidence.title),
+    }
 
 def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
     import fitz

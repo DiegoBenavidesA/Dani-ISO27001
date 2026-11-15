@@ -22,7 +22,7 @@ const labels = {
 const TYPE_ICON = { error: XCircle, warning: AlertTriangle, info: Clock, success: CheckCircle2 };
 const TYPE_COLOR = { error: '#ef4444', warning: '#f59e0b', info: '#3b82f6', success: '#004ac6' };
 
-function NotificationCenter({ isOpen, onClose, onCountChange }) {
+function NotificationCenter({ isOpen, onClose, onCountChange, onNavigate }) {
   const { darkMode, theme: t, language } = useTheme();
   const l = labels[language] || labels.en;
 
@@ -98,7 +98,11 @@ function NotificationCenter({ isOpen, onClose, onCountChange }) {
           return (
             <div
               key={notif.id}
-              onClick={() => markRead(notif.id)}
+              onClick={() => {
+                markRead(notif.id);
+                // Avisos con pantalla asociada (vulneraciones, solicitudes de evidencia) llevan a ella.
+                if (notif.screen && onNavigate) { onNavigate(notif.screen); onClose(); }
+              }}
               style={{ padding: '14px 20px', borderBottom: `1px solid ${t.border}`, display: 'flex', gap: '12px', background: isRead ? 'transparent' : (darkMode ? 'rgba(59,130,246,0.05)' : 'rgba(59,130,246,0.03)'), cursor: 'pointer' }}
             >
               <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -109,7 +113,7 @@ function NotificationCenter({ isOpen, onClose, onCountChange }) {
                   <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{notif.title}</span>
                   {!isRead && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />}
                 </div>
-                <p style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.message}</p>
+                <p style={{ fontSize: '12px', color: t.textDim, marginBottom: '4px', lineHeight: 1.45, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{notif.message}</p>
                 <span style={{ fontSize: '11px', color: t.textMuted }}>{notif.time}</span>
               </div>
             </div>

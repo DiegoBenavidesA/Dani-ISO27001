@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 from app.dependencies.auth import get_current_user
 from app.dependencies.database import get_db
-from app.models.evidence import Evidence
 from app.models.document import Document, DocumentStatus
 from app.models.capa import CAPA, CAPAStatus
 from app.models.data_breach import DataBreach
@@ -59,32 +58,45 @@ async def get_notifications(
                 "screen": "breaches",
             })
 
-    # Evidencias expiradas o por vencer
-    ev_result = await db.execute(select(Evidence).where(Evidence.organization_id == org_id))
-    for ev in ev_result.scalars().all():
-        validity = (ev.evidence_metadata or {}).get("validityDays", 30)
-        if not ev.verified_at:
-            continue
-        expiry = ev.verified_at + timedelta(days=validity)
-        days_left = (expiry - now).days
-        if days_left < 0:
-            notifications.append({
-                "id": f"ev-exp-{ev.id}",
-                "type": "error",
-                "title": "Evidencia expirada",
-                "message": f"{ev.title} — venció hace {abs(days_left)} día(s)",
-                "time": ev.verified_at.strftime("%d/%m/%Y"),
-                "read": False
-            })
-        elif days_left <= 7:
-            notifications.append({
-                "id": f"ev-warn-{ev.id}",
-                "type": "warning",
-                "title": "Evidencia por vencer",
-                "message": f"{ev.title} — vence en {days_left} día(s)",
-                "time": ev.verified_at.strftime("%d/%m/%Y"),
-                "read": False
-            })
+    # Solicitudes de evidencia: a quien la pidió, cuando ya subieron algo;
+    # a quien se le asignó, mientras siga pendiente.
+    from app.models.evidence_request import EvidenceRequest
+    from app.models.user import User
+    user_id = current_user.get("user_id")
+    if user_id:
+        sol_result = await db.execute(select(EvidenceRequest).where(
+            EvidenceRequest.organization_id == org_id,
+            ((EvidenceRequest.solicitado_por == user_id) & (EvidenceRequest.estado == "subida"))
+            | ((EvidenceRequest.asignado_a == user_id) & (EvidenceRequest.estado == "pendiente")),
+        ))
+        solicitudes = sol_result.scalars().all()
+        ids = {s.asignado_a for s in solicitudes} | {s.solicitado_por for s in solicitudes}
+        nombres = {}
+        if ids:
+            nombres = {i: n for i, n in (await db.execute(select(User.id, User.full_name).where(User.id.in_(ids)))).all()}
+        hoy = now.date()
+        for s in solicitudes:
+            if s.estado == "subida" and s.solicitado_por == user_id:
+                notifications.append({
+                    "id": f"evreq-subida-{s.id}",
+                    "type": "info",
+                    "title": "Evidencia subida para revisar",
+                    "message": f"{nombres.get(s.asignado_a, 'El usuario asignado')} subió un documento para \"{s.titulo}\". Revísalo y márcalo como recibido.",
+                    "time": (s.subida_en or now).strftime("%d/%m/%Y"),
+                    "read": False,
+                    "screen": "evidence",
+                })
+            elif s.estado == "pendiente" and s.asignado_a == user_id:
+                vencida = s.fecha_limite < hoy
+                notifications.append({
+                    "id": f"evreq-pend-{s.id}",
+                    "type": "error" if vencida else "warning",
+                    "title": "Evidencia solicitada" + (" (vencida)" if vencida else ""),
+                    "message": f"{nombres.get(s.solicitado_por, 'Un usuario')} te pidió subir \"{s.titulo}\" antes del {s.fecha_limite.strftime('%d/%m/%Y')}.",
+                    "time": s.created_at.strftime("%d/%m/%Y") if s.created_at else "—",
+                    "read": False,
+                    "screen": "evidence",
+                })
 
     # Documentos pendientes de aprobación
     doc_result = await db.execute(

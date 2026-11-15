@@ -1089,6 +1089,10 @@ function GapAnalysisScreen({ onNavigate }) {
         /* Hasta 1279px: las evidencias bajan bajo la pregunta */
         @media (max-width: 1279px) {
           .gap-3col { flex-wrap: wrap; }
+          /* La columna de fases deja de ser fija: si seguía "sticky" se montaba
+             sobre el panel de evidencias, que aquí baja a otra fila. */
+          .gap-left { position: static; max-height: none; }
+          .gap-left .gap-scroll { max-height: 460px; }
           .gap-center { flex: 1 1 calc(100% - 320px) !important; }
           .gap-right { width: 100% !important; position: static; max-height: none; }
         }

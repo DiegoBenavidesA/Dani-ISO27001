@@ -612,23 +612,8 @@ _jobs_en_curso = set()  # referencias para que asyncio no recolecte las tareas
 
 
 def _texto_de_bytes(data: bytes, filename: str) -> str:
-    filename = (filename or "").lower()
-    texto = ""
-    if filename.endswith(".pdf") and PdfReader:
-        try:
-            pdf = PdfReader(io.BytesIO(data))
-            for page in pdf.pages:
-                t = page.extract_text()
-                if t:
-                    texto += t + "\n"
-        except Exception as e:
-            print(f"Error leyendo PDF: {e}")
-    else:
-        try:
-            texto = data.decode("utf-8")
-        except Exception:
-            texto = data.decode("latin-1", errors="ignore")
-    return texto
+    from app.services.text_extraction import extraer_texto
+    return extraer_texto(data, filename)
 
 
 async def _documentos_guardados(db: AsyncSession, ev_ids: List[str], org_id: str):
@@ -643,7 +628,8 @@ async def _documentos_guardados(db: AsyncSession, ev_ids: List[str], org_id: str
     )).scalars().all()
     for ev in ev_rows:
         # 0) Lo más confiable: el texto ya guardado en la BD al subir.
-        texto_ev = (ev.extracted_text or "").strip()
+        from app.services.text_extraction import texto_guardado_valido
+        texto_ev = texto_guardado_valido(ev.extracted_text, ev.file_name or ev.title or "")
         # 1) Si no hay, descargar el archivo guardado y extraer el texto ahora.
         if not texto_ev:
             try:

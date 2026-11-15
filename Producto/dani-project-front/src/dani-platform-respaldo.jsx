@@ -199,6 +199,7 @@ export default function DaniPlatform() {
               isOpen={notificationsOpen}
               onClose={() => setNotificationsOpen(false)}
               onCountChange={setUnreadNotifications}
+              onNavigate={handleNavigate}
             />
           </div>
 
