@@ -65,6 +65,7 @@ async def lifespan(app: FastAPI):
 
         await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS erp_url VARCHAR(500);"))
         await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS erp_api_key VARCHAR(255);"))
+        await conn.execute(text("ALTER TABLE organizations ADD COLUMN IF NOT EXISTS meta_cumplimiento INTEGER NOT NULL DEFAULT 85;"))
 
         # NUEVO: Crear la columna push_token en users si no existe para evitar UndefinedColumnError
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token VARCHAR(255);"))

@@ -79,6 +79,20 @@ export const getComplianceScore = async () => {
   return response.json();
 };
 
+// Guardar la meta interna de cumplimiento de la SOA (1 a 100)
+export const setMetaCumplimiento = async (meta) => {
+  const response = await fetch(`${API_URL}/api/gap-analysis/meta`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify({ meta })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(response.status === 403 ? 'Solo owner, admin o manager pueden cambiar la meta.' : (typeof err.detail === 'string' ? err.detail : 'No se pudo guardar la meta.'));
+  }
+  return response.json();
+};
+
 // Actualizar KPI
 export const updateKPI = async (kpiId, currentValue) => {
   const response = await fetch(`${API_URL}/api/gap-analysis/kpi/update?kpi_id=${kpiId}&current_value=${currentValue}`, {

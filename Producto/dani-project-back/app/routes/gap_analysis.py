@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from sqlalchemy import select
@@ -60,11 +60,38 @@ async def get_compliance_score(current_user: dict = Depends(RequireRole(ELEVATED
     # no la tabla control_implementation (que quedó sin uso/vacía).
     from app.models.control_status import ControlStatus
     controls = (await db.execute(select(ControlStatus).where(ControlStatus.organization_id == org_id))).scalars().all()
+    from app.models.organization import Organization
+    org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one_or_none()
+    meta = org.meta_cumplimiento if org and org.meta_cumplimiento else 85
     applies = [c for c in controls if c.applies]
-    if not applies: return {"overall_score": 0, "gap_to_certification": 100, "trend": "down"}
     implemented = sum(1 for c in applies if c.status == "Implementado")
-    score = int((implemented / len(applies)) * 100)
-    return {"overall_score": score, "gap_to_certification": max(0, 85 - score), "trend": "up" if score > 50 else "down"}
+    score = int((implemented / len(applies)) * 100) if applies else 0
+    # "meta" es un objetivo interno de la empresa, no un umbral de ISO 27001:
+    # la certificación exige cumplir las cláusulas y los controles aplicables.
+    return {
+        "overall_score": score,
+        "implemented": implemented,
+        "applicable": len(applies),
+        "meta": meta,
+        "brecha_meta": max(0, meta - score),
+        "trend": "up" if score > 50 else "down",
+    }
+
+
+class MetaRequest(BaseModel):
+    meta: int = Field(..., ge=1, le=100)
+
+
+@router.put("/meta")
+async def actualizar_meta(data: MetaRequest, current_user: dict = Depends(RequireRole(ELEVATED_WRITE)), org_id: str = Depends(get_current_org), db = Depends(get_db)) -> Dict:
+    """Fija la meta interna de cumplimiento de la SOA de la empresa (1 a 100)."""
+    from app.models.organization import Organization
+    org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    org.meta_cumplimiento = data.meta
+    await db.commit()
+    return {"meta": org.meta_cumplimiento}
 
 @router.get("/domains")
 async def get_domain_scores(current_user: dict = Depends(RequireRole(ELEVATED_NO_DPO)), org_id: str = Depends(get_current_org), db = Depends(get_db)) -> Dict:

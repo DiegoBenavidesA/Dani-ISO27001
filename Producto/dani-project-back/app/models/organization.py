@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean, DateTime, Integer
 from datetime import datetime
 import uuid
 from app.dependencies.database import Base
@@ -29,6 +29,9 @@ class Organization(Base):
     activo = Column(Boolean, default=True, nullable=False)
     # Plan contratado (a futuro para límites/facturación). Texto libre por ahora.
     plan = Column(String(50), default="basico", nullable=False)
+    # Meta interna de cumplimiento de la SOA (% de controles implementados).
+    # La define cada empresa; ISO 27001 no exige un porcentaje para certificar.
+    meta_cumplimiento = Column(Integer, default=85, nullable=False)
     
     # NUEVO: Integraciones API con Sistemas Externos
     erp_url = Column(String(500), nullable=True)
