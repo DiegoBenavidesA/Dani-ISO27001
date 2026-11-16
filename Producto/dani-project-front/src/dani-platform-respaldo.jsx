@@ -140,7 +140,7 @@ export default function DaniPlatform() {
       >
         <header
           className="normia-platform-header"
-          style={{ padding: '16px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}`, zIndex: 10 }}
+          style={{ padding: '12px 40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', borderBottom: `1px solid ${t.border}`, position: 'sticky', top: 0, background: t.bg, zIndex: 50 }}
         >
           <button
             type="button"

@@ -73,7 +73,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
     borderRight: `1px solid ${t.border}`,
 
-    padding: '24px 16px',
+    padding: '18px 14px',
 
     display: 'flex',
 
@@ -81,7 +81,13 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
     transition: 'all 0.3s ease',
 
-    position: isMobile ? 'fixed' : 'relative',
+    position: isMobile ? 'fixed' : 'sticky',
+
+    alignSelf: 'flex-start',
+
+    boxSizing: 'border-box',
+
+    flexShrink: 0,
 
     top: 0,
 
@@ -119,17 +125,17 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
         {/* Logo y Botón Cerrar (en móvil) */}
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px', padding: '0 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px', padding: '0 8px' }}>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
 
-            <img src="/LogoNormia.png" alt="NormIA" style={{ width: '44px', height: '44px', objectFit: 'contain' }} />
+            <img src="/LogoNormia.png" alt="NormIA" style={{ width: '38px', height: '38px', objectFit: 'contain' }} />
 
             {(!sidebarCollapsed || isMobile) && (
 
               <div>
 
-                <div style={{ fontWeight: 700, fontSize: '20px' }}>NormIA</div>
+                <div style={{ fontWeight: 700, fontSize: '18px' }}>NormIA</div>
 
                 <div style={{ fontSize: '11px', color: t.textDim, textTransform: 'lowercase', letterSpacing: '1px' }}>Plataforma</div>
 
@@ -155,11 +161,11 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
         {superadminEnOrg && (
 
-          <div style={{ marginBottom: '16px' }}>
+          <div style={{ marginBottom: '10px' }}>
 
             {(!sidebarCollapsed || isMobile) && (
 
-              <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '8px', padding: '0 4px' }}>
+              <div style={{ fontSize: '11px', color: t.textDim, marginBottom: '6px', padding: '0 4px' }}>
 
                 Viendo empresa: <strong style={{ color: t.text }}>{impersonatedOrg.nombre}</strong>
 
@@ -173,7 +179,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
               title="Volver al panel de plataforma"
 
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '10px 14px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: '13px', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: (sidebarCollapsed && !isMobile) ? '10px' : '8px 12px', background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '10px', color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: '13px', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}
 
             >
 
@@ -199,11 +205,11 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
               return (
 
-                <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '12px 16px', marginBottom: '4px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: 'none', borderRadius: '12px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start', ...extraStyle }}>
+                <button key={item.id} onClick={() => setActiveScreen(item.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: (sidebarCollapsed && !isMobile) ? '10px' : '8px 12px', marginBottom: '2px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: 'none', borderRadius: '10px', color: isActive ? '#004ac6' : t.textMuted, cursor: 'pointer', transition: 'all 0.2s ease', textAlign: 'left', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start', ...extraStyle }}>
 
-                  <item.icon size={20} />
+                  <item.icon size={18} style={{ flexShrink: 0 }} />
 
-                  {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+                  {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '13px', lineHeight: 1.3, fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
 
                 </button>
 
@@ -217,7 +223,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                 onClick={toggle}
 
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', marginBottom: '4px', marginTop: '12px', background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.2s ease' }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', marginBottom: '2px', marginTop: '8px', background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px', transition: 'color 0.2s ease' }}
 
               >
 
@@ -254,7 +260,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                     <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || comunOpen ? `${comunItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
 
-                      {comunItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+                      {comunItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
 
                     </div>
 
@@ -270,7 +276,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                     <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || isoOpen ? `${isoItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
 
-                      {isoItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+                      {isoItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
 
                     </div>
 
@@ -286,7 +292,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                     <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || leyOpen ? `${leyItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
 
-                      {leyItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '28px' } : {}))}
+                      {leyItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
 
                     </div>
 
@@ -302,11 +308,11 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                   return (
 
-                    <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: (sidebarCollapsed && !isMobile) ? '12px' : '12px 16px', marginBottom: '6px', marginTop: '16px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#004ac6' : t.textDim, cursor: 'pointer', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}>
+                    <button onClick={() => setActiveScreen(employeePortal.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: (sidebarCollapsed && !isMobile) ? '10px' : '8px 12px', marginBottom: '6px', marginTop: '12px', background: isActive ? 'rgba(0, 74, 198, 0.15)' : 'transparent', border: `1px dashed ${t.border}`, borderRadius: '12px', color: isActive ? '#004ac6' : t.textDim, cursor: 'pointer', justifyContent: (sidebarCollapsed && !isMobile) ? 'center' : 'flex-start' }}>
 
-                      <employeePortal.icon size={20} />
+                      <employeePortal.icon size={18} style={{ flexShrink: 0 }} />
 
-                      {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '14px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
+                      {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '13px', fontWeight: isActive ? 600 : 500 }}>{employeePortal.label}</span>}
 
                     </button>
 
