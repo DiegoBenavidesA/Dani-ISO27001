@@ -9,17 +9,20 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const { theme: t, language, translations } = useTheme();
   const { user, impersonatedOrg, exitOrg } = useAuth();
   const l = translations[language];
-  const [comunOpen, setComunOpen] = useState(true);
-  const [isoOpen, setIsoOpen] = useState(true);
-  const [leyOpen, setLeyOpen] = useState(true);
-  const ISO_IDS = ['audit-room'];
-  const LEY_IDS = ['breaches'];
+  // El menú se ordena por etapa del trabajo (evaluar, documentar, auditar y
+  // responder) y no por norma: casi todas las páginas sirven para ISO 27001 y
+  // para la Ley 21.719. Las que son de un solo marco llevan una etiqueta.
+  const GRUPOS = [
+    { id: 'evaluar', label: language === 'es' ? 'Evaluar' : 'Assess' },
+    { id: 'documentar', label: language === 'es' ? 'Documentar' : 'Document' },
+    { id: 'auditar', label: language === 'es' ? 'Auditar y responder' : 'Audit and respond' },
+  ];
+  const [gruposAbiertos, setGruposAbiertos] = useState({ evaluar: true, documentar: true, auditar: true });
 
   useEffect(() => {
 
-    if (ISO_IDS.includes(activeScreen)) setIsoOpen(true);
-
-    if (LEY_IDS.includes(activeScreen)) setLeyOpen(true);
+    const grupoActivo = { 'gap-analysis': 'evaluar', 'risk-map': 'evaluar', predictive: 'evaluar', 'doc-generator': 'documentar', documents: 'documentar', evidence: 'documentar', 'audit-room': 'auditar', breaches: 'auditar' }[activeScreen];
+    if (grupoActivo) setGruposAbiertos(p => (p[grupoActivo] ? p : { ...p, [grupoActivo]: true }));
 
     // Si estamos en móvil y cambiamos de pantalla, cerramos el menú
 
@@ -39,14 +42,14 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const navItems = [
 
     { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
-    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'general' },
-    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'comun' },
-    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'comun' },
-    { id: 'predictive', label: language === 'es' ? 'Análisis Predictivo IA' : 'AI Predictive Analysis', icon: BrainCircuit, roles: ISO_MANAGE, group: 'comun' },
-    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'comun' },
-    { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
-    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
-    { id: 'breaches', label: language === 'es' ? 'Vulneraciones de Seguridad' : 'Security Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
+    { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'evaluar' },
+    { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'evaluar' },
+    { id: 'predictive', label: language === 'es' ? 'Análisis Predictivo IA' : 'AI Predictive Analysis', icon: BrainCircuit, roles: ISO_MANAGE, group: 'evaluar' },
+    { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'documentar' },
+    { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'documentar' },
+    { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'documentar' },
+    { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'auditar', marco: 'ISO 27001' },
+    { id: 'breaches', label: language === 'es' ? 'Vulneraciones' : 'Breaches', icon: ShieldAlert, roles: LEY, group: 'auditar', marco: 'Ley 21.719' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
     { id: 'questions', label: language === 'es' ? 'Preguntas' : 'Questions', icon: ListChecks, roles: PLATFORM, group: 'general' },
@@ -208,7 +211,11 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
                   <item.icon size={18} style={{ flexShrink: 0 }} />
 
-                  {(!sidebarCollapsed || isMobile) && <span style={{ fontSize: '13px', lineHeight: 1.3, fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+                  {(!sidebarCollapsed || isMobile) && <span style={{ flex: 1, minWidth: 0, fontSize: '13px', lineHeight: 1.3, fontWeight: isActive ? 600 : 500 }}>{item.label}</span>}
+
+                  {(!sidebarCollapsed || isMobile) && item.marco && (
+                    <span style={{ flexShrink: 0, fontSize: '9px', fontWeight: 700, letterSpacing: '0.3px', padding: '2px 6px', borderRadius: '6px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.textDim, whiteSpace: 'nowrap' }}>{item.marco}</span>
+                  )}
 
                 </button>
 
@@ -233,71 +240,36 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
             );
 
-            const generalTop = navItems.filter(i => i.group === 'general' && ['dashboard', 'gap-analysis'].includes(i.id));
+            const dashboard = navItems.find(i => i.id === 'dashboard');
 
-            const comunItems = navItems.filter(i => i.group === 'comun');
-
-            const isoItems   = navItems.filter(i => i.group === 'iso');
-
-            const leyItems   = navItems.filter(i => i.group === 'ley');
-
-            const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'gap-analysis', 'employee-portal'].includes(i.id));
+            const generalBottom = navItems.filter(i => i.group === 'general' && !['dashboard', 'employee-portal'].includes(i.id));
 
             const employeePortal = navItems.find(i => i.id === 'employee-portal');
+
+            const expandido = !sidebarCollapsed || isMobile;
 
             return (
 
               <>
 
-                {generalTop.map(item => renderNavButton(item))}
+                {dashboard && renderNavButton(dashboard)}
 
-                {comunItems.length > 0 && (
+                {GRUPOS.map(grupo => {
+                  const items = navItems.filter(i => i.group === grupo.id);
+                  // Un grupo sin páginas para este rol no muestra su título.
+                  if (items.length === 0) return null;
+                  const abierto = !expandido || gruposAbiertos[grupo.id];
+                  return (
+                    <React.Fragment key={grupo.id}>
+                      {expandido && renderGroupHeader(grupo.label, gruposAbiertos[grupo.id], () => setGruposAbiertos(p => ({ ...p, [grupo.id]: !p[grupo.id] })))}
+                      <div style={{ maxHeight: abierto ? `${items.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
+                        {items.map(item => renderNavButton(item, expandido ? { paddingLeft: '22px' } : {}))}
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
 
-                  <>
-
-                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('General', comunOpen, () => setComunOpen(!comunOpen))}
-
-                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || comunOpen ? `${comunItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
-
-                      {comunItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
-
-                    </div>
-
-                  </>
-
-                )}
-
-                {isoItems.length > 0 && (
-
-                  <>
-
-                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('ISO 27001', isoOpen, () => setIsoOpen(!isoOpen))}
-
-                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || isoOpen ? `${isoItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
-
-                      {isoItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
-
-                    </div>
-
-                  </>
-
-                )}
-
-                {leyItems.length > 0 && (
-
-                  <>
-
-                    {(!sidebarCollapsed || isMobile) && renderGroupHeader('Ley 21.719', leyOpen, () => setLeyOpen(!leyOpen))}
-
-                    <div style={{ maxHeight: (sidebarCollapsed && !isMobile) || leyOpen ? `${leyItems.length * 52}px` : '0', overflow: 'hidden', transition: 'max-height 0.3s ease' }}>
-
-                      {leyItems.map(item => renderNavButton(item, (!sidebarCollapsed || isMobile) ? { paddingLeft: '22px' } : {}))}
-
-                    </div>
-
-                  </>
-
-                )}
+                {generalBottom.length > 0 && <div style={{ height: '8px' }} />}
 
                 {generalBottom.map(item => renderNavButton(item))}
 
