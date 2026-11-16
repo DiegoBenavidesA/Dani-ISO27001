@@ -97,9 +97,14 @@ DOCUMENTOS = {
 VEREDICTOS = {"cumple": "Cumple", "parcial": "Parcial", "no_cumple": "No cumple",
               "sin_evidencia": "Sin evidencia", "no_aplica": "No aplica"}
 
-MAX_RESPUESTAS = 60
+# Groq (plan gratuito, gpt-oss-120b) permite 8.000 tokens por minuto, y una
+# sola llamada no puede pasarse de eso: entrada + respuesta (hasta 3.000).
+# Por eso la información de la empresa se acota a unos 13.000 caracteres
+# (cerca de 3.500 tokens) más las instrucciones.
+MAX_RESPUESTAS = 40
+MAX_CARACTERES_RESPUESTAS = 7000
 MAX_EVIDENCIAS = 3
-MAX_TEXTO_EVIDENCIA = 2500
+MAX_TEXTO_EVIDENCIA = 2000
 
 
 def _sin_acentos(s: str) -> str:
@@ -161,9 +166,18 @@ async def armar_contexto(db, org_id: str, doc_id: str) -> dict:
             continue
         linea = f"- [{q.codigo}] {q.pregunta} -> {VEREDICTOS.get(a.veredicto, a.veredicto)}"
         if a.justificacion:
-            linea += f". {a.justificacion.strip()[:300]}"
+            linea += f". {a.justificacion.strip()[:160]}"
         lineas_resp.append(linea)
-    lineas_resp = lineas_resp[:MAX_RESPUESTAS]
+    # Primero las que no se cumplen: son las que el documento debe marcar.
+    orden = {"No cumple": 0, "Sin evidencia": 1, "Parcial": 2, "Cumple": 3}
+    lineas_resp.sort(key=lambda l: min((v for k, v in orden.items() if f"-> {k}" in l), default=4))
+    acotadas, total = [], 0
+    for linea in lineas_resp[:MAX_RESPUESTAS]:
+        if total + len(linea) > MAX_CARACTERES_RESPUESTAS:
+            break
+        acotadas.append(linea)
+        total += len(linea) + 1
+    lineas_resp = acotadas
 
     evidencias = []
     for ev in (await db.execute(select(Evidence).where(Evidence.organization_id == org_id))).scalars().all():

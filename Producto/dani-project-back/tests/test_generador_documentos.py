@@ -126,3 +126,24 @@ def test_sin_ia_configurada_no_se_genera_nada(monkeypatch):
     monkeypatch.setattr(rutas_documentos.ai_service, "generate_document", ia_sin_clave)
     r = client.post("/api/documents/generate/chapter_iso_politica", json={}, headers=headers("admin"))
     assert r.status_code == 503
+
+
+def test_el_prompt_mas_grande_cabe_en_el_limite_por_minuto_de_groq():
+    from app.services import document_catalog as dc
+    linea = "- [A.5.1] " + "¿pregunta larga del cuestionario? " * 5 + "-> No cumple. " + "j" * 160
+    ctx = {
+        "empresa": "Empresa", "preguntas_relacionadas": 100,
+        "respuestas": [linea] * 200,
+        "evidencias": [("doc.pdf", "texto " * 2000)] * 3,
+        "riesgos": ["- Riesgo con nombre bastante largo (probabilidad 3, impacto 4, nivel high)"] * 40,
+    }
+    # armar_contexto acota las respuestas; aquí se aplica el mismo tope.
+    acotadas, total = [], 0
+    for l in ctx["respuestas"][:dc.MAX_RESPUESTAS]:
+        if total + len(l) > dc.MAX_CARACTERES_RESPUESTAS:
+            break
+        acotadas.append(l); total += len(l) + 1
+    ctx["respuestas"] = acotadas
+    prompt = armar_prompt("iso_plan_tratamiento", ctx)
+    tokens_aprox = len(prompt) / 3.5  # español: ~3,5 caracteres por token
+    assert tokens_aprox + 3000 < 8000, tokens_aprox
