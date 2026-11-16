@@ -9,7 +9,7 @@ from app.dependencies.auth import get_current_user, require_admin, get_current_o
 from app.models.user import User, UserRole
 from app.models.organization import Organization
 from app.services.auth_service import AuthService
-from app.services.email_service import send_email_async, build_invitation_email
+from app.services.email_service import send_email_async, build_invitation_email, diagnosticar_correo
 from app.config import settings
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
@@ -157,6 +157,16 @@ async def _enviar_invitacion(user: User, org: Organization, rol: str):
     if not email_sent:
         print(f"[invitacion] No se pudo enviar el correo de invitación a {user.email}. Revisa BREVO_API_KEY / EMAIL_FROM o SMTP en el servidor.")
     return email_sent, activation_url
+
+
+@router.post("/correo/prueba")
+async def probar_correo(current_user: dict = Depends(require_admin)):
+    """Envía un correo de prueba a quien lo pide y explica el resultado
+    (método de envío y motivo del fallo), sin mostrar claves."""
+    destinatario = current_user.get("sub") or current_user.get("email")
+    if not destinatario or "@" not in str(destinatario):
+        raise HTTPException(status_code=400, detail="Tu sesión no tiene un correo al que enviar la prueba.")
+    return await diagnosticar_correo(destinatario)
 
 
 @router.post("/{user_id}/reenviar-invitacion")

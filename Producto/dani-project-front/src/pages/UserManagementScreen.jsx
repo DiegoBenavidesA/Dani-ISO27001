@@ -55,6 +55,15 @@ const UserManagementScreen = () => {
   const [inviteLink, setInviteLink] = useState(null);
   const [linkCopiado, setLinkCopiado] = useState(false);
   const [aviso, setAviso] = useState(null);
+  const [probandoCorreo, setProbandoCorreo] = useState(false);
+  const [pruebaCorreo, setPruebaCorreo] = useState(null);
+
+  const handleProbarCorreo = async () => {
+    setProbandoCorreo(true);
+    try { setPruebaCorreo(await userAPI.testEmail()); }
+    catch (error) { setPruebaCorreo({ enviado: false, detalle: error.message }); }
+    finally { setProbandoCorreo(false); }
+  };
 
   const [allOrgs, setAllOrgs] = useState([]);
 
@@ -209,6 +218,17 @@ const UserManagementScreen = () => {
           <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: t.text, tracking: 'tight', lineHeight: 1.2 }}>Gestión de Usuarios</h1>
           <p style={{ margin: '4px 0 0', fontSize: '12px', color: t.textDim, lineHeight: 1.4 }}>Administra accesos y asigna roles para cumplimiento ISO 27001</p>
         </div>
+        <div className="header-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          className="btn-invite"
+          onClick={handleProbarCorreo}
+          disabled={probandoCorreo}
+          title="Envía un correo de prueba a tu dirección y muestra por qué falla, si falla"
+          style={{ padding: '12px 16px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontSize: '13px', fontWeight: 600, cursor: probandoCorreo ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: probandoCorreo ? 0.7 : 1 }}
+        >
+          <Mail size={16} /> {probandoCorreo ? 'Probando...' : 'Probar correo'}
+        </button>
         <button
           className="btn-invite"
           onClick={() => { setInviteMsg(null); setNewUser({ full_name: '', email: '', role: 'employee', orgId: '' }); setIsAddModalOpen(true); }}
@@ -216,6 +236,7 @@ const UserManagementScreen = () => {
         >
           <UserPlus size={16} strokeWidth={2.5} /> Invitar usuario
         </button>
+        </div>
       </section>
 
       {/* MÉTRICAS GRID */}
@@ -475,6 +496,37 @@ const UserManagementScreen = () => {
                 <button type="submit" disabled={isCreating || (isSuperadmin && allOrgs.length === 0)} className="btn-save" style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', background: '#2563eb', color: 'white', fontWeight: 700, fontSize: '13px', cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>{isCreating ? 'Enviando...' : 'Enviar invitación'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* RESULTADO DE LA PRUEBA DE CORREO */}
+      {pruebaCorreo && (
+        <div onClick={() => setPruebaCorreo(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div role="dialog" aria-label="Resultado de la prueba de correo" onClick={e => e.stopPropagation()} style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, width: '100%', maxWidth: '460px', padding: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: pruebaCorreo.enviado ? '#15803d' : '#dc2626', margin: '0 0 10px' }}>
+              {pruebaCorreo.enviado ? 'El servidor envió el correo de prueba' : 'El correo de prueba no se pudo enviar'}
+            </h3>
+            {pruebaCorreo.enviado ? (
+              <p style={{ fontSize: '12px', color: t.textMuted, margin: '0 0 12px', lineHeight: 1.5 }}>
+                Se envió a {pruebaCorreo.destinatario}. Si no llega en unos minutos, revisa spam o correo no deseado: el servidor ya lo entregó, así que lo estaría reteniendo el filtro del correo de destino.
+              </p>
+            ) : (
+              <p style={{ fontSize: '12px', color: t.text, margin: '0 0 12px', lineHeight: 1.5, padding: '10px', background: '#fee2e2', borderRadius: '8px' }}>
+                {pruebaCorreo.detalle || 'El servidor no indicó el motivo.'}
+              </p>
+            )}
+            {'metodo' in pruebaCorreo && (
+              <ul style={{ fontSize: '12px', color: t.textMuted, margin: 0, paddingLeft: '18px', lineHeight: 1.7 }}>
+                <li>Método de envío: <strong style={{ color: t.text }}>{pruebaCorreo.metodo === 'brevo' ? 'Brevo (API HTTPS)' : pruebaCorreo.metodo === 'smtp' ? 'SMTP' : 'ninguno configurado'}</strong></li>
+                <li>BREVO_API_KEY: {pruebaCorreo.brevo_configurado ? 'definida' : 'no definida'}</li>
+                <li>SMTP_USER y SMTP_PASSWORD: {pruebaCorreo.smtp_configurado ? 'definidos' : 'no definidos'}</li>
+                <li>Remitente: {pruebaCorreo.remitente || 'no definido (EMAIL_FROM)'}</li>
+              </ul>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button type="button" onClick={() => setPruebaCorreo(null)} style={{ padding: '10px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
           </div>
         </div>
       )}

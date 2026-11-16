@@ -28,10 +28,15 @@ def _send_via_brevo(
     from_name: str | None = None,
 ) -> bool:
     """Envía un correo vía la API HTTPS de Brevo (puerto 443)."""
+    return _brevo(to_email, subject, html_body, text_body, from_name)[0]
+
+
+def _brevo(to_email, subject, html_body, text_body=None, from_name=None):
+    """Igual que _send_via_brevo, pero devuelve (enviado, motivo_del_fallo)."""
     sender_email = settings.EMAIL_FROM or settings.SMTP_USER
     if not sender_email:
         logger.warning("Brevo: falta EMAIL_FROM/SMTP_USER (remitente verificado); se omite el envío.")
-        return False
+        return False, "Falta el remitente: define EMAIL_FROM (o SMTP_USER) con un correo verificado en Brevo."
 
     payload = {
         "sender": {"name": from_name or settings.SMTP_FROM_NAME, "email": sender_email},
@@ -55,12 +60,28 @@ def _send_via_brevo(
         )
         if resp.status_code in (200, 201):
             logger.info("✉️ Correo enviado vía Brevo a %s", to_email)
-            return True
+            return True, None
         logger.error("Brevo error %s al enviar a %s: %s", resp.status_code, to_email, resp.text[:300])
-        return False
-    except Exception:
+        return False, _motivo_brevo(resp.status_code, resp.text, sender_email)
+    except Exception as e:
         logger.exception("Error enviando correo vía Brevo a %s", to_email)
-        return False
+        return False, f"No se pudo conectar con Brevo ({type(e).__name__})."
+
+
+def _motivo_brevo(codigo: int, cuerpo: str, remitente: str) -> str:
+    """Traduce la respuesta de error de Brevo a un motivo entendible."""
+    try:
+        mensaje = (httpx.Response(codigo, text=cuerpo).json() or {}).get("message", "")
+    except Exception:
+        mensaje = ""
+    mensaje = str(mensaje)[:200]
+    if codigo == 401:
+        return "Brevo rechazó la clave: BREVO_API_KEY no es válida o fue revocada."
+    if codigo == 400 and "sender" in mensaje.lower():
+        return f"Brevo no acepta el remitente {remitente}: verifícalo en Brevo (Senders, Domains & Dedicated IPs). Detalle: {mensaje}"
+    if codigo == 403:
+        return f"Brevo bloqueó el envío (cuenta sin activar o sin permiso para enviar). Detalle: {mensaje}"
+    return f"Brevo respondió con el código {codigo}. Detalle: {mensaje or 'sin detalle'}"
 
 
 # =========================================================
@@ -77,9 +98,14 @@ def _send_email_sync(
 ) -> bool:
     """Envía un correo de forma síncrona: Brevo si hay key, si no SMTP."""
 
+    return _enviar(to_email, subject, html_body, text_body, from_name)[0]
+
+
+def _enviar(to_email, subject, html_body, text_body=None, from_name=None):
+    """Envía por Brevo o SMTP y devuelve (enviado, motivo_del_fallo)."""
     # Preferir Brevo (HTTPS) cuando esté configurado.
     if settings.BREVO_API_KEY:
-        return _send_via_brevo(to_email, subject, html_body, text_body, from_name)
+        return _brevo(to_email, subject, html_body, text_body, from_name)
 
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         logger.warning(
@@ -88,7 +114,7 @@ def _send_email_sync(
             bool(settings.SMTP_USER),
             bool(settings.SMTP_PASSWORD),
         )
-        return False
+        return False, "No hay método de envío configurado: falta BREVO_API_KEY (y tampoco hay SMTP_USER/SMTP_PASSWORD)."
 
     remitente = from_name or settings.SMTP_FROM_NAME
 
@@ -118,9 +144,9 @@ def _send_email_sync(
             server.send_message(msg)
 
         logger.info("✉️ Correo enviado a %s", to_email)
-        return True
+        return True, None
 
-    except Exception:
+    except Exception as e:
         logger.exception(
             "Error enviando correo SMTP "
             "(host=%s, port=%s, recipient=%s).",
@@ -128,7 +154,35 @@ def _send_email_sync(
             settings.SMTP_PORT,
             to_email,
         )
-        return False
+        motivo = f"Falló el envío por SMTP ({settings.SMTP_HOST}:{settings.SMTP_PORT}, {type(e).__name__})."
+        if isinstance(e, (OSError, TimeoutError)) and not isinstance(e, smtplib.SMTPException):
+            motivo += " El servidor no logra conectarse: en Render el SMTP saliente está bloqueado, configura BREVO_API_KEY."
+        elif isinstance(e, smtplib.SMTPAuthenticationError):
+            motivo += " Usuario o contraseña SMTP incorrectos (en Gmail se usa una contraseña de aplicación)."
+        return False, motivo
+
+
+async def diagnosticar_correo(to_email: str) -> dict:
+    """Envía un correo de prueba y explica el resultado sin mostrar claves."""
+    remitente = settings.EMAIL_FROM or settings.SMTP_USER or None
+    metodo = "brevo" if settings.BREVO_API_KEY else ("smtp" if settings.SMTP_USER and settings.SMTP_PASSWORD else None)
+    html = (
+        "<p>Este es un correo de prueba de la plataforma.</p>"
+        "<p>Si lo recibiste, las invitaciones y los avisos por correo están funcionando.</p>"
+    )
+    enviado, motivo = await asyncio.to_thread(
+        _enviar, to_email, "Correo de prueba de la plataforma", html,
+        "Correo de prueba de la plataforma. Si lo recibiste, el envío funciona.", None,
+    )
+    return {
+        "enviado": enviado,
+        "destinatario": to_email,
+        "metodo": metodo,
+        "brevo_configurado": bool(settings.BREVO_API_KEY),
+        "smtp_configurado": bool(settings.SMTP_USER and settings.SMTP_PASSWORD),
+        "remitente": remitente,
+        "detalle": motivo,
+    }
 
 
 async def send_email_async(
