@@ -11,8 +11,11 @@ import { useAuth } from '../contexts/AuthContext';
 
 const UserManagementScreen = () => {
   const { theme: t, language, darkMode } = useContext(ThemeContext);
-  const { user: authUser } = useAuth();
-  const isSuperadmin = authUser?.role === 'superadmin';
+  const { user: authUser, impersonatedOrg } = useAuth();
+  // El superadmin solo elige empresa en el panel de plataforma. Si ya está
+  // "dentro" de una empresa, invita y lista como el administrador de esa empresa
+  // (el backend recibe la empresa por la cabecera X-Org-Id).
+  const isSuperadmin = authUser?.role === 'superadmin' && !impersonatedOrg;
   
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -25,6 +28,9 @@ const UserManagementScreen = () => {
   const [newUser, setNewUser] = useState({ full_name: '', email: '', role: 'employee', orgId: '' });
   const [isCreating, setIsCreating] = useState(false);
   const [inviteMsg, setInviteMsg] = useState(null);
+  const [inviteLink, setInviteLink] = useState(null);
+  const [linkCopiado, setLinkCopiado] = useState(false);
+  const [aviso, setAviso] = useState(null);
 
   const [allOrgs, setAllOrgs] = useState([]);
 
@@ -45,7 +51,8 @@ const UserManagementScreen = () => {
             id: u.id, name: fullName, email: u.email,
             role: u.role || 'employee', department: u.department || 'General',
             organization: u.organization_name || '—', organizationId: u.organization_id || null,
-            status: u.is_active ? 'active' : 'inactive',
+            // Sin activar y sin haber entrado nunca: invitación pendiente.
+            status: u.is_active ? 'active' : (u.last_login ? 'inactive' : 'pending'),
             lastLogin: u.last_login ? new Date(u.last_login).toLocaleDateString() : 'Nunca',
             avatar: fullName.substring(0, 2).toUpperCase()
           };
@@ -73,6 +80,8 @@ const UserManagementScreen = () => {
     e.preventDefault();
     setIsCreating(true);
     setInviteMsg(null);
+    setInviteLink(null);
+    setLinkCopiado(false);
     try {
       let res;
       if (isSuperadmin) {
@@ -81,7 +90,8 @@ const UserManagementScreen = () => {
       } else {
         res = await userAPI.invite({ name: newUser.full_name, email: newUser.email, role: newUser.role });
       }
-      setInviteMsg(res?.email_sent ? `Invitación enviada a ${res.email}. Definirá su contraseña al activar la cuenta.` : `Usuario creado, pero el correo no se pudo enviar. Revisa la configuración SMTP.`);
+      setInviteMsg(res?.email_sent ? `Invitación enviada a ${res.email}. Si no la ve, que revise la carpeta de spam. Definirá su contraseña al activar la cuenta.` : `Usuario creado, pero el correo no se pudo enviar. Comparte este enlace de activación con la persona:`);
+      setInviteLink(res?.activation_url || null);
       setNewUser({ full_name: '', email: '', role: 'employee', orgId: '' });
       await loadUsers();
     } catch (error) {
@@ -104,6 +114,18 @@ const UserManagementScreen = () => {
       await userAPI.update(user.id, { is_active: !suspender });
       await loadUsers();
     } catch (error) { alert("Error al cambiar el estado: " + error.message); }
+  };
+
+  const handleResendInvite = async (user) => {
+    setLinkCopiado(false);
+    try {
+      const res = await userAPI.resendInvite(user.id);
+      setAviso({ ok: res.email_sent, email: res.email, link: res.activation_url });
+    } catch (error) { alert(error.message); }
+  };
+
+  const copiarEnlace = async (link) => {
+    try { await navigator.clipboard.writeText(link); setLinkCopiado(true); } catch (_) { setLinkCopiado(false); }
   };
 
   const handleOpenEdit = (user, e) => {
@@ -266,7 +288,7 @@ const UserManagementScreen = () => {
                         </div>
                       </td>
                       <td style={{ padding: '16px' }} onClick={(e) => e.stopPropagation()}>
-                        {isSuperadmin && u.role !== 'superadmin' ? (
+                        {authUser?.role === 'superadmin' && u.role !== 'superadmin' ? (
                           <select value={u.role} onChange={(e) => handleQuickRoleChange(u, e.target.value)} style={{ padding: '4px 8px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.text, fontSize: '11px', fontWeight: 600, outline: 'none' }}>
                             {Object.entries(rolesConfig).filter(([k]) => k !== 'superadmin').map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                           </select>
@@ -288,7 +310,8 @@ const UserManagementScreen = () => {
                             <>
                               <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                               <div style={{ position: 'absolute', top: '100%', right: 0, minWidth: '160px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden', textAlign: 'left' }}>
-                                {u.role !== 'superadmin' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{u.status === 'active' ? <Ban size={14} /> : <UserCheck size={14} />} {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
+                                {u.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); handleResendInvite(u); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Mail size={14} /> Reenviar invitación</button>}
+                                {u.role !== 'superadmin' && u.status !== 'pending' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{u.status === 'active' ? <Ban size={14} /> : <UserCheck size={14} />} {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
                                 <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Edit3 size={14} /> Editar</button>
                                 <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>
                               </div>
@@ -305,7 +328,7 @@ const UserManagementScreen = () => {
         </div>
 
         {/* VISTA MÓVIL (TARJETAS) */}
-        <div className="mobile-cards-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="mobile-cards-wrapper" style={{ flexDirection: 'column', gap: '12px' }}>
           {filteredUsers.length === 0 ? (
             <div style={{ padding: '30px', textAlign: 'center', fontSize: '13px', color: t.textDim, background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' }}>No se encontraron usuarios.</div>
           ) : (
@@ -330,7 +353,8 @@ const UserManagementScreen = () => {
                         <>
                           <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                           <div style={{ position: 'absolute', top: '100%', right: 0, minWidth: '160px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden' }}>
-                            {u.role !== 'superadmin' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600 }}><Ban size={14} /> {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
+                            {u.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); handleResendInvite(u); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600 }}><Mail size={14} /> Reenviar invitación</button>}
+                            {u.role !== 'superadmin' && u.status !== 'pending' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600 }}><Ban size={14} /> {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
                             <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600 }}><Edit3 size={14} /> Editar</button>
                             <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>
                           </div>
@@ -397,6 +421,9 @@ const UserManagementScreen = () => {
                   </select>
                 </div>
               )}
+              {impersonatedOrg && (
+                <div style={{ fontSize: '12px', color: t.textMuted }}>Empresa: <strong style={{ color: t.text }}>{impersonatedOrg.nombre}</strong></div>
+              )}
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '6px' }}>Rol en el Sistema *</label>
                 <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '13px', outline: 'none' }}>
@@ -411,12 +438,37 @@ const UserManagementScreen = () => {
 
               <p style={{ fontSize: '11px', color: t.textDim, margin: 0, lineHeight: 1.4 }}>Se enviará una invitación por correo. El usuario definirá su contraseña al activar la cuenta.</p>
               {inviteMsg && <div style={{ padding: '10px', background: inviteMsg.startsWith('Error') ? '#fee2e2' : '#eff6ff', color: inviteMsg.startsWith('Error') ? '#dc2626' : '#2563eb', borderRadius: '8px', fontSize: '11px', fontWeight: 600 }}>{inviteMsg}</div>}
+              {inviteLink && inviteMsg && inviteMsg.startsWith('Usuario creado') && (
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  <input readOnly value={inviteLink} onFocus={e => e.target.select()} style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '11px' }} />
+                  <button type="button" onClick={() => copiarEnlace(inviteLink)} style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{linkCopiado ? 'Copiado' : 'Copiar'}</button>
+                </div>
+              )}
 
               <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="btn-cancel" style={{ padding: '12px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
                 <button type="submit" disabled={isCreating || (isSuperadmin && allOrgs.length === 0)} className="btn-save" style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', background: '#2563eb', color: 'white', fontWeight: 700, fontSize: '13px', cursor: isCreating ? 'not-allowed' : 'pointer', opacity: isCreating ? 0.7 : 1 }}>{isCreating ? 'Enviando...' : 'Enviar invitación'}</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* RESULTADO DEL REENVIO DE INVITACION */}
+      {aviso && (
+        <div onClick={() => setAviso(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, width: '100%', maxWidth: '440px', padding: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 800, color: t.text, margin: '0 0 10px' }}>{aviso.ok ? 'Invitación reenviada' : 'El correo no se pudo enviar'}</h3>
+            <p style={{ fontSize: '12px', color: t.textMuted, margin: '0 0 12px', lineHeight: 1.5 }}>
+              {aviso.ok ? `Se envió de nuevo a ${aviso.email}. Si no aparece en unos minutos, que revise spam o correo no deseado. También puedes compartirle este enlace:` : `El servidor no pudo enviar el correo a ${aviso.email}. Comparte este enlace de activación con la persona:`}
+            </p>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <input readOnly value={aviso.link} onFocus={e => e.target.select()} style={{ flex: 1, minWidth: 0, padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '11px' }} />
+              <button type="button" onClick={() => copiarEnlace(aviso.link)} style={{ padding: '8px 12px', borderRadius: '8px', border: 'none', background: '#2563eb', color: 'white', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}>{linkCopiado ? 'Copiado' : 'Copiar'}</button>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button type="button" onClick={() => setAviso(null)} style={{ padding: '10px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
           </div>
         </div>
       )}

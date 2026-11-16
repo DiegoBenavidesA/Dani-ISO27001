@@ -29,6 +29,13 @@ export const userAPI = {
     if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
     return body;
   },
+  resendInvite: async (userId, token) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/users/${userId}/reenviar-invitacion`, { method: 'POST', headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo reenviar la invitación');
+    return body;
+  },
   updateUser: async (userId, userData, token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/users/${userId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(userData) });

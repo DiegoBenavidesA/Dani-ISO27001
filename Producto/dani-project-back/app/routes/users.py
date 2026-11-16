@@ -138,20 +138,47 @@ async def invite_user(
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al invitar usuario: {str(e)}")
 
-    token = AuthService.create_activation_token(invited.id)
+    email_sent, activation_url = await _enviar_invitacion(invited, org, data.role)
+    return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent, "activation_url": activation_url}
+
+
+async def _enviar_invitacion(user: User, org: Organization, rol: str):
+    """Genera el enlace de activación y envía el correo. Devuelve (enviado, enlace)."""
+    token = AuthService.create_activation_token(user.id)
     activation_url = f"{settings.FRONTEND_BASE_URL}/activar/{token}"
-    html, text = build_invitation_email(
-        invited.full_name, org.nombre, activation_url, ROLE_LABELS.get(data.role, data.role)
-    )
+    html, text = build_invitation_email(user.full_name, org.nombre, activation_url, ROLE_LABELS.get(rol, rol))
     email_sent = await send_email_async(
-        invited.email,
+        user.email,
         f"Invitación a {org.nombre} — GRC",
         html,
         text,
         from_name=org.nombre,  # remitente = nombre de la empresa
     )
+    if not email_sent:
+        print(f"[invitacion] No se pudo enviar el correo de invitación a {user.email}. Revisa BREVO_API_KEY / EMAIL_FROM o SMTP en el servidor.")
+    return email_sent, activation_url
 
-    return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent, "activation_url": activation_url}
+
+@router.post("/{user_id}/reenviar-invitacion")
+async def resend_invitation(
+    user_id: str,
+    current_user: dict = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Reenvía la invitación a un usuario que todavía no activó su cuenta.
+    Devuelve el enlace para que el administrador pueda compartirlo si el correo
+    no llega."""
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user or not mismo_ambito(current_user, user):
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    if user.is_active or user.last_login:
+        raise HTTPException(status_code=400, detail="Este usuario ya activó su cuenta; no hay invitación pendiente.")
+    org = (await db.execute(select(Organization).where(Organization.id == user.organization_id))).scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organización no encontrada.")
+    rol = user.role.value if hasattr(user.role, "value") else str(user.role)
+    email_sent, activation_url = await _enviar_invitacion(user, org, rol)
+    return {"email": user.email, "email_sent": email_sent, "activation_url": activation_url}
 
 
 class CreateUserRequest(BaseModel):
