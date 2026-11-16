@@ -8,7 +8,7 @@
 Plataforma **GRC (Gestión de Riesgo y Cumplimiento)** — nombre interno en GitHub: "DANI".
 - **Frontend:** React (Create React App). Carpeta `Producto/dani-project-front`.
 - **Backend:** FastAPI + SQLAlchemy async + asyncpg, PostgreSQL (+ pgvector). Carpeta `Producto/dani-project-back`.
-- **IA:** Groq / Llama (vía `AIService`).
+- **IA:** Groq con el modelo `openai/gpt-oss-120b` (vía `AIService`); DeepSeek como alternativa por configuración.
 - Cubre **ISO 27001** (gap analysis, SOA, evidencias, CAPA, evaluación) y **Ley 21.719** (protección de datos de Chile: RoPA, consentimientos, solicitudes, brechas, proveedores, impacto).
 - Enfoque que pidió el profesor: presentarlo como **gestión de cumplimiento** (ciclo diagnosticar → cerrar brechas → evidenciar → medir → mejorar), no como un simple registro de datos.
 
