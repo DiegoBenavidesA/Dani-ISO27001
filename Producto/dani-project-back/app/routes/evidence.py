@@ -134,7 +134,9 @@ async def upload_evidence(
                     content_type=file.content_type or "application/octet-stream",
                 )
             except Exception as se:
-                motivo_no_guardado = "El almacenamiento rechazó el archivo. El detalle quedó en el registro del servidor."
+                from app.services.storage_service import StorageError
+                motivo_no_guardado = (str(se) if isinstance(se, StorageError)
+                                      else "El almacenamiento rechazó el archivo. El detalle quedó en el registro del servidor.")
                 print(f"[storage] No se pudo guardar '{file.filename}' en el bucket '{settings.SUPABASE_STORAGE_BUCKET}': {se}")
         if motivo_no_guardado:
             print(f"[storage] Evidencia '{file.filename}' guardada sin archivo original: {motivo_no_guardado}")

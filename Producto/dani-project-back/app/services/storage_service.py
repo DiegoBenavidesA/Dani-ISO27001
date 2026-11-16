@@ -10,6 +10,34 @@
 import httpx
 from app.config import settings
 
+class StorageError(RuntimeError):
+    """Error del almacenamiento con un motivo que se puede mostrar al usuario."""
+
+
+def motivo_rechazo(codigo: int, cuerpo: str) -> str:
+    """Traduce la respuesta de Supabase Storage a un motivo entendible. Nunca
+    incluye claves: solo el código y el mensaje que devuelve Supabase."""
+    import json
+    try:
+        mensaje = str(json.loads(cuerpo).get("message") or "")
+    except Exception:
+        mensaje = (cuerpo or "")[:200]
+    m = mensaje.lower()
+    if "jws" in m or "jwt" in m or "invalid api key" in m or "signature" in m:
+        explicacion = "La clave de Supabase no es válida. Revisa SUPABASE_SERVICE_KEY en Render."
+    elif "row-level security" in m or "unauthorized" in m:
+        explicacion = "La clave no tiene permiso para escribir en el bucket. Usa la clave service_role o secret, no la anon o publishable."
+    elif "bucket not found" in m or (codigo == 404 and "bucket" in m):
+        explicacion = "El bucket no existe. Revisa SUPABASE_STORAGE_BUCKET o créalo en Supabase."
+    elif "mime" in m:
+        explicacion = "El bucket no acepta este tipo de archivo. Revisa los tipos permitidos del bucket en Supabase."
+    elif "size" in m or codigo == 413:
+        explicacion = "El archivo supera el tamaño máximo que permite el bucket."
+    else:
+        explicacion = "Supabase rechazó el archivo."
+    return f"{explicacion} (Supabase respondió {codigo}: {mensaje or 'sin mensaje'})"
+
+
 class StorageService:
     def __init__(self):
         pass
@@ -27,24 +55,31 @@ class StorageService:
         return settings.SUPABASE_STORAGE_BUCKET
 
     def _headers(self, content_type: str = "application/octet-stream") -> dict:
-        return {
-            "Authorization": f"Bearer {self.service_key}",
-            "apikey": self.service_key,
-            "Content-Type": content_type,
-        }
+        cabeceras = {"apikey": self.service_key, "Content-Type": content_type}
+        # La clave service_role antigua es un JWT ("eyJ...") y va también como
+        # Bearer. Las claves nuevas ("sb_secret_...") no son JWT: si se mandan
+        # como Bearer, Supabase las rechaza; basta con el encabezado apikey.
+        if (self.service_key or "").startswith("eyJ"):
+            cabeceras["Authorization"] = f"Bearer {self.service_key}"
+        return cabeceras
 
     async def upload(self, path: str, content: bytes, content_type: str) -> str:
         """Sube un archivo al bucket de Supabase Storage y devuelve el 'path'
         interno (lo que guardaremos en Evidence.file_url)."""
         url = f"{self.base_url}/storage/v1/object/{self.bucket}/{path}"
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                url,
-                content=content,
-                headers={**self._headers(content_type), "x-upsert": "true"},
-            )
+        try:
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(
+                    url,
+                    content=content,
+                    headers={**self._headers(content_type), "x-upsert": "true"},
+                )
+        except httpx.HTTPError as e:
+            raise StorageError(
+                f"No se pudo conectar con Supabase ({type(e).__name__}). Revisa SUPABASE_URL y que el proyecto "
+                "de Supabase no esté pausado.") from e
         if resp.status_code not in (200, 201):
-            raise RuntimeError(f"Error subiendo a Supabase Storage: {resp.status_code} {resp.text}")
+            raise StorageError(motivo_rechazo(resp.status_code, resp.text))
         return path
 
     async def download(self, path: str) -> bytes:
