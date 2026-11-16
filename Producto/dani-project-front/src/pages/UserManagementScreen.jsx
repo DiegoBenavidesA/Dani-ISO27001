@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React, { useState, useEffect, useContext } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users, UserPlus, Search, Filter, MoreVertical,
   Shield, Edit3, Trash2, Mail, CheckCircle2, XCircle,
@@ -22,7 +23,30 @@ const UserManagementScreen = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [orgFilter, setOrgFilter] = useState('all');
   const [selectedUser, setSelectedUser] = useState(null);
-  const [menuOpenId, setMenuOpenId] = useState(null); 
+  const [menuOpenId, setMenuOpenId] = useState(null);
+  // Posición del menú de la tabla. Se dibuja fuera de la tabla (portal) porque
+  // el contenedor tiene scroll horizontal y recortaba el menú.
+  const [menuPos, setMenuPos] = useState(null);
+
+  const abrirMenuTabla = (u, e) => {
+    if (menuOpenId === u.id) { setMenuOpenId(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const alto = 150;
+    const abajo = rect.bottom + alto + 8 <= window.innerHeight;
+    setMenuPos({
+      right: Math.max(8, window.innerWidth - rect.right),
+      ...(abajo ? { top: rect.bottom + 4 } : { bottom: window.innerHeight - rect.top + 4 }),
+    });
+    setMenuOpenId(u.id);
+  };
+
+  useEffect(() => {
+    if (!menuOpenId || !menuPos) return;
+    const cerrar = () => setMenuOpenId(null);
+    window.addEventListener('scroll', cerrar, true);
+    window.addEventListener('resize', cerrar);
+    return () => { window.removeEventListener('scroll', cerrar, true); window.removeEventListener('resize', cerrar); };
+  }, [menuOpenId, menuPos]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({ full_name: '', email: '', role: 'employee', orgId: '' });
@@ -305,17 +329,18 @@ const UserManagementScreen = () => {
                       </td>
                       <td style={{ padding: '16px', textAlign: 'right' }} onClick={(e) => e.stopPropagation()}>
                         <div style={{ position: 'relative', display: 'inline-block' }}>
-                          <button onClick={() => setMenuOpenId(menuOpenId === u.id ? null : u.id)} style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', padding: '4px' }}><MoreVertical size={16} /></button>
-                          {menuOpenId === u.id && (
+                          <button onClick={(e) => abrirMenuTabla(u, e)} aria-label={`Acciones de ${u.name}`} style={{ background: 'transparent', border: 'none', color: t.textDim, cursor: 'pointer', padding: '4px' }}><MoreVertical size={16} /></button>
+                          {menuOpenId === u.id && menuPos && createPortal(
                             <>
-                              <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
-                              <div style={{ position: 'absolute', top: '100%', right: 0, minWidth: '160px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden', textAlign: 'left' }}>
+                              <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10050 }} />
+                              <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', ...menuPos, minWidth: '170px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 10060, overflow: 'hidden', textAlign: 'left' }}>
                                 {u.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); handleResendInvite(u); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Mail size={14} /> Reenviar invitación</button>}
                                 {u.role !== 'superadmin' && u.status !== 'pending' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{u.status === 'active' ? <Ban size={14} /> : <UserCheck size={14} />} {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
                                 <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Edit3 size={14} /> Editar</button>
                                 <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>
                               </div>
-                            </>
+                            </>,
+                            document.body
                           )}
                         </div>
                       </td>
