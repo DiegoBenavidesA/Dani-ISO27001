@@ -311,7 +311,10 @@ export const riskAPI = {
   analyzeWithAI: async (riskId, token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks/${riskId}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
-    if (!response.ok) throw new Error(`Error ${response.status}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.detail || `Error ${response.status}`);
+    }
     return response.json();
   }
 };

@@ -133,6 +133,46 @@ class AIService:
             logger.error(f"Error en analyze_risk: {e}")
             return { "risk_level": "high", "recommended_controls": ["A.5.15 Control de acceso"], "mitigation_steps": ["1. Auditoría."], "priority": "alta" }
 
+    async def sugerir_controles_riesgo(self, riesgo: dict, catalogo: dict) -> list:
+        """Pide a la IA de 2 a 5 controles del Anexo A (ISO 27001:2022) que
+        traten este riesgo. La IA solo puede elegir códigos del catálogo; lo que
+        no exista se descarta. Lanza RuntimeError si la IA no está disponible
+        o no responde algo usable (no hay respuesta inventada de respaldo)."""
+        if not self.client:
+            raise RuntimeError("La IA no está configurada en el servidor.")
+        lista = "\n".join(f"{c} {n}" for c, n in catalogo.items())
+        prompt = f"""
+        Eres consultor de ISO 27001:2022. Para el riesgo descrito, elige de 2 a 5
+        controles del Anexo A que lo traten directamente. Usa SOLO códigos de esta lista:
+        {lista}
+
+        RIESGO: {riesgo.get("title")}
+        DESCRIPCIÓN: {riesgo.get("description") or "sin descripción"}
+        CATEGORÍA: {riesgo.get("category")}
+        PROBABILIDAD ACTUAL (1-5): {riesgo.get("likelihood")}
+        IMPACTO ACTUAL (1-5): {riesgo.get("impact")}
+
+        Para cada control indica qué reduce: "probabilidad" si hace menos probable
+        que ocurra (prevención) o "impacto" si limita el daño cuando ocurre
+        (detección, respuesta, respaldo). "puntos" es cuánto lo reduce en la
+        escala 1-5: 1 (ayuda) o 2 (lo reduce claramente). "accion" es una frase
+        concreta de qué implementar en esta empresa para este riesgo.
+
+        Responde SOLO un arreglo JSON, sin texto adicional:
+        [{{"codigo": "A.8.5", "accion": "...", "reduce": "probabilidad", "puntos": 2}}]
+        """
+        import json
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.AI_MODEL, messages=[{"role": "user", "content": prompt}],
+                temperature=0.2, max_tokens=900)
+            contenido = response.choices[0].message.content.replace('```json', '').replace('```', '').strip()
+            datos = json.loads(contenido)
+        except Exception as e:
+            logger.error(f"Error en sugerir_controles_riesgo: {e}")
+            raise RuntimeError("La IA no respondió con controles válidos. Intenta de nuevo.")
+        return limpiar_controles_sugeridos(datos, catalogo)
+
     async def generate_document(self, prompt: str) -> str:
         if not self.client: return "Error: API key no configurada"
         try:
@@ -203,3 +243,35 @@ class AIService:
             by_id = {str(item.get("id")): item for item in data if isinstance(item, dict)}
             return [ { "id": p["id"], "veredicto": by_id.get(str(p["id"]), {}).get("veredicto", "sin_evidencia"), "confianza": by_id.get(str(p["id"]), {}).get("confianza", 0.0), "justificacion": by_id.get(str(p["id"]), {}).get("justificacion", "") } for p in preguntas ]
         except Exception as e: return [ {"id": p["id"], "veredicto": "sin_evidencia", "confianza": 0.0, "justificacion": "Error"} for p in preguntas ]
+
+def limpiar_controles_sugeridos(datos, catalogo: dict) -> list:
+    """Deja solo controles que existen en el catálogo, sin repetir, con
+    'reduce' y 'puntos' válidos. Máximo 5."""
+    resultado, vistos = [], set()
+    if not isinstance(datos, list):
+        return resultado
+    for d in datos:
+        if not isinstance(d, dict):
+            continue
+        codigo = str(d.get("codigo", "")).strip().upper()
+        if codigo not in catalogo or codigo in vistos:
+            continue
+        reduce = str(d.get("reduce", "")).strip().lower()
+        if reduce not in ("probabilidad", "impacto"):
+            continue
+        try:
+            puntos = int(d.get("puntos", 1))
+        except (TypeError, ValueError):
+            puntos = 1
+        vistos.add(codigo)
+        resultado.append({
+            "id": codigo,
+            "codigo": codigo,
+            "nombre": catalogo[codigo],
+            "accion": str(d.get("accion", "")).strip()[:240],
+            "reduce": reduce,
+            "puntos": max(1, min(2, puntos)),
+        })
+        if len(resultado) == 5:
+            break
+    return resultado

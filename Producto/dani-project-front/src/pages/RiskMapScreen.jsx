@@ -20,6 +20,9 @@ const RiskMapScreen = ({ navParams } = {}) => {
   const [selectedRisk, setSelectedRisk] = useState(null);
   const [appliedControls, setAppliedControls] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analisisError, setAnalisisError] = useState(null);
+  // Al cambiar de riesgo se limpia el error del análisis anterior.
+  useEffect(() => { setAnalisisError(null); }, [selectedRisk?.id]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
@@ -127,14 +130,17 @@ const RiskMapScreen = ({ navParams } = {}) => {
     return '#004ac6';
   };
 
+  // Riesgo residual: cada control baja la probabilidad o el impacto (escala
+  // 1-5) y el resultado se vuelve a multiplicar, igual que el riesgo inicial.
   const calculateMitigatedScore = (risk) => {
     if (!risk) return 0;
-    const baseScore = risk.prob * risk.impact;
-    const reduction = appliedControls.reduce((sum, controlId) => {
+    let prob = risk.prob, impacto = risk.impact;
+    appliedControls.forEach(controlId => {
       const c = risk.controls?.find(ctrl => ctrl.id === controlId);
-      return sum + (c ? c.reduction : 0);
-    }, 0);
-    return Math.max(1, baseScore - reduction);
+      if (!c) return;
+      if (c.reduce === 'impacto') impacto -= c.puntos; else prob -= c.puntos;
+    });
+    return Math.max(1, prob) * Math.max(1, impacto);
   };
 
   const toggleControl = (controlId) => {
@@ -147,35 +153,14 @@ const RiskMapScreen = ({ navParams } = {}) => {
     if (!selectedRisk || !selectedRisk.id) return;
     setIsAnalyzing(true);
     try {
+      setAnalisisError(null);
       const response = await riskAPI.analyzeWithAI(selectedRisk.id);
-      if (response && response.controls) {
-        setSelectedRisk(prev => ({ ...prev, controls: response.controls }));
-      } else if (response && response.recommendations) {
-        const mappedControls = response.recommendations.map((rec, idx) => ({
-          id: `ai_${idx}`,
-          name: rec.title || rec,
-          reduction: rec.reduction || Math.floor(Math.random() * 4) + 3
-        }));
-        setSelectedRisk(prev => ({ ...prev, controls: mappedControls }));
-      }
+      setSelectedRisk(prev => ({ ...prev, controls: response.controls || [] }));
       setAppliedControls([]);
     } catch (error) {
-      console.error("Error analizando con IA:", error);
-      const cat = selectedRisk?.category || 'security';
-      const fallbackControls = cat.includes('privacy') ? [
-        { id: 'ai1', name: 'Cifrado AES-256 en datos personales en reposo (A.8.24)', reduction: 5 },
-        { id: 'ai2', name: 'Política de retención y borrado seguro (A.5.12)', reduction: 4 },
-        { id: 'ai3', name: 'Anonimización de BD de desarrollo (A.8.33)', reduction: 3 }
-      ] : cat.includes('operational') ? [
-        { id: 'ai1', name: 'Respaldo automatizado en la nube 3-2-1 (A.8.13)', reduction: 6 },
-        { id: 'ai2', name: 'Monitoreo continuo de disponibilidad (A.8.16)', reduction: 4 },
-        { id: 'ai3', name: 'Plan de Continuidad del Negocio BCP (A.5.30)', reduction: 5 }
-      ] : [
-        { id: 'ai1', name: 'Autenticación multifactor MFA obligatorio (A.8.5)', reduction: 5 },
-        { id: 'ai2', name: 'Rotación automática de credenciales (A.5.17)', reduction: 4 },
-        { id: 'ai3', name: 'Segmentación de red y microsegmentación (A.8.22)', reduction: 3 }
-      ];
-      setSelectedRisk(prev => ({ ...prev, controls: fallbackControls }));
+      // Sin respuesta de la IA no se muestran controles inventados.
+      setAnalisisError(error.message || 'No se pudo consultar a la IA.');
+      setSelectedRisk(prev => ({ ...prev, controls: [] }));
       setAppliedControls([]);
     } finally {
       setIsAnalyzing(false);
@@ -612,7 +597,10 @@ const RiskMapScreen = ({ navParams } = {}) => {
                   Consultando a DANI...
                 </div>
               )}
-              {!isAnalyzing && (!selectedRisk.controls || selectedRisk.controls.length === 0) && (
+              {!isAnalyzing && analisisError && (
+                <div role="alert" style={{ padding: '12px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.08)', color: '#dc2626', fontSize: '12px' }}>{analisisError}</div>
+              )}
+              {!isAnalyzing && !analisisError && (!selectedRisk.controls || selectedRisk.controls.length === 0) && (
                 <div style={{ textAlign: 'center', padding: '20px', color: t.textDim, fontSize: '13px' }}>
                   Haz clic en "Analizar con IA" para obtener recomendaciones.
                 </div>
@@ -634,10 +622,13 @@ const RiskMapScreen = ({ navParams } = {}) => {
                       <div style={{ width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isApplied ? '#004ac6' : t.textDim}`, background: isApplied ? '#004ac6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {isApplied && <Check size={14} color="white" />}
                       </div>
-                      <span className="riskmap-control-name" style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.name}</span>
+                      <span className="riskmap-control-name" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: t.text }}>{control.codigo} {control.nombre}</span>
+                        {control.accion && <span style={{ fontSize: '11px', color: t.textDim, lineHeight: 1.4 }}>{control.accion}</span>}
+                      </span>
                     </div>
-                    <span className="riskmap-control-score" style={{ fontSize: '12px', fontWeight: 700, color: '#004ac6', background: 'rgba(0, 74, 198, 0.1)', padding: '4px 8px', borderRadius: '6px' }}>
-                      -{control.reduction}
+                    <span className="riskmap-control-score" title={control.reduce === 'impacto' ? 'Reduce el impacto' : 'Reduce la probabilidad'} style={{ fontSize: '11px', fontWeight: 700, color: '#004ac6', background: 'rgba(0, 74, 198, 0.1)', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>
+                      -{control.puntos} {control.reduce === 'impacto' ? 'impacto' : 'prob.'}
                     </span>
                   </div>
                 );

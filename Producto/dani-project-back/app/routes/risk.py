@@ -16,6 +16,20 @@ from app.services.ai_service import AIService
 router = APIRouter(prefix="/api/risks", tags=["Risks"])
 ai_processor = AIService()
 
+_ANEXO_A = None
+
+
+def controles_anexo_a() -> dict:
+    """Código -> nombre de los 93 controles del Anexo A (catálogo ISO 27001)."""
+    global _ANEXO_A
+    if _ANEXO_A is None:
+        import json
+        from pathlib import Path
+        ruta = Path(__file__).resolve().parent.parent / "data" / "catalogo_iso27001.json"
+        datos = json.loads(ruta.read_text(encoding="utf-8"))
+        _ANEXO_A = {d["codigo"]: d["nombre"] for d in datos if str(d.get("codigo", "")).startswith("A.")}
+    return _ANEXO_A
+
 class RiskCreate(BaseModel):
     title: str
     description: str
@@ -132,26 +146,23 @@ async def analyze_risk_with_ai(
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
+    """La IA sugiere controles del Anexo A para ESTE riesgo, cada uno con lo
+    que reduce (probabilidad o impacto) para simular el riesgo residual."""
     risk = await get_scoped_or_404(db, Risk, risk_id, org_id)
-    risk_category = str(risk.category).lower() if risk.category else "security"
-    
-    analysis_result = await ai_processor.analyze_risk({
-        "title": risk.title,
-        "description": risk.description,
-        "category": risk_category
-    })
-    
-    controls = [
-        {"id": "ai_c1", "name": "Implementar MFA estricto (FIDO2) - Sugerido por IA", "reduction": 5},
-        {"id": "ai_c2", "name": "Rotación automática de credenciales de API y DB - Sugerido por IA", "reduction": 4}
-    ]
-    
-    return {
-        "message": "Analysis complete",
-        "data": analysis_result,
-        "controls": controls,
-        "recommendations": [{"title": ctrl["name"], "reduction": ctrl["reduction"]} for ctrl in controls]
-    }
+    categoria = risk.category.value if hasattr(risk.category, "value") else str(risk.category or "security")
+    try:
+        controles = await ai_processor.sugerir_controles_riesgo({
+            "title": risk.title,
+            "description": risk.description,
+            "category": categoria,
+            "likelihood": risk.likelihood,
+            "impact": risk.impact,
+        }, controles_anexo_a())
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    if not controles:
+        raise HTTPException(status_code=502, detail="La IA no propuso controles válidos del Anexo A. Intenta de nuevo.")
+    return {"controls": controles}
 
 @router.put("/{risk_id}", response_model=RiskResponse)
 async def update_risk(
