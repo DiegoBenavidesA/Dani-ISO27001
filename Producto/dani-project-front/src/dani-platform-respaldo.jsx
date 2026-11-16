@@ -24,7 +24,6 @@ import OrganizationsScreen from './pages/OrganizationsScreen';
 import QuestionsScreen from './pages/QuestionsScreen';
 
 import BreachesScreen from './pages/BreachesScreen';
-import PredictiveScreen from './pages/PredictiveScreen';
 
 export default function DaniPlatform() {
   const { logout, user, impersonatedOrg } = useAuth();
@@ -39,7 +38,7 @@ export default function DaniPlatform() {
     ? 'organizations'
     : (user?.role === 'employee'
       ? 'employee-portal'
-      : ({ assessment: 'gap-analysis' }[sessionStorage.getItem('dani_active_screen')]
+      : ({ assessment: 'gap-analysis', predictive: 'gap-analysis' }[sessionStorage.getItem('dani_active_screen')]
         || sessionStorage.getItem('dani_active_screen') || 'dashboard'));
 
   const [activeScreen, setActiveScreen] = useState(initialScreen);
@@ -238,7 +237,6 @@ export default function DaniPlatform() {
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
           {activeScreen === 'organizations' && <OrganizationsScreen />}
           {activeScreen === 'questions' && isSuperadmin && <QuestionsScreen />}
-          {activeScreen === 'predictive' && <PredictiveScreen />}
         </div>
       </main>
 

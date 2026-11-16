@@ -21,7 +21,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
 
   useEffect(() => {
 
-    const grupoActivo = { 'gap-analysis': 'evaluar', 'risk-map': 'evaluar', predictive: 'evaluar', 'doc-generator': 'documentar', documents: 'documentar', evidence: 'documentar', 'audit-room': 'auditar', breaches: 'auditar' }[activeScreen];
+    const grupoActivo = { 'gap-analysis': 'evaluar', 'risk-map': 'evaluar', 'doc-generator': 'documentar', documents: 'documentar', evidence: 'documentar', 'audit-room': 'auditar', breaches: 'auditar' }[activeScreen];
     if (grupoActivo) setGruposAbiertos(p => (p[grupoActivo] ? p : { ...p, [grupoActivo]: true }));
 
     // Si estamos en móvil y cambiamos de pantalla, cerramos el menú
@@ -44,7 +44,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
     { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'evaluar' },
     { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'evaluar' },
-    { id: 'predictive', label: language === 'es' ? 'Análisis Predictivo IA' : 'AI Predictive Analysis', icon: BrainCircuit, roles: ISO_MANAGE, group: 'evaluar' },
     { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'documentar' },
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'documentar' },
     { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'documentar' },

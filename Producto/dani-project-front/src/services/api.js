@@ -313,21 +313,6 @@ export const riskAPI = {
     const response = await fetch(`${API_URL}/api/risks/${riskId}/analyze`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
     if (!response.ok) throw new Error(`Error ${response.status}`);
     return response.json();
-  },
-  predictVulnerabilities: async (token = null) => {
-    const activeToken = token || localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/risks/predict`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(activeToken && { 'Authorization': `Bearer ${activeToken}` })
-      }
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.detail || `Error HTTP ${response.status}`);
-    }
-    return response.json();
   }
 };
 
@@ -353,19 +338,6 @@ export const capaAPI = {
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/capas/${dbId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     if (!response.ok) throw new Error('Error al eliminar CAPA');
-    return response.json();
-  },
-  autoRemediate: async (payload) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${API_URL}/api/capas/auto-remediate`, { 
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, 
-      body: JSON.stringify(payload) 
-    });
-    if (!response.ok) {
-      const err = await response.json();
-      throw new Error(err.detail || 'Fallo al ejecutar script de remediación');
-    }
     return response.json();
   }
 };
