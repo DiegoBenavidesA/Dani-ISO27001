@@ -17,7 +17,7 @@ Este documento detalla qué se probó en cada sprint, cómo se probó, qué defe
 | 2 | Consentimientos | 8 a 10 | Manual | 6 | 5 | Retirado |
 | 3 | Solicitudes de titulares | 10 a 12 | Manual | 4 | 2 | Retirado |
 | 4 | Brechas, luego Vulneraciones de seguridad | 12 a 14 | Manual y automatizada | 9 | 2 | 17 pruebas automatizadas aprobadas |
-| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 83 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 8 | Todas aprobadas |
+| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 94 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 8 | Todas aprobadas |
 
 ## Sprint 1: Registro de actividades de tratamiento (RoPA)
 
@@ -148,7 +148,7 @@ Defectos encontrados y corregidos:
 
 Resultados (15-11-2026):
 
-- `pytest tests --ignore=tests/test_api.py`: 100 de 100 pruebas aprobadas, de las cuales 83 corresponden a este sprint (25 de seguridad, 24 de lectura de evidencias, solicitudes de evidencia y diagnóstico del almacenamiento, 8 del diagnóstico de correo, 7 de los controles sugeridos por la IA para cada riesgo, 5 del reenvío de invitaciones, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
+- `pytest tests --ignore=tests/test_api.py`: 111 de 111 pruebas aprobadas, de las cuales 94 corresponden a este sprint (25 de seguridad, 11 del generador de documentos, 24 de lectura de evidencias, solicitudes de evidencia y diagnóstico del almacenamiento, 8 del diagnóstico de correo, 7 de los controles sugeridos por la IA para cada riesgo, 5 del reenvío de invitaciones, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
 - `security/prueba_seguridad.py` contra el sistema en Docker: 21 de 21 aprobadas.
 - `performance/prueba_rendimiento.py` contra el sistema en Docker: 10 de 10 mediciones dentro de los límites. El detalle está en las secciones 5.1 y 5.2 del [Plan de Pruebas](Plan_de_Pruebas.md).
 

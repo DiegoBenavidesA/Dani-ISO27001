@@ -1,6 +1,6 @@
 import uuid
 import enum
-from sqlalchemy import Column, String, Text, DateTime, Enum, Integer, ForeignKey, Boolean
+from sqlalchemy import Column, String, Text, DateTime, Enum, Integer, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.dependencies.database import Base
@@ -13,9 +13,11 @@ class DocumentStatus(str, enum.Enum):
 
 class Document(Base):
     __tablename__ = "documents"
+    # Cada empresa tiene su propia versión de cada documento.
+    __table_args__ = (UniqueConstraint("organization_id", "chapter_id", name="uq_documents_org_chapter"),)
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    chapter_id = Column(String(50), nullable=False, unique=True, index=True)
+    chapter_id = Column(String(50), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     content = Column(Text, nullable=True)
     status = Column(Enum(DocumentStatus), default=DocumentStatus.DRAFT, nullable=False)

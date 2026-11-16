@@ -100,6 +100,24 @@ async def lifespan(app: FastAPI):
             await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
             await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))
 
+        # documents.chapter_id era único para TODAS las empresas: la segunda
+        # empresa que guardaba el mismo documento fallaba. Ahora es único por
+        # empresa (organization_id + chapter_id).
+        try:
+            async with conn.begin_nested():
+                await conn.execute(text("""
+                    DO $$ BEGIN
+                      IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'ix_documents_chapter_id'
+                                 AND indexdef LIKE 'CREATE UNIQUE%') THEN
+                        DROP INDEX ix_documents_chapter_id;
+                      END IF;
+                    END $$;"""))
+                await conn.execute(text("ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_chapter_id_key;"))
+                await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_documents_chapter_id ON documents (chapter_id);"))
+                await conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_documents_org_chapter ON documents (organization_id, chapter_id);"))
+        except Exception as e:
+            logger.warning(f"No se pudo ajustar el índice único de documents: {e}")
+
         for tabla in ("data_treatments", "impact_assessments"):
             await conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN IF NOT EXISTS organization_id VARCHAR(36);"))
             await conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{tabla}_organization_id ON {tabla} (organization_id);"))

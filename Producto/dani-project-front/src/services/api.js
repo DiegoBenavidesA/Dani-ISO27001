@@ -92,11 +92,14 @@ export const documentsAPI = {
   generate: async (docType, data, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/generate/${docType}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body: JSON.stringify(data) });
-    return response.json();
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || `Error ${response.status} al generar el documento`);
+    return body;
   },
   getDocument: async (chapterId, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/${chapterId}`, { headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) } });
+    if (!response.ok) return null;
     return response.json();
   },
   saveDocument: async (chapterId, title, content, token = null) => {

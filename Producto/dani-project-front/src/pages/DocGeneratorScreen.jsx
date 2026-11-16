@@ -18,18 +18,23 @@ const DocGeneratorScreen = ({ navParams }) => {
   
   const canApprove = user && ['superadmin', 'owner', 'admin', 'manager', 'auditor'].includes(user?.role);
 
-  // 1. EL ARREGLO DE CAPÍTULOS
+  // 1. DOCUMENTOS. ISO 27001 pide información documentada concreta (no un
+  // documento por cláusula); la ley pide la política de tratamiento y el
+  // protocolo de vulneraciones. Los ids coinciden con el backend
+  // (app/services/document_catalog.py).
   const chapters = [
-    { id: 4, number: '4', title: 'Contexto de la Organización', sections: '4 sections', icon: Building2, color: '#3b82f6' },
-    { id: 5, number: '5', title: 'Liderazgo', sections: '3 sections', icon: Users, color: '#f59e0b' },
-    { id: 6, number: '6', title: 'Planificación', sections: '2 sections', icon: Target, color: '#004ac6' },
-    { id: 7, number: '7', title: 'Apoyo', sections: '5 sections', icon: HelpCircle, color: '#8b5cf6' },
-    { id: 8, number: '8', title: 'Operación', sections: '3 sections', icon: Zap, color: '#ec4899' },
-    { id: 9, number: '9', title: 'Evaluación del Desempeño', sections: '3 sections', icon: Search, color: '#0ea5e9' },
-    { id: 10, number: '10', title: 'Mejora', sections: '2 sections', icon: RefreshCw, color: '#ef4444' },
-    { id: 'ley_pol', number: 'Ley 21.719', title: 'Política de Tratamiento de Datos', sections: 'Obligaciones O1, O2, O3', icon: FileText, color: '#8b5cf6' },
-    { id: 'ley_bre', number: 'Ley 21.719', title: 'Protocolo de Gestión de Vulneraciones de Seguridad', sections: 'Obligación O4', icon: AlertTriangle, color: '#ef4444' }
+    { id: 'iso_alcance', marco: 'iso', number: '4.3', title: 'Alcance del SGSI', sections: 'Contexto, partes interesadas y límites del sistema', icon: Building2, color: '#3b82f6' },
+    { id: 'iso_politica', marco: 'iso', number: '5.2', title: 'Política de Seguridad de la Información', sections: 'Compromiso de la dirección, principios y responsabilidades', icon: Users, color: '#f59e0b' },
+    { id: 'iso_riesgos', marco: 'iso', number: '6.1.2 y 6.1.3', title: 'Metodología de Evaluación y Tratamiento de Riesgos', sections: 'Criterios, escalas y opciones de tratamiento', icon: Target, color: '#004ac6' },
+    { id: 'iso_plan_tratamiento', marco: 'iso', number: '6.1.3 e) y 8.3', title: 'Plan de Tratamiento de Riesgos', sections: 'Usa los riesgos del Mapa de Riesgos', icon: Zap, color: '#ec4899' },
+    { id: 'iso_objetivos', marco: 'iso', number: '6.2', title: 'Objetivos de Seguridad de la Información', sections: 'Objetivos medibles, indicadores y responsables', icon: Search, color: '#0ea5e9' },
+    { id: 'iso_auditoria', marco: 'iso', number: '9.2', title: 'Programa de Auditoría Interna', sections: 'Frecuencia, criterios y auditores', icon: Eye, color: '#8b5cf6' },
+    { id: 'iso_revision', marco: 'iso', number: '9.3', title: 'Procedimiento de Revisión por la Dirección', sections: 'Entradas, decisiones y acta', icon: UserCheck, color: '#14b8a6' },
+    { id: 'iso_mejora', marco: 'iso', number: '10.1 y 10.2', title: 'Procedimiento de No Conformidades y Acción Correctiva', sections: 'Registro, causa, acción y eficacia', icon: RefreshCw, color: '#ef4444' },
+    { id: 'ley_pol', marco: 'ley', number: 'Ley 21.719', title: 'Política de Tratamiento de Datos Personales', sections: 'Finalidades, licitud, derechos de los titulares y conservación', icon: FileText, color: '#8b5cf6' },
+    { id: 'ley_bre', marco: 'ley', number: 'Ley 21.719', title: 'Protocolo de Gestión de Vulneraciones de Seguridad', sections: 'Detección, evaluación y comunicación a la Agencia y a los titulares', icon: AlertTriangle, color: '#ef4444' }
   ];
+  const etiqueta = (c) => c.marco === 'iso' ? `ISO 27001 · ${c.number}` : c.number;
 
   // 2. ESTADO DEL CAPÍTULO CON PERSISTENCIA
   const [selectedChapter, setSelectedChapter] = useState(() => {
@@ -56,9 +61,39 @@ const DocGeneratorScreen = ({ navParams }) => {
   const [isLoadingDoc, setIsLoadingDoc] = useState(false);
   const [targetControl, setTargetControl] = useState(null);
   const [targetControlTitle, setTargetControlTitle] = useState(null);
+  const [fuentes, setFuentes] = useState({});
+  const [guardando, setGuardando] = useState(false);
+  const [avisoGuardado, setAvisoGuardado] = useState(null);
+
+  // Documentos ya guardados en la base de datos (estado de cada uno).
+  useEffect(() => {
+    documentsAPI.getAll().then((res) => {
+      const estados = {};
+      (res?.documents || []).forEach((d) => {
+        const id = String(d.chapter_id || '').replace(/^chapter_/, '');
+        if (chapters.some((c) => c.id === id)) estados[id] = d.status;
+      });
+      setDocumentStatus(estados);
+    }).catch(() => {});
+  }, []);
+
+  // Al abrir un documento se carga el texto guardado, si existe.
+  useEffect(() => {
+    if (!selectedChapter || documentContent[selectedChapter.id] !== undefined) return;
+    if (!documentStatus[selectedChapter.id]) return;
+    let cancelado = false;
+    setIsLoadingDoc(true);
+    documentsAPI.getDocument(`chapter_${selectedChapter.id}`).then((d) => {
+      if (cancelado || !d?.content) return;
+      setGeneratedContent((p) => ({ ...p, [selectedChapter.id]: d.content }));
+      setDocumentContent((p) => ({ ...p, [selectedChapter.id]: d.content }));
+    }).catch(() => {}).finally(() => { if (!cancelado) setIsLoadingDoc(false); });
+    return () => { cancelado = true; };
+  }, [selectedChapter, documentStatus]);
 
 
-  const totalGenerated = Object.keys(generatedContent).length;
+  const totalGenerated = chapters.filter((c) => documentStatus[c.id]).length;
+  const totalPublicados = chapters.filter((c) => documentStatus[c.id] === 'published').length;
   const progressPercent = Math.round((totalGenerated / chapters.length) * 100);
 
   // NUEVO: Escuchar navParams para auto-seleccionar capítulo
@@ -86,30 +121,23 @@ const DocGeneratorScreen = ({ navParams }) => {
     setGenerateError(null);
     
     try {
-      const promptData = { 
-        title: selectedChapter.title,
-        chapter_number: selectedChapter.number,
-        target_control: targetControl || null,
-        target_control_title: targetControlTitle || null
-      };
-      
-      const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, promptData);
-      const text = response.content || response.text || response.generated_text;
-      
-      if (!text) throw new Error("La API no devolvió contenido de texto válido.");
+      const response = await documentsAPI.generate(`chapter_${selectedChapter.id}`, {});
+      const text = response.content;
+      if (!text) throw new Error("La IA no devolvió el borrador.");
 
       setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: text }));
       setDocumentContent(prev => ({ ...prev, [selectedChapter.id]: text }));
+      setFuentes(prev => ({ ...prev, [selectedChapter.id]: response.fuentes || null }));
 
       try {
         await documentsAPI.saveDocument(`chapter_${selectedChapter.id}`, selectedChapter.title, text);
         setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: 'draft' }));
       } catch (saveError) {
-        console.error("Error guardando en BD:", saveError);
+        setAvisoGuardado('El borrador se generó, pero no se guardó. Presiona "Guardar cambios".');
       }
     } catch (error) {
       console.error("Error conectando con la API de IA:", error);
-      setGenerateError(error.message || "Error al conectar con el servidor de IA.");
+      setGenerateError(error.message || "No se pudo conectar con el servidor de IA.");
     } finally {
       setIsGenerating(false);
     }
@@ -122,7 +150,7 @@ const DocGeneratorScreen = ({ navParams }) => {
     const contentToExport = documentContent[selectedChapter?.id];
     
     if (!contentToExport) {
-      alert("⚠️ Primero debes generar o escribir el borrador de un capítulo para poder exportarlo.");
+      alert("Primero genera o abre un documento para poder descargarlo.");
       return;
     }
 
@@ -132,7 +160,7 @@ const DocGeneratorScreen = ({ navParams }) => {
       <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
         <div style="border-bottom: 2px solid #004ac6; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between;">
           <strong style="font-size: 24px; color: #004ac6;">DANI GR&C</strong>
-          <span style="color: #666;">ISO 27001 - ${today}</span>
+          <span style="color: #666;">${etiqueta(selectedChapter)} - ${today}</span>
         </div>
     `;
 
@@ -149,7 +177,7 @@ const DocGeneratorScreen = ({ navParams }) => {
     // 2. Configuramos las opciones del PDF (tamaño carta, márgenes, etc.)
     const options = {
       margin:       0.5, // Media pulgada de margen
-      filename:     `ISO_27001_Capitulo_${selectedChapter.number}.pdf`,
+      filename:     `${selectedChapter.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '_')}.pdf`,
       image:        { type: 'jpeg', quality: 0.98 },
       html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#ffffff' }, // Mayor escala = Mayor resolución
       jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
@@ -170,6 +198,23 @@ const DocGeneratorScreen = ({ navParams }) => {
       if (line.trim() === '') return <div key={idx} style={{ height: '12px' }} />;
       return <p key={idx} style={{ color: t.textDim, lineHeight: '1.6', fontSize: '14px' }}>{line}</p>;
     });
+  };
+
+  const guardarCambios = async () => {
+    if (!selectedChapter) return;
+    setGuardando(true);
+    setAvisoGuardado(null);
+    try {
+      await documentsAPI.saveDocument(`chapter_${selectedChapter.id}`, selectedChapter.title, documentContent[selectedChapter.id] || '');
+      setGeneratedContent(prev => ({ ...prev, [selectedChapter.id]: documentContent[selectedChapter.id] || '' }));
+      // Un texto cambiado vuelve a borrador si estaba aprobado o publicado (lo hace el backend).
+      setDocumentStatus(prev => ({ ...prev, [selectedChapter.id]: ['approved', 'published'].includes(prev[selectedChapter.id]) ? 'draft' : (prev[selectedChapter.id] || 'draft') }));
+      setAvisoGuardado('Cambios guardados.');
+    } catch (e) {
+      setAvisoGuardado('No se pudieron guardar los cambios.');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const advanceWorkflow = async () => {
@@ -233,8 +278,8 @@ const DocGeneratorScreen = ({ navParams }) => {
       {/* ENCABEZADO Y BARRA DE PROGRESO */}
       <div className="dani-doc-header">
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 700, color: t.text, marginBottom: '8px' }}>Generador de Documentos ISO 27001</h1>
-          <p style={{ color: t.textDim, fontSize: '15px' }}>Genera documentación compatible con asistencia de IA</p>
+          <h1 style={{ fontSize: '28px', fontWeight: 700, color: t.text, marginBottom: '8px' }}>Generador de Documentos</h1>
+          <p style={{ color: t.textDim, fontSize: '15px', maxWidth: '720px', lineHeight: 1.5 }}>La IA redacta cada borrador con las respuestas del Análisis de Brechas, las evidencias subidas y, en los documentos de riesgos, el Mapa de Riesgos. Lo que falte queda marcado como PENDIENTE.</p>
         </div>
         <button 
           onClick={handleExportDocument}
@@ -246,8 +291,8 @@ const DocGeneratorScreen = ({ navParams }) => {
 
       <div style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '16px 24px', marginBottom: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: t.textDim, marginBottom: '12px' }}>
-          <span>Progreso Total</span>
-          <span style={{ color: '#004ac6', fontWeight: 700 }}>{totalGenerated}/{chapters.length} Documentos</span>
+          <span>Documentos creados</span>
+          <span style={{ color: '#004ac6', fontWeight: 700 }}>{totalGenerated}/{chapters.length} creados · {totalPublicados} publicados</span>
         </div>
         <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{ width: `${progressPercent}%`, height: '100%', background: '#004ac6', transition: 'width 0.3s ease' }} />
@@ -258,35 +303,44 @@ const DocGeneratorScreen = ({ navParams }) => {
         
         {/* PANEL IZQUIERDO: LISTA DE CAPÍTULOS */}
         <div className="dani-doc-sidebar" style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: 'clamp(12px, 2vw, 24px)', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-          <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '20px' }}>CAPÍTULOS</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {chapters.map((chapter) => {
+          {[['iso', 'ISO 27001'], ['ley', 'Ley 21.719']].map(([marco, nombreMarco]) => (
+          <React.Fragment key={marco}>
+          <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, letterSpacing: '1px', textTransform: 'uppercase', margin: marco === 'iso' ? '0 0 12px' : '20px 0 12px' }}>{nombreMarco}</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {chapters.filter((c) => c.marco === marco).map((chapter) => {
               const isSelected = selectedChapter?.id === chapter.id;
               const Icon = chapter.icon;
+              const estado = documentStatus[chapter.id];
 
               return (
-                <button 
-                  key={chapter.id} 
-                  onClick={() => { setSelectedChapter(chapter); setTargetControl(null); setTargetControlTitle(null); }}
-                  style={{ 
-                    display: 'flex', alignItems: 'center', gap: '14px', padding: '12px 16px', 
-                    background: isSelected ? `${chapter.color}15` : 'transparent', 
-                    border: `1px solid ${isSelected ? chapter.color : 'transparent'}`, 
-                    borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease' 
+                <button
+                  key={chapter.id}
+                  onClick={() => { setSelectedChapter(chapter); setTargetControl(null); setTargetControlTitle(null); setGenerateError(null); setAvisoGuardado(null); }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px',
+                    background: isSelected ? `${chapter.color}15` : 'transparent',
+                    border: `1px solid ${isSelected ? chapter.color : 'transparent'}`,
+                    borderRadius: '12px', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease'
                   }}
                 >
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: isSelected ? `${chapter.color}20` : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon size={18} color={isSelected ? chapter.color : t.textDim} />
+                  <div style={{ width: '32px', height: '32px', borderRadius: '10px', background: isSelected ? `${chapter.color}20` : t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon size={16} color={isSelected ? chapter.color : t.textDim} />
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: isSelected ? t.text : t.textDim, lineHeight: '1.4' }}>
-                      {chapter.number}. {chapter.title}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: isSelected ? t.text : t.textDim, lineHeight: '1.35' }}>
+                      {chapter.title}
+                    </div>
+                    <div style={{ fontSize: '11px', color: t.textDim, marginTop: '2px' }}>
+                      {chapter.marco === 'iso' ? `Cláusula ${chapter.number}` : 'Obligación legal'}
+                      {estado && <span style={{ marginLeft: '6px', fontWeight: 700, color: estado === 'published' ? '#15803d' : '#b45309' }}>· {{ draft: 'Borrador', review: 'En revisión', approved: 'Aprobado', published: 'Publicado' }[estado] || estado}</span>}
                     </div>
                   </div>
                 </button>
               );
             })}
           </div>
+          </React.Fragment>
+          ))}
         </div>
 
         {/* PANEL DERECHO: ÁREA DE TRABAJO */}
@@ -296,13 +350,17 @@ const DocGeneratorScreen = ({ navParams }) => {
           {!selectedChapter && (
             <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: t.textDim, padding: '24px', textAlign: 'center' }}>
               <FileText size={48} style={{ opacity: 0.3, marginBottom: '20px' }} />
-              <h2 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>Selecciona un capítulo para comenzar</h2>
-              <p style={{ fontSize: '14px' }}>Elige un capítulo del panel izquierdo para comenzar</p>
+              <h2 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>Selecciona un documento</h2>
+              <p style={{ fontSize: '14px' }}>Elige un documento del panel izquierdo para ver su borrador o generarlo.</p>
             </div>
           )}
 
           {/* ESTADO 2: Capítulo seleccionado, pero NO generado */}
-          {selectedChapter && !generatedContent[selectedChapter.id] && (
+          {selectedChapter && isLoadingDoc && !generatedContent[selectedChapter.id] && (
+            <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, padding: '40px' }}>Cargando documento guardado...</div>
+          )}
+
+          {selectedChapter && !isLoadingDoc && !generatedContent[selectedChapter.id] && (
             <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, flex: 1, display: 'flex', flexDirection: 'column' }}>
               <div className="dani-doc-title-row" style={{ padding: 'clamp(14px, 2vw, 24px)', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flexWrap: 'wrap' }}>
@@ -310,7 +368,8 @@ const DocGeneratorScreen = ({ navParams }) => {
                     <selectedChapter.icon size={24} color={selectedChapter.color} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{selectedChapter.number}. {selectedChapter.title}</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{selectedChapter.title}</h2>
+                    <p style={{ fontSize: '12px', fontWeight: 600, color: selectedChapter.color, margin: '2px 0' }}>{etiqueta(selectedChapter)}</p>
                     <p style={{ fontSize: '13px', color: t.textDim }}>{selectedChapter.sections}</p>
                   </div>
                 </div>
@@ -337,9 +396,9 @@ const DocGeneratorScreen = ({ navParams }) => {
                   {isGenerating ? <Loader2 size={36} color={selectedChapter.color} className="animate-spin" /> : <Wand2 size={36} color={selectedChapter.color} />}
                 </div>
 
-                <h2 style={{ fontSize: '22px', fontWeight: 700, color: t.text, marginBottom: '12px' }}>Generar Borrador {selectedChapter.number}</h2>
-                <p style={{ fontSize: '15px', color: t.textDim, maxWidth: '400px', lineHeight: '1.5', marginBottom: '32px' }}>
-                  La IA generará un borrador que podrás revisar y editar en tu documento.
+                <h2 style={{ fontSize: '22px', fontWeight: 700, color: t.text, marginBottom: '12px' }}>Generar borrador</h2>
+                <p style={{ fontSize: '15px', color: t.textDim, maxWidth: '460px', lineHeight: '1.5', marginBottom: '32px' }}>
+                  La IA redacta el documento para tu empresa con lo que ya respondiste en el Análisis de Brechas y las evidencias que subiste. Mientras más avances en el análisis, más completo sale el borrador.
                 </p>
 
                 {/* AQUÍ VA EL MENSAJE DE ERROR */}
@@ -444,14 +503,17 @@ const DocGeneratorScreen = ({ navParams }) => {
                       <selectedChapter.icon size={22} color={selectedChapter.color} />
                     </div>
                     <div>
-                      <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>{selectedChapter.number}. {selectedChapter.title}</h2>
+                      <h2 style={{ fontSize: '18px', fontWeight: 700, color: t.text }}>{selectedChapter.title}</h2>
+                      <p style={{ fontSize: '12px', fontWeight: 600, color: selectedChapter.color, margin: '2px 0' }}>{etiqueta(selectedChapter)}</p>
                       <p style={{ fontSize: '12px', color: t.textDim }}>{selectedChapter.sections}</p>
                     </div>
                   </div>
                   
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                    <button style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textDim, fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Tag size={14} /> Etiquetado
+                    {generateError && <span role="alert" style={{ fontSize: '12px', color: '#dc2626', fontWeight: 600 }}>{generateError}</span>}
+                    {avisoGuardado && <span role="status" style={{ fontSize: '12px', color: avisoGuardado === 'Cambios guardados.' ? '#15803d' : '#dc2626', fontWeight: 600 }}>{avisoGuardado}</span>}
+                    <button onClick={guardarCambios} disabled={guardando} style={{ padding: '8px 16px', background: 'transparent', border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', fontWeight: 600, cursor: guardando ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <CheckCircle size={14} /> {guardando ? 'Guardando...' : 'Guardar cambios'}
                     </button>
                     <button onClick={handleGenerate} disabled={isGenerating} style={{ padding: '8px 16px', background: selectedChapter.color, border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 600, cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: isGenerating ? 0.7 : 1 }}>
                       {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} 
@@ -464,8 +526,19 @@ const DocGeneratorScreen = ({ navParams }) => {
                   <div className="dani-doc-preview" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '12px 24px', background: `${selectedChapter.color}10`, borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Sparkles size={16} color={selectedChapter.color} />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: selectedChapter.color }}>Borrador IA</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: selectedChapter.color }}>Última versión guardada</span>
                     </div>
+                    {fuentes[selectedChapter.id] && (() => {
+                      const f = fuentes[selectedChapter.id];
+                      return (
+                        <div style={{ padding: '10px 24px', borderBottom: `1px solid ${t.border}`, fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>
+                          <strong style={{ color: t.text }}>Basado en:</strong> {f.respuestas} de {f.preguntas_relacionadas} preguntas respondidas del Análisis de Brechas
+                          {f.evidencias.length > 0 ? `, evidencias: ${f.evidencias.join(', ')}` : ', ninguna evidencia relacionada'}
+                          {f.riesgos > 0 ? `, ${f.riesgos} riesgos del Mapa de Riesgos` : ''}.
+                          {f.respuestas === 0 && f.evidencias.length === 0 && <span style={{ display: 'block', color: '#b45309' }}>Sin respuestas ni evidencias, el borrador queda casi todo como PENDIENTE. Avanza el Análisis de Brechas y vuelve a generarlo.</span>}
+                        </div>
+                      );
+                    })()}
                     <div className="dani-doc-preview-content" style={{ padding: 'clamp(16px, 2.5vw, 32px)', overflowY: 'auto', flex: 1, overflowWrap: 'anywhere' }}>
                       {renderMarkdown(generatedContent[selectedChapter.id], selectedChapter.color)}
                     </div>
@@ -474,7 +547,7 @@ const DocGeneratorScreen = ({ navParams }) => {
                   <div className="dani-doc-editor" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '12px 24px', background: 'rgba(0, 74, 198, 0.05)', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <Edit3 size={16} color="#004ac6" />
-                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#004ac6' }}>Tu Documento</span>
+                      <span style={{ fontSize: '13px', fontWeight: 700, color: '#004ac6' }}>Editar documento</span>
                     </div>
                     <div style={{ flex: 1, minHeight: 0 }}>
                       <textarea

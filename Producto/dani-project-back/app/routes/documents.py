@@ -11,6 +11,7 @@ from app.models.document import Document, DocumentStatus, DocumentAcknowledgemen
 from app.models.user import User
 from pydantic import BaseModel
 from app.services.ai_service import AIService
+from app.services.document_catalog import DOCUMENTOS, armar_contexto, armar_prompt, fuentes
 
 router = APIRouter(prefix="/api/documents", tags=["Documents"])
 ai_service = AIService()
@@ -47,34 +48,36 @@ async def get_all_documents(
         
     return {"documents": documents, "total": len(documents)}
 
+@router.get("/catalogo")
+async def catalogo_documentos(current_user: dict = Depends(get_current_user)):
+    """Documentos que se pueden generar, con su marco y cláusula."""
+    return [
+        {"id": k, "marco": v["marco"], "clausula": v["clausula"], "titulo": v["titulo"]}
+        for k, v in DOCUMENTOS.items()
+    ]
+
+
 @router.post("/generate/{doc_type}")
 async def generate_document(
     doc_type: str,
-    prompt_data: dict = Body(...),
-    org_id: str = Depends(get_current_org)
+    prompt_data: dict = Body(default={}),
+    org_id: str = Depends(get_current_org),
+    db: AsyncSession = Depends(get_db),
 ):
+    """Genera el borrador con la información real de la empresa: respuestas
+    del Análisis de Brechas, evidencias subidas y, si corresponde, riesgos."""
+    doc_id = doc_type[len("chapter_"):] if doc_type.startswith("chapter_") else doc_type
+    if doc_id not in DOCUMENTOS:
+        raise HTTPException(status_code=404, detail="Documento no reconocido.")
+    ctx = await armar_contexto(db, org_id, doc_id)
     try:
-        title = prompt_data.get("title", "")
-        chapter_number = prompt_data.get("chapter_number", "")
-        target_control = prompt_data.get("target_control", None)
-        target_control_title = prompt_data.get("target_control_title", "")
-        
-        if "Ley 21.719" in str(chapter_number):
-            prompt = f"""Actúa como un Abogado Experto en Privacidad y Oficial de Protección de Datos (DPO) en Chile.
-    Redacta un borrador extenso del documento legal: '{title}' para dar estricto cumplimiento a la Ley N° 21.719 de Protección de Datos Personales.
-    # {title}\n## 1. Propósito y Objetivo\n## 2. Alcance\n## 3. Definiciones\n## 4. Desarrollo Normativo\n## 5. Roles\n## 6. Sanciones\nEscribe al menos 800 palabras."""
-        else:
-            control_context = f"Enfasis en Control: {target_control}" if target_control else ""
-            prompt = f"""Actúa como Consultor ISO 27001. Redacta un borrador del 'Capítulo {chapter_number}: {title}'.
-    {control_context}
-    # {chapter_number}. {title}\n## Propósito\n## Alcance\n## Políticas\n## Responsabilidades\nEscribe al menos 800 palabras."""
-        
-        content = await ai_service.generate_document(prompt)
-        return {"message": f"Documento {doc_type} generado", "content": content}
-        
+        content = await ai_service.generate_document(armar_prompt(doc_id, ctx))
     except Exception as e:
-        # Enviar detalle controlado para no tumbar el frontend
-        raise HTTPException(status_code=500, detail=f"Fallo del motor de IA o red: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"La IA no pudo generar el borrador: {str(e)[:200]}")
+    if not content or content.startswith("Error: API key"):
+        raise HTTPException(status_code=503, detail="La IA no está configurada en el servidor.")
+    return {"message": f"Documento {doc_id} generado", "content": content, "fuentes": fuentes(ctx)}
+
 
 @router.post("/")
 async def save_document(
@@ -88,6 +91,8 @@ async def save_document(
         document = result.scalar_one_or_none()
         
         if document:
+            if document.content != data.content and document.status in (DocumentStatus.APPROVED, DocumentStatus.PUBLISHED):
+                document.status = DocumentStatus.DRAFT
             document.content = data.content
             document.title = data.title
         else:
