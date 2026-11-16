@@ -229,7 +229,7 @@ export default function DaniPlatform() {
           {activeScreen === 'dashboard' && <DashboardScreen onNavigate={handleNavigate} />}
           {activeScreen === 'gap-analysis' && <GapAnalysisScreen onNavigate={handleNavigate} />}
           {activeScreen === 'doc-generator' && <DocGeneratorScreen navParams={navParams} />}
-          {activeScreen === 'risk-map' && <RiskMapScreen />}
+          {activeScreen === 'risk-map' && <RiskMapScreen navParams={navParams} />}
           {activeScreen === 'evidence' && <EvidenceCenterScreen />}
           {activeScreen === 'documents' && <DocumentsScreen setActiveScreen={setActiveScreen} />}
           {activeScreen === 'audit-room' && <AuditRoomScreen />}

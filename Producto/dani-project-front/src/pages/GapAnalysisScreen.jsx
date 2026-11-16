@@ -627,6 +627,26 @@ function GapAnalysisScreen({ onNavigate }) {
     </div>
   );
 
+  // Una brecha priorizada pasa al Mapa de Riesgos con su impacto y probabilidad,
+  // para registrar el riesgo y definir su tratamiento (ISO 27001, 6.1.2 y 6.1.3).
+  // Solo para los roles que pueden editar el Mapa de Riesgos.
+  const puedeRegistrarRiesgo = ['superadmin', 'owner', 'admin', 'manager'].includes(user?.role);
+  const registrarRiesgo = puedeRegistrarRiesgo && onNavigate ? (tema) => {
+    const marco = esISO ? 'ISO 27001' : 'Ley 21.719';
+    const codigos = tema.fallas.slice(0, 8).map((q) => q.codigo).filter(Boolean).join(', ');
+    onNavigate('risk-map', {
+      nuevoRiesgo: {
+        title: `Brecha en ${tema.nombre}`,
+        description: `Detectado en el Análisis de Brechas (${marco}). Cumplimiento del tema: ${tema.pct}%. `
+          + `${tema.fallas.length} ${tema.fallas.length === 1 ? 'pregunta no se cumple' : 'preguntas no se cumplen'}`
+          + `${codigos ? ` (${codigos}${tema.fallas.length > 8 ? '…' : ''})` : ''}. Describe aquí qué podría pasar si no se corrige.`,
+        likelihood: tema.prob,
+        impact: tema.impacto,
+        category: esISO ? 'security' : 'privacy',
+      },
+    });
+  } : undefined;
+
   const ResultadosView = () => {
     const getScoreColor = (s) => s >= 85 ? '#2563eb' : s >= 70 ? '#f59e0b' : '#dc2626';
     if (isLoadingAnalysis) return <div style={{ padding: '40px', textAlign: 'center', color: t.textDim }}>Calculando análisis...</div>;
@@ -1062,7 +1082,7 @@ function GapAnalysisScreen({ onNavigate }) {
         <div style={{ marginTop: '20px' }}>
           <ResultadoBrechas phases={phases} answers={answers} noAplica={noAplica} aiResults={aiResults} valorDe={valorRespuesta}
             marcoLabel="ISO 27001" questionsById={questionsById} onIrAPregunta={irAPregunta} impactoDe={impactoISO}
-            titulo="Brechas del cuestionario"
+            titulo="Brechas del cuestionario" onRegistrarRiesgo={registrarRiesgo}
             textoImpacto="según el dominio del control. 5: Anexo A tecnológico · 4: Anexo A organizacional y planificación del riesgo (cláusula 6) · 3: contexto, liderazgo, soporte y mejora, personas y físico." />
         </div>
         </>
@@ -1070,7 +1090,7 @@ function GapAnalysisScreen({ onNavigate }) {
         <>
         {evalInfo && <div role="status" style={{ marginBottom: '16px', padding: '10px 14px', borderRadius: '10px', background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, fontSize: '12px', whiteSpace: 'pre-line' }}>{evalInfo}</div>}
         <ResultadoBrechas phases={phases} answers={answers} noAplica={noAplica} aiResults={aiResults} valorDe={valorRespuesta}
-          marcoLabel={esISO ? 'ISO 27001' : 'la Ley 21.719'} questionsById={questionsById} onIrAPregunta={irAPregunta} />
+          marcoLabel={esISO ? 'ISO 27001' : 'la Ley 21.719'} questionsById={questionsById} onIrAPregunta={irAPregunta} onRegistrarRiesgo={registrarRiesgo} />
         </>
       ) : null}
 

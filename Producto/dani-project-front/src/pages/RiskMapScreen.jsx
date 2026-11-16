@@ -7,8 +7,9 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { riskAPI } from '../services/api';
+import { NIVELES_RIESGO, UMBRALES_RIESGO, nivelRiesgo } from '../utils/nivelRiesgo';
 
-const RiskMapScreen = () => {
+const RiskMapScreen = ({ navParams } = {}) => {
   const { theme: t, language, darkMode, highContrast } = useContext(ThemeContext);
   
   // ==========================================
@@ -24,6 +25,8 @@ const RiskMapScreen = () => {
   const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState(null);
+  const [avisoBrecha, setAvisoBrecha] = useState(null);
+  const [risksLoaded, setRisksLoaded] = useState(false);
 
   // ==========================================
   // 2. CONEXIÓN REAL CON EL BACKEND
@@ -42,10 +45,29 @@ const RiskMapScreen = () => {
       } catch (error) {
         console.error("Error conectando con la API de Riesgos.", error);
         setLoadError('No se pudieron cargar los riesgos. Revisa tu conexión y recarga la página.');
+      } finally {
+        setRisksLoaded(true);
       }
     };
     fetchRisks();
   }, []);
+
+  // Viene desde una brecha del Análisis de Brechas: si ya existe un riesgo con
+  // ese título se muestra ese; si no, se abre el formulario precargado.
+  useEffect(() => {
+    const pre = navParams?.nuevoRiesgo;
+    if (!pre || !risksLoaded) return;
+    const existente = risks.find(r => (r.title || '').trim().toLowerCase() === pre.title.trim().toLowerCase());
+    if (existente) {
+      setSelectedRisk({ ...existente, name: existente.title, prob: Math.max(1, existente.likelihood || existente.prob || 1) });
+      setAvisoBrecha(`Esta brecha ya está registrada como riesgo ("${existente.title}"). Se muestra en el simulador.`);
+      return;
+    }
+    setNewRisk(prev => ({ ...prev, ...pre }));
+    setAvisoBrecha('Formulario precargado desde el Análisis de Brechas. Revisa la descripción antes de guardar.');
+    setShowAddModal(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navParams, risksLoaded]);
 
   // ==========================================
   // 4. FUNCIONES DE CÁLCULO Y COLOR
@@ -58,23 +80,23 @@ const RiskMapScreen = () => {
     if (highContrast) {
       // Alto contraste: colores puros y brillantes sobre negro
       if (score >= 15) return '#7f0000';  // Rojo profundo con suficiente contraste
-      if (score >= 10) return '#7f3b00';  // Naranja oscuro puro
-      if (score >= 5)  return '#5c4a00';  // Amarillo oscuro puro
+      if (score >= UMBRALES_RIESGO.alto) return '#7f3b00';  // Naranja oscuro puro
+      if (score >= UMBRALES_RIESGO.medio)  return '#5c4a00';  // Amarillo oscuro puro
       return '#003d1f';                   // Verde oscuro puro
     }
 
     if (!darkMode) {
       // Modo claro: colores sólidos con opacidad suficiente para que se distingan bien
       if (score >= 15) return 'rgba(185, 28, 28, 0.25)';   // Rojo
-      if (score >= 10) return 'rgba(194, 65, 12, 0.25)';   // Naranja
-      if (score >= 5)  return 'rgba(161, 98, 7, 0.25)';    // Amarillo/ámbar
+      if (score >= UMBRALES_RIESGO.alto) return 'rgba(194, 65, 12, 0.25)';   // Naranja
+      if (score >= UMBRALES_RIESGO.medio)  return 'rgba(161, 98, 7, 0.25)';    // Amarillo/ámbar
       return 'rgba(4, 120, 87, 0.18)';                     // Verde
     }
 
     // Modo oscuro (original)
     if (score >= 15) return 'rgba(153, 27, 27, 0.4)';
-    if (score >= 10) return 'rgba(154, 52, 18, 0.4)';
-    if (score >= 5)  return 'rgba(133, 77, 14, 0.4)';
+    if (score >= UMBRALES_RIESGO.alto) return 'rgba(154, 52, 18, 0.4)';
+    if (score >= UMBRALES_RIESGO.medio)  return 'rgba(133, 77, 14, 0.4)';
     return 'rgba(6, 78, 59, 0.4)';
   };
 
@@ -84,8 +106,8 @@ const RiskMapScreen = () => {
     if (highContrast) {
       // Alto contraste: bordes brillantes que demarcan cada zona
       if (score >= 15) return '2px solid #ff4444';
-      if (score >= 10) return '2px solid #ff8800';
-      if (score >= 5)  return '2px solid #ffdd00';
+      if (score >= UMBRALES_RIESGO.alto) return '2px solid #ff8800';
+      if (score >= UMBRALES_RIESGO.medio)  return '2px solid #ffdd00';
       return '2px solid #00cc66';
     }
     if (!darkMode) return '1px solid rgba(0,0,0,0.08)';
@@ -167,6 +189,7 @@ const RiskMapScreen = () => {
       const createdRisk = await riskAPI.create(newRisk);
       setRisks(prev => [...prev, createdRisk]);
       setShowAddModal(false);
+      setAvisoBrecha(null);
       setNewRisk({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
     } catch (err) {
       alert("Error al crear el riesgo: " + err.message);
@@ -321,6 +344,13 @@ const RiskMapScreen = () => {
         </button>
       </div>
 
+      {avisoBrecha && (
+        <div role="status" style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(37, 99, 235, 0.08)', border: '1px solid rgba(37, 99, 235, 0.25)', color: t.text, fontSize: '13px', display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'center' }}>
+          <span>{avisoBrecha}</span>
+          <button type="button" onClick={() => setAvisoBrecha(null)} style={{ background: 'none', border: 'none', color: t.textDim, cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cerrar</button>
+        </div>
+      )}
+
       {loadError && (
         <div style={{ padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <AlertTriangle size={16} /> {loadError}
@@ -337,10 +367,10 @@ const RiskMapScreen = () => {
           <div className="riskmap-matrix-legend" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: '56px', paddingBottom: '2px' }}>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
               {[
-                { label: 'Bajo',    color: '#004ac6', range: '1\u20134' },
-                { label: 'Medio',   color: '#eab308', range: '5\u20139' },
-                { label: 'Alto',    color: '#f59e0b', range: '10\u201314' },
-                { label: 'Crítico', color: '#ef4444', range: '\u226515' },
+                { label: 'Bajo',    color: '#004ac6', range: NIVELES_RIESGO[0].rango },
+                { label: 'Medio',   color: '#eab308', range: NIVELES_RIESGO[1].rango },
+                { label: 'Alto',    color: '#f59e0b', range: NIVELES_RIESGO[2].rango },
+                { label: 'Crítico', color: '#ef4444', range: NIVELES_RIESGO[3].rango },
               ].map(({ label, color, range }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                   <div style={{
@@ -435,7 +465,7 @@ const RiskMapScreen = () => {
                     }
 
                     const score = prob * impact;
-                    const levelLabel = score >= 15 ? 'Crítico' : score >= 10 ? 'Alto' : score >= 5 ? 'Medio' : 'Bajo';
+                    const levelLabel = nivelRiesgo(score).nombre;
 
                     return (
                       <div
@@ -557,7 +587,7 @@ const RiskMapScreen = () => {
                   {selectedRisk.prob * selectedRisk.impact}
                 </div>
                 <div style={{ fontSize: '11px', color: getRiskBadgeColor(selectedRisk.prob * selectedRisk.impact), marginTop: '4px' }}>
-                  {(selectedRisk.prob * selectedRisk.impact) >= 15 ? 'Crítico' : 'Alto'}
+                  {nivelRiesgo(selectedRisk.prob * selectedRisk.impact).nombre}
                 </div>
               </div>
               

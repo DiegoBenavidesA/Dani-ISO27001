@@ -1,6 +1,7 @@
 import React, { useContext, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Info } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { nivelRiesgo } from '../utils/nivelRiesgo';
 
 // =====================================================================
 // RESULTADO DEL ANÁLISIS DE BRECHAS (cumplimiento + mapa de calor)
@@ -35,12 +36,8 @@ export const impactoDeTema = (tema) => {
 
 export const probabilidad = (pct) => (pct >= 90 ? 1 : pct >= 70 ? 2 : pct >= 50 ? 3 : pct >= 25 ? 4 : 5);
 
-const nivel = (score) => (
-  score >= 15 ? { nombre: 'Crítico', color: '#dc2626', fondo: '#fee2e2' }
-  : score >= 8 ? { nombre: 'Alto', color: '#ea580c', fondo: '#ffedd5' }
-  : score >= 4 ? { nombre: 'Medio', color: '#b45309', fondo: '#fef3c7' }
-  : { nombre: 'Bajo', color: '#15803d', fondo: '#dcfce7' }
-);
+// Misma escala que el Mapa de Riesgos y el backend (utils/nivelRiesgo.js).
+const nivel = nivelRiesgo;
 
 /**
  * Calcula el resultado a partir de las fases del cuestionario.
@@ -90,7 +87,7 @@ export function calcularResultado(phases, answers, noAplica, valorDe, impactoDe 
 export const IMPACTO_ISO_POR_FASE = { tech: 5, org: 4, planning: 4, context: 3, support: 3, people: 3, phys: 3 };
 export const impactoISO = (_tema, faseId) => IMPACTO_ISO_POR_FASE[faseId] || IMPACTO_POR_DEFECTO;
 
-function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marcoLabel, onIrAPregunta, questionsById, impactoDe = impactoDeTema, textoImpacto, titulo }) {
+function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marcoLabel, onIrAPregunta, questionsById, impactoDe = impactoDeTema, textoImpacto, titulo, onRegistrarRiesgo }) {
   const { theme: t } = useContext(ThemeContext);
   const r = useMemo(() => calcularResultado(phases, answers, noAplica, valorDe, impactoDe), [phases, answers, noAplica, valorDe, impactoDe]);
   const [celda, setCelda] = useState(null); // {impacto, prob}
@@ -213,6 +210,15 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
                   </span>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: t.textMuted, flexShrink: 0 }}>{tema.pct}% · {tema.fallas.length} {tema.fallas.length === 1 ? 'falla' : 'fallas'}</span>
                 </button>
+                {abierto && onRegistrarRiesgo && (
+                  <div style={{ padding: '0 12px 8px 36px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <button type="button" onClick={() => onRegistrarRiesgo(tema)}
+                      style={{ fontSize: '11px', fontWeight: 700, color: '#fff', background: '#004ac6', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}>
+                      Registrar como riesgo
+                    </button>
+                    <span style={{ fontSize: '11px', color: t.textDim }}>Lo lleva al Mapa de Riesgos con este impacto y probabilidad para definir su tratamiento.</span>
+                  </div>
+                )}
                 {abierto && (
                   <ul style={{ listStyle: 'none', margin: 0, padding: '0 12px 12px 36px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {tema.fallas.map((q) => {
