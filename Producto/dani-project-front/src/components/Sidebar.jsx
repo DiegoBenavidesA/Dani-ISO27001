@@ -12,7 +12,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const [comunOpen, setComunOpen] = useState(true);
   const [isoOpen, setIsoOpen] = useState(true);
   const [leyOpen, setLeyOpen] = useState(true);
-  const ISO_IDS = ['audit-room', 'assessment'];
+  const ISO_IDS = ['audit-room'];
   const LEY_IDS = ['breaches'];
 
   useEffect(() => {
@@ -46,7 +46,6 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'comun' },
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'comun' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'iso' },
-    { id: 'assessment', label: language === 'es' ? 'Evaluación ISO' : 'ISO Assessment', icon: ClipboardList, roles: ISO_VIEW, group: 'iso' },
     { id: 'breaches', label: language === 'es' ? 'Vulneraciones de Seguridad' : 'Security Breaches', icon: ShieldAlert, roles: LEY, group: 'ley' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },

@@ -24,7 +24,7 @@ En `RequireRole` (`app/dependencies/auth.py`), **owner y superadmin pasan siempr
 
 ### Matriz de permisos (menú + API)
 owner/admin ven TODO dentro de su empresa. Los demás:
-- **manager:** Dashboard, Gap Analysis, Generador Docs, Mapa Riesgos, Evidencias, Documentos, Sala Auditoría, Evaluación ISO. (No Ley, no usuarios.)
+- **manager:** Dashboard, Gap Analysis, Generador Docs, Mapa Riesgos, Evidencias, Documentos, Sala Auditoría. (No Ley, no usuarios.)
 - **auditor:** igual que manager pero **solo lectura** (no escribe en evidencias, CAPA, gap, assessment) y sin Generador/Riesgos.
 - **dpo:** módulos de **Ley 21.719** + Dashboard + Documentos. (No ISO, no riesgos.)
 - **employee:** solo Portal de Empleados.
