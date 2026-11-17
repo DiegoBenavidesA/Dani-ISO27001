@@ -599,7 +599,7 @@ def extract_json_from_text(text: str):
 # POST /evaluate        -> inicia un job para UN marco (iso27001 o ley21719)
 #                          y devuelve {job_id, total}
 # GET  /evaluate/{id}   -> estado: done/total, etapa y, al terminar,
-#                          {marco, total, results, evaluated_with_ai}
+#                          {marco, total, results, evaluated_with_ai, sin_evaluar, motivo_sin_evaluar}
 # Ver app/services/question_evaluator.py (filtro por relevancia + contexto
 # por fragmentos + reintentos ante el límite de Groq).
 # =====================================================================
@@ -724,7 +724,7 @@ async def _ejecutar_job(job_id: str, org_id: str, marco: str, preguntas, documen
     try:
         from app.routes.evidence import embedding_service
         job["stage"] = "Buscando qué preguntas se relacionan con los documentos"
-        resultados, enviadas = await qe.evaluar_preguntas(
+        resultados, enviadas, sin_evaluar, motivo = await qe.evaluar_preguntas(
             ai_service, embedding_service, preguntas, documentos, extract_json_from_text, progreso
         )
         job["stage"] = "Guardando resultados y actualizando la SOA" if marco == "iso27001" else "Guardando resultados"
@@ -734,6 +734,10 @@ async def _ejecutar_job(job_id: str, org_id: str, marco: str, preguntas, documen
         job["result"] = {
             "marco": marco, "total": len(resultados), "results": resultados,
             "evaluated_with_ai": enviadas,
+            # Preguntas que la IA no alcanzó a evaluar: conservan su respuesta
+            # anterior; se pueden evaluar después con "Revalidar pendientes".
+            "sin_evaluar": len(sin_evaluar),
+            "motivo_sin_evaluar": motivo,
         }
         job["done"] = job["total"]
         job["status"] = "done"

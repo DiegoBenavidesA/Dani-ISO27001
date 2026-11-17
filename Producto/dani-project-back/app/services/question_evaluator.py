@@ -211,8 +211,18 @@ Ejemplo de formato esperado:
 """
 
 
+class CuotaDiariaAgotada(Exception):
+    """Groq rechazó la llamada porque se gastaron los tokens del día."""
+
+
+def es_cuota_diaria(error: Exception) -> bool:
+    texto = str(error).lower()
+    return "tokens per day" in texto or "(tpd)" in texto
+
+
 async def _llamar_con_reintentos(ai_service, prompt: str) -> str:
-    """Reintenta si Groq responde 429 (límite por minuto) o hay un corte de red."""
+    """Reintenta si Groq responde 429 (límite por minuto) o hay un corte de red.
+    Si el límite es el diario, no tiene sentido esperar: se corta de inmediato."""
     esperas = [0, 15, 30, 45]
     ultimo_error = None
     for espera in esperas:
@@ -221,13 +231,21 @@ async def _llamar_con_reintentos(ai_service, prompt: str) -> str:
         try:
             return await ai_service.generate_document(prompt)
         except Exception as e:  # RateLimitError, APITimeoutError, etc.
+            if es_cuota_diaria(e):
+                raise CuotaDiariaAgotada(str(e)) from e
             ultimo_error = e
             logger.warning(f"Llamada a la IA falló ({str(e)[:80]}); reintentando…")
     raise ultimo_error
 
 
 async def evaluar_preguntas(ai_service, embedding_service, preguntas, documentos, extract_json, on_progress):
-    """Evalúa las preguntas y devuelve la lista de resultados por pregunta."""
+    """Evalúa las preguntas.
+
+    Devuelve (resultados, enviadas_a_la_ia, sin_evaluar, motivo). Las preguntas
+    que la IA no pudo evaluar (cuota agotada, error o respuesta inválida) NO van
+    en resultados: así conservan su respuesta anterior en vez de quedar como
+    "sin evidencia", que cuenta como 0 en el cumplimiento.
+    """
     candidatas, descartadas, fragmentos, frags_por_preg = await asyncio.to_thread(
         seleccionar_relevantes, preguntas, documentos, embedding_service
     )
@@ -240,26 +258,38 @@ async def evaluar_preguntas(ai_service, embedding_service, preguntas, documentos
 
     lotes = [candidatas[i:i + TAMANO_LOTE] for i in range(0, len(candidatas), TAMANO_LOTE)]
     sem = asyncio.Semaphore(LLAMADAS_EN_PARALELO)
+    estado = {"cuota_agotada": False, "fallas": 0}
+    sin_evaluar = []
 
     async def evaluar_lote(lote):
         async with sem:
-            contexto = _contexto_lote(lote, fragmentos, frags_por_preg)
-            try:
-                texto = await _llamar_con_reintentos(ai_service, _prompt_lote(contexto, lote))
-                parsed = extract_json(texto) or []
-            except Exception as e:
-                logger.error(f"Lote sin respuesta de la IA: {e}")
+            parsed = []
+            if not estado["cuota_agotada"]:
+                contexto = _contexto_lote(lote, fragmentos, frags_por_preg)
+                try:
+                    texto = await _llamar_con_reintentos(ai_service, _prompt_lote(contexto, lote))
+                    parsed = extract_json(texto) or []
+                except CuotaDiariaAgotada:
+                    estado["cuota_agotada"] = True
+                    logger.error("Cuota diaria de la IA agotada; se detiene la evaluación.")
+                except Exception as e:
+                    estado["fallas"] += 1
+                    logger.error(f"Lote sin respuesta de la IA: {e}")
+            if not isinstance(parsed, list):
                 parsed = []
-            ids_ok = {str(r.get("id")) for r in parsed if isinstance(r, dict)}
-            faltantes = [
-                {"id": q.id, "veredicto": "sin_evidencia", "confianza": 0.0,
-                 "justificacion": "Error: la IA no devolvió una respuesta válida para esta pregunta."}
-                for q in lote if str(q.id) not in ids_ok
-            ]
-            salida = [r for r in parsed if isinstance(r, dict)] + faltantes
+            ids_lote = {str(q.id) for q in lote}
+            validos = [r for r in parsed if isinstance(r, dict) and str(r.get("id")) in ids_lote]
+            ids_ok = {str(r.get("id")) for r in validos}
+            sin_evaluar.extend(q.id for q in lote if str(q.id) not in ids_ok)
             on_progress(len(lote), None)
-            return salida
+            return validos
 
     for sub in await asyncio.gather(*[evaluar_lote(l) for l in lotes]):
         resultados.extend(sub)
-    return resultados, len(candidatas)
+
+    motivo = None
+    if estado["cuota_agotada"]:
+        motivo = "Se agotó la cuota diaria de la IA (Groq, plan gratuito)."
+    elif sin_evaluar:
+        motivo = "La IA no respondió o devolvió una respuesta inválida para algunos grupos de preguntas."
+    return resultados, len(candidatas), sin_evaluar, motivo

@@ -469,8 +469,14 @@ function GapAnalysisScreen({ onNavigate }) {
       let finalMsg = esISO
         ? `✅ Se revisaron ${resp.total} preguntas de ${marcoLabel} y se actualizaron los controles de la SOA.\n`
         : `✅ Se revisaron ${resp.total} preguntas de ${marcoLabel}.\n`;
-      if (typeof resp.evaluated_with_ai === 'number' && resp.evaluated_with_ai < resp.total) {
-        finalMsg += `La IA analizó en detalle ${resp.evaluated_with_ai} preguntas relacionadas con tus documentos; las otras ${resp.total - resp.evaluated_with_ai} quedaron como "sin evidencia".\n`;
+      const sinEvaluar = resp.sin_evaluar || 0;
+      if (typeof resp.evaluated_with_ai === 'number' && resp.evaluated_with_ai < resp.total + sinEvaluar) {
+        const analizadas = resp.evaluated_with_ai - sinEvaluar;
+        finalMsg += `La IA analizó en detalle ${analizadas} preguntas relacionadas con tus documentos; las otras ${resp.total - analizadas} quedaron como "sin evidencia".\n`;
+      }
+      if (sinEvaluar > 0) {
+        // No es un resultado: esas preguntas conservan su respuesta anterior.
+        finalMsg += `⚠️ ${sinEvaluar} preguntas no se alcanzaron a evaluar. ${resp.motivo_sin_evaluar || ''} Conservan su respuesta anterior; evalúalas más tarde con "Revalidar pendientes".\n`;
       }
       setEvalInfo(finalMsg.trim());
       // En vez de un aviso suelto, se abre el resultado: % de cumplimiento,
