@@ -45,7 +45,13 @@ const LEY_GRUPOS = [
 
 function GapAnalysisScreen({ onNavigate }) {
   const { theme: t, language } = useContext(ThemeContext);
-  const { user } = useAuth();
+  const { user, impersonatedOrg } = useAuth();
+  // La copia local de las respuestas va por empresa: antes la clave era la
+  // misma para todas y, al cambiar de empresa, aparecían respuestas de otra.
+  const orgKey = impersonatedOrg?.id || user?.organizationId || 'sin-empresa';
+  const claveRespuestas = `dani_gap_answers:${orgKey}`;
+  const claveIA = `dani_gap_ai_results:${orgKey}`;
+  const leerLocal = (clave) => { try { return JSON.parse(localStorage.getItem(clave) || '{}'); } catch { return {}; } };
   const isAdmin = user && ['superadmin', 'owner', 'admin'].includes(user?.role);
 
   const tText = {
@@ -61,7 +67,7 @@ function GapAnalysisScreen({ onNavigate }) {
   const [currentPhase, setCurrentPhase] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showAllPhases, setShowAllPhases] = useState(false);
-  const [answers, setAnswers] = useState(() => { try { return JSON.parse(localStorage.getItem('dani_gap_answers') || '{}'); } catch { return {}; } });
+  const [answers, setAnswers] = useState(() => leerLocal(claveRespuestas));
   const [controls, setControls] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -90,9 +96,11 @@ function GapAnalysisScreen({ onNavigate }) {
   const [evalProgress, setEvalProgress] = useState(null); // { done, total, stage } del job en el servidor
   const [evalError, setEvalError] = useState(null);
   const [evalInfo, setEvalInfo] = useState(null);
-  const [aiResults, setAiResults] = useState(() => { try { return JSON.parse(localStorage.getItem('dani_gap_ai_results') || '{}'); } catch { return {}; } });
+  const [aiResults, setAiResults] = useState(() => leerLocal(claveIA));
 
-  useEffect(() => { try { localStorage.setItem('dani_gap_answers', JSON.stringify(answers)); } catch {} }, [answers]);
+  // Claves antiguas, compartidas entre empresas: se borran.
+  useEffect(() => { try { localStorage.removeItem('dani_gap_answers'); localStorage.removeItem('dani_gap_ai_results'); } catch {} }, []);
+  useEffect(() => { try { localStorage.setItem(claveRespuestas, JSON.stringify(answers)); } catch {} }, [answers, claveRespuestas]);
   useEffect(() => {
     try { localStorage.setItem('dani_gap_marco', marco); } catch {}
     setCurrentPhase(0); setCurrentQuestion(0);
@@ -101,7 +109,7 @@ function GapAnalysisScreen({ onNavigate }) {
     if (!esISO && (activeMainTab === 'soa' || activeMainTab === 'resultados')) setActiveMainTab('assessment');
     if (esISO && activeMainTab === 'resultado') setActiveMainTab('assessment');
   }, [marco]);
-  useEffect(() => { try { localStorage.setItem('dani_gap_ai_results', JSON.stringify(aiResults)); } catch {} }, [aiResults]);
+  useEffect(() => { try { localStorage.setItem(claveIA, JSON.stringify(aiResults)); } catch {} }, [aiResults, claveIA]);
 
   // Reintenta varias veces antes de rendirse: en el plan gratuito de Render el
   // servidor puede estar despertando y responder con error unos segundos.
@@ -134,7 +142,10 @@ function GapAnalysisScreen({ onNavigate }) {
   const [naError, setNaError] = useState(null);
   useEffect(() => {
     // Las respuestas guardadas en el servidor (manuales, de la IA y "no aplica")
-    // mandan sobre las del navegador.
+    // reemplazan a la copia del navegador: el servidor es la fuente de verdad.
+    // Mientras llegan se muestra la copia local de ESTA empresa.
+    setAnswers(leerLocal(claveRespuestas));
+    setAiResults(leerLocal(claveIA));
     assessmentQuestionsAPI.getAnswers().then((lista) => {
       const na = {};
       const delServidor = {};
@@ -145,15 +156,13 @@ function GapAnalysisScreen({ onNavigate }) {
         if (r.confianza !== null && r.confianza !== undefined) ia[r.question_id] = { veredicto: r.veredicto, confianza: r.confianza, justificacion: r.justificacion };
       });
       setNoAplica(na);
-      setAiResults((prev) => ({ ...prev, ...ia }));
-      setAnswers((prev) => {
-        const next = { ...prev, ...delServidor };
-        Object.keys(next).forEach((id) => { if (next[id] === NO_APLICA && !(id in na)) delete next[id]; });
-        Object.keys(na).forEach((id) => { next[id] = NO_APLICA; });
-        return next;
-      });
+      setAiResults(ia);
+      const next = { ...delServidor };
+      Object.keys(na).forEach((id) => { next[id] = NO_APLICA; });
+      setAnswers(next);
     }).catch(() => {});
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orgKey]);
 
   const clauseNum = (codigo) => (codigo || '').split('.')[0];
   const categoryOf = (q) => String(q.categoria || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
