@@ -99,12 +99,12 @@ export default function ChatDANI() {
           className={`normia-dani-panel${isExpanded ? ' normia-dani-panel-expanded' : ''}`}
           style={{
             position: 'fixed',
-            bottom: isExpanded ? '0' : '92px',
+            bottom: isExpanded ? '0' : '24px',
             right: isExpanded ? '0' : '24px',
             width: isExpanded ? '100vw' : '420px',
             maxWidth: 'calc(100vw - 2rem)',
             height: isExpanded ? '100vh' : '650px',
-            maxHeight: isExpanded ? '100vh' : 'calc(100vh - 7rem)',
+            maxHeight: isExpanded ? '100vh' : 'calc(100vh - 6.5rem)',
             background: C.white,
             borderRadius: isExpanded ? '0' : '24px',
             boxShadow: '0 20px 60px rgba(15, 23, 42, 0.22)',
@@ -367,6 +367,7 @@ export default function ChatDANI() {
           }}
         >
           {isOpen ? <X size={20} /> : <Bot size={20} />}
+          <span className="normia-dani-header-label">Asistente DANI</span>
         </button>,
         headerTarget
       )}
@@ -376,13 +377,24 @@ export default function ChatDANI() {
         .dot-pulse { animation: pulse 1.4s infinite ease-in-out both; font-size: 18px; line-height: 10px; color: ${C.outline}; }
         .delay-1 { animation-delay: 0.2s; }
         .delay-2 { animation-delay: 0.4s; }
-        /* El botón del encabezado solo aparece en pantallas pequeñas. */
+        /* DANI se abre desde el encabezado, en computador y en móvil. Antes era un
+           botón flotante abajo a la derecha que tapaba los botones de las tablas. */
+        .normia-dani-fab-desktop { display: none !important; }
         .normia-dani-header-trigger { display: none; }
+        @media (min-width: 769px) {
+          .normia-dani-header-trigger {
+            display: inline-flex;
+            gap: 8px;
+            height: 44px;
+            padding: 0 14px;
+            border-radius: 12px !important;
+            font-size: 14px;
+            font-weight: 600;
+            order: -1;
+          }
+        }
 
         @media (max-width: 768px) {
-          /* Con encabezado disponible, eliminamos el FAB flotante: no tapa Continuar. */
-          .normia-dani-fab-desktop { display: none !important; }
-
           /* Si esta pantalla no tiene el encabezado esperado, conservamos un acceso. */
           .normia-dani-fab:not(.normia-dani-fab-desktop) {
             width: 44px !important;
@@ -391,6 +403,7 @@ export default function ChatDANI() {
             bottom: 10px !important;
           }
 
+          .normia-dani-header-label { display: none; }
           .normia-dani-header-trigger {
             display: inline-flex;
             width: 38px;
