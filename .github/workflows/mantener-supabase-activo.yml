@@ -18,7 +18,7 @@ jobs:
         run: |
           # Render gratuito puede tardar en despertar: se reintenta hasta 5 veces.
           for intento in 1 2 3 4 5; do
-            respuesta=$(curl -s -m 90 https://dani-iso27001.onrender.com/health/almacenamiento || true)
+            respuesta=$(curl -s -m 90 https://dani-iso27001-uldm.onrender.com/health/almacenamiento || true)
             echo "Intento $intento: $respuesta"
             if echo "$respuesta" | grep -q '"ok"'; then exit 0; fi
             sleep 30
