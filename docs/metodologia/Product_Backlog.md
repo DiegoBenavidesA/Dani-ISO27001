@@ -60,7 +60,7 @@ El Product Backlog reúne todas las historias de usuario del producto, ordenadas
 
 | ID | Historia de usuario | Criterios de aceptación | Prioridad | Tamaño | Sprint | Estado | Evidencia |
 |---|---|---|---|---|---|---|---|
-| PB-22 | Como **equipo**, queremos pruebas automáticas de permisos y del flujo de vulneraciones, para detectar errores antes de publicar. | 124 pruebas que se ejecutan sin base de datos ni IA real. | Must | M | Transversal | Hecho | `Producto/dani-project-back/tests/` |
+| PB-22 | Como **equipo**, queremos pruebas automáticas de permisos y del flujo de vulneraciones, para detectar errores antes de publicar. | 126 pruebas que se ejecutan sin base de datos ni IA real. | Must | M | Transversal | Hecho | `Producto/dani-project-back/tests/` |
 | PB-23 | Como **evaluador**, quiero levantar el proyecto con un solo comando, para revisarlo sin configurar nada. | `docker compose up --build` levanta base de datos, backend y frontend. | Should | M | Transversal | Hecho | `Producto/docker-compose.yml` |
 | PB-24 | Como **equipo**, queremos pruebas de punta a punta en el navegador, para validar los flujos completos. | Login, evaluación y vulneraciones automatizados (Playwright). | Could | L | — | Por hacer | Hoy se prueban manualmente |
 

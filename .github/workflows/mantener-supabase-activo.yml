@@ -1,0 +1,27 @@
+# El plan gratuito de Supabase pausa el proyecto tras unos 7 días sin
+# actividad, y entonces las evidencias se suben sin su archivo original.
+# Este workflow llama al backend dos veces por semana; el backend consulta el
+# bucket con su clave, y esa consulta cuenta como actividad. De paso despierta
+# el servicio gratuito de Render.
+name: Mantener Supabase activo
+
+on:
+  schedule:
+    - cron: "0 12 * * 1,4"   # lunes y jueves, 12:00 UTC
+  workflow_dispatch:          # también se puede correr a mano desde Actions
+
+jobs:
+  consultar-almacenamiento:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consultar el almacenamiento a través del backend
+        run: |
+          # Render gratuito puede tardar en despertar: se reintenta hasta 5 veces.
+          for intento in 1 2 3 4 5; do
+            respuesta=$(curl -s -m 90 https://dani-iso27001.onrender.com/health/almacenamiento || true)
+            echo "Intento $intento: $respuesta"
+            if echo "$respuesta" | grep -q '"ok"'; then exit 0; fi
+            sleep 30
+          done
+          echo "El almacenamiento no respondió. Revisa si el proyecto de Supabase está pausado."
+          exit 1

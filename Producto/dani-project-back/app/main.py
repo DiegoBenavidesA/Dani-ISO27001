@@ -290,6 +290,22 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+
+@app.get("/health/almacenamiento")
+async def health_almacenamiento():
+    """Consulta el bucket de Supabase. La llama un workflow de GitHub dos veces
+    por semana para que el proyecto gratuito de Supabase no se pause por
+    inactividad. Solo dice si responde; no muestra claves ni detalles."""
+    from app.config import settings
+    from app.services.storage_service import storage_service
+    if not (settings.SUPABASE_URL and settings.SUPABASE_SERVICE_KEY):
+        return {"almacenamiento": "sin_configurar"}
+    try:
+        ok = await storage_service.check_bucket() == 200
+    except Exception:
+        ok = False
+    return {"almacenamiento": "ok" if ok else "sin_respuesta"}
+
 if __name__ == "__main__":
     import uvicorn
     print("=" * 50)

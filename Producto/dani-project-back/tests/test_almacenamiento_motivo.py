@@ -42,3 +42,26 @@ def test_clave_nueva_solo_va_en_apikey(monkeypatch):
     monkeypatch.setattr(modulo.settings, "SUPABASE_SERVICE_KEY", "sb_secret_abc123")
     h = StorageService()._headers()
     assert h["apikey"] == "sb_secret_abc123" and "Authorization" not in h
+
+
+def test_salud_del_almacenamiento_sin_configurar(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setattr(modulo.settings, "SUPABASE_URL", "")
+    r = TestClient(app).get("/health/almacenamiento")
+    assert r.status_code == 200 and r.json() == {"almacenamiento": "sin_configurar"}
+
+
+def test_salud_del_almacenamiento_responde_sin_detalles(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setattr(modulo.settings, "SUPABASE_URL", "https://x.supabase.co")
+    monkeypatch.setattr(modulo.settings, "SUPABASE_SERVICE_KEY", "sb_secret_abc")
+
+    async def bucket_ok(self):
+        return 200
+
+    monkeypatch.setattr(modulo.StorageService, "check_bucket", bucket_ok)
+    r = TestClient(app).get("/health/almacenamiento")
+    assert r.json() == {"almacenamiento": "ok"}
+    assert "sb_secret" not in r.text
