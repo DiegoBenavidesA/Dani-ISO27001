@@ -295,7 +295,13 @@ function EvidenceCenterScreen() {
     return () => clearInterval(id);
   }, [hayIndexando, cargarEvidencias]);
 
-  const agregarAviso = (tipo, texto) => setAvisos((prev) => [...prev, { id: Date.now() + Math.random(), tipo, texto }]);
+  // Los avisos de éxito se cierran solos a los 2 segundos; los de advertencia
+  // y error quedan hasta que el usuario los cierre, para que alcance a leerlos.
+  const agregarAviso = (tipo, texto) => {
+    const id = Date.now() + Math.random();
+    setAvisos((prev) => [...prev, { id, tipo, texto }]);
+    if (tipo === 'ok') setTimeout(() => setAvisos((prev) => prev.filter((x) => x.id !== id)), 2000);
+  };
 
   const subirArchivos = async (archivos) => {
     const lista = Array.from(archivos || []);
