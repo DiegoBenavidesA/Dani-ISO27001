@@ -379,64 +379,38 @@ async def export_evidences_zip(
     risk_result = await db.execute(risk_stmt)
     risks = risk_result.scalars().all()
 
-    clause_folders = {
-        "4":  "Clausula_4_Contexto",
-        "5":  "Clausula_5_Liderazgo",
-        "6":  "Clausula_6_Planificacion",
-        "7":  "Clausula_7_Soporte",
-        "8":  "Clausula_8_Operacion",
-        "9":  "Clausula_9_Evaluacion",
-        "10": "Clausula_10_Mejora",
-    }
-    clause_names = {
-        "4": "Contexto de la Organizacion",
-        "5": "Liderazgo",
-        "6": "Planificacion",
-        "7": "Soporte",
-        "8": "Operacion",
-        "9": "Evaluacion del Desempeno",
-        "10": "Mejora Continua",
-    }
-
+    # Todas las evidencias van en una sola carpeta con su índice. Antes se
+    # repartían por cláusula según el "control" de cada evidencia, pero ese
+    # dato siempre era "General" y las carpetas quedaban vacías.
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED, False) as zf:
-
-        ev_by_clause: dict = {k: [] for k in clause_folders}
+        sections = []
         for ev in evidences:
-            ctrl = (ev.evidence_metadata or {}).get("control", "") if ev.evidence_metadata else ""
-            prefix = ctrl.split(".")[0] if ctrl else ""
-            if prefix in ev_by_clause:
-                ev_by_clause[prefix].append(ev)
+            sections.append((f"Evidencia: {(ev.title or 'Documento')[:60]}", [
+                ("Fuente", (ev.evidence_metadata or {}).get("source", "Manual")),
+                ("Fecha de subida", ev.verified_at.strftime("%d/%m/%Y") if ev.verified_at else "Sin fecha"),
+                ("Lectura de la IA", "Texto legible" if texto_guardado_valido(ev.extracted_text, ev.file_name or ev.title or "") else "Sin texto legible"),
+                ("Archivo original", "Incluido" if ev.file_url and not ev.file_url.startswith("local:") else "No disponible (solo texto)"),
+            ]))
+        if not sections:
+            sections.append(("Sin evidencias registradas", [("Estado", "Pendiente de documentacion")]))
+        zf.writestr("Evidencias/Indice_de_Evidencias.pdf",
+                    _make_pdf("Indice de Evidencias", f"Paquete de Auditoria | {len(evidences)} documento(s)", sections))
 
-        for prefix, folder in clause_folders.items():
-            evs = ev_by_clause[prefix]
-            clause_name = clause_names[prefix]
-            sections = []
-            if evs:
-                for ev in evs:
-                    ctrl = (ev.evidence_metadata or {}).get("control", "N/A") if ev.evidence_metadata else "N/A"
-                    sections.append((f"Evidencia: {ev.title[:60]}", [
-                        ("Control ISO 27001", ctrl),
-                        ("Tipo", (ev.evidence_metadata or {}).get("type", "manual")),
-                        ("Fuente", (ev.evidence_metadata or {}).get("source", "Manual")),
-                        ("Fecha verificacion", ev.verified_at.strftime("%d/%m/%Y") if ev.verified_at else "Sin fecha"),
-                        ("Descripcion", ev.description or "Sin descripcion"),
-                    ]))
-            else:
-                sections.append(("Sin evidencias registradas", [("Estado", "Pendiente de documentacion")]))
-
-            pdf_bytes = _make_pdf(f"Clausula {prefix} - {clause_name}", f"Evidencias ISO | {len(evs)} documento(s)", sections)
-            zf.writestr(f"{folder}/Evidencias_Clausula_{prefix}.pdf", pdf_bytes)
-
-            for ev in evs:
-                if not ev.file_url:
-                    continue
-                try:
-                    file_bytes = await storage_service.download(ev.file_url)
-                    safe = "".join(c for c in (ev.file_name or ev.title) if c.isalnum() or c in " ._-")[:50]
-                    zf.writestr(f"{folder}/{safe}", file_bytes)
-                except Exception:
-                    continue 
+        usados = set()
+        for ev in evidences:
+            if not ev.file_url or ev.file_url.startswith("local:"):
+                continue
+            try:
+                file_bytes = await storage_service.download(ev.file_url)
+            except Exception:
+                continue
+            nombre = "".join(c for c in (ev.file_name or ev.title or "documento") if c.isalnum() or c in " ._-")[:80] or "documento"
+            base, n = nombre, 2
+            while nombre in usados:  # dos evidencias con el mismo nombre
+                nombre = f"{n}_{base}"; n += 1
+            usados.add(nombre)
+            zf.writestr(f"Evidencias/{nombre}", file_bytes)
 
         risk_sections = []
         for r in risks:

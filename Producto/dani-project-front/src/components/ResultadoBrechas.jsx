@@ -39,17 +39,14 @@ export const impactoDeTema = (tema) => {
 
 export const probabilidad = (pct) => (pct >= 90 ? 1 : pct >= 70 ? 2 : pct >= 50 ? 3 : pct >= 25 ? 4 : 5);
 
-// Prioridad de la brecha: mismos cortes que el riesgo (15, 8, 4) para que sea
-// fácil de leer, pero otros nombres y otra paleta (violeta) para que no se
-// confunda con el Mapa de Riesgos.
-const PRIORIDADES = [
-  { nombre: 'Baja', color: '#475569', fondo: '#f1f5f9' },
-  { nombre: 'Media', color: '#6d28d9', fondo: '#ede9fe' },
-  { nombre: 'Alta', color: '#5b21b6', fondo: '#ddd6fe' },
-  { nombre: 'Urgente', color: '#ffffff', fondo: '#6d28d9' },
-];
-const nivel = (score) => PRIORIDADES[NIVELES_INDICE(nivelRiesgo(score))];
-const NIVELES_INDICE = (nv) => ({ Bajo: 0, Medio: 1, Alto: 2, 'Crítico': 3 })[nv.nombre];
+// Prioridad de la brecha: misma escala y colores de semáforo que el riesgo
+// (se entiende sin leyenda), pero con nombres de prioridad. Lo que la
+// distingue del Mapa de Riesgos es lo que mide: impacto × nivel de incumplimiento.
+const NOMBRE_PRIORIDAD = { Bajo: 'Baja', Medio: 'Media', Alto: 'Alta', 'Crítico': 'Urgente' };
+const nivel = (score) => {
+  const nv = nivelRiesgo(score);
+  return { ...nv, nombre: NOMBRE_PRIORIDAD[nv.nombre] || nv.nombre };
+};
 
 /**
  * Calcula el resultado a partir de las fases del cuestionario.

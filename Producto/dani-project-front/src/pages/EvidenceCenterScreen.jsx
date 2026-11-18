@@ -41,21 +41,6 @@ const esPdf = (nombre) => extension(nombre) === 'pdf';
 
 const ACEPTADOS = '.pdf,.docx,.xlsx,.xlsm,.txt,.md,.csv,.png,.jpg,.jpeg,.webp';
 
-const CONTROLES = [
-  ['General', 'General (sin control específico)'],
-  ['4.1', '4.1 Contexto de la organización'], ['5.2', '5.2 Política de seguridad'],
-  ['6.1', '6.1 Evaluación de riesgos'], ['7.2', '7.2 Competencia'], ['7.5', '7.5 Información documentada'],
-  ['9.2', '9.2 Auditoría interna'], ['9.3', '9.3 Revisión por la dirección'], ['10.2', '10.2 No conformidades'],
-  ['A.5.1', 'A.5.1 Políticas de seguridad'], ['A.5.9', 'A.5.9 Inventario de activos'],
-  ['A.5.15', 'A.5.15 Control de acceso'], ['A.5.19', 'A.5.19 Seguridad con proveedores'],
-  ['A.5.24', 'A.5.24 Gestión de incidentes'], ['A.5.30', 'A.5.30 Continuidad TIC'],
-  ['A.5.34', 'A.5.34 Privacidad y datos personales'], ['A.6.3', 'A.6.3 Concientización y capacitación'],
-  ['A.6.6', 'A.6.6 Acuerdos de confidencialidad'], ['A.7.2', 'A.7.2 Control de acceso físico'],
-  ['A.8.5', 'A.8.5 Autenticación segura'], ['A.8.7', 'A.8.7 Protección contra malware'],
-  ['A.8.8', 'A.8.8 Gestión de vulnerabilidades'], ['A.8.13', 'A.8.13 Respaldos'],
-  ['A.8.15', 'A.8.15 Registros (logs)'], ['A.8.20', 'A.8.20 Seguridad de redes'],
-  ['A.8.24', 'A.8.24 Criptografía'], ['A.8.28', 'A.8.28 Desarrollo seguro'],
-];
 
 const ESTADOS_SOLICITUD = {
   pendiente: { texto: 'Pendiente', color: '#f59e0b' },
@@ -189,7 +174,7 @@ function VistaPrevia({ evidencia, onCerrar, t, darkMode }) {
           <FileText size={18} color="#004ac6" />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: '15px', fontWeight: 600, color: t.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nombre}</div>
-            <div style={{ fontSize: '12px', color: t.textDim }}>{evidencia.control} · {evidencia.subido_por ? `Subida por ${evidencia.subido_por}` : 'Subida manual'}</div>
+            <div style={{ fontSize: '12px', color: t.textDim }}>{evidencia.subido_por ? `Subida por ${evidencia.subido_por}` : 'Subida manual'}</div>
           </div>
           {mostrable && !sinArchivo && <div style={{ display: 'flex', gap: '6px' }}>{pestana('archivo', 'Documento')}{pestana('texto', 'Texto que lee la IA')}</div>}
           <button onClick={descargar} style={{ padding: '8px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><Download size={14} /> Descargar</button>
@@ -402,7 +387,7 @@ function EvidenceCenterScreen() {
     if (filtro === 'sin_texto' && e.tiene_texto) return false;
     if (busqueda) {
       const q = busqueda.toLowerCase();
-      if (![e.name, e.control, e.subido_por].some((v) => v && v.toLowerCase().includes(q))) return false;
+      if (![e.name, e.subido_por].some((v) => v && v.toLowerCase().includes(q))) return false;
     }
     return true;
   });
@@ -555,7 +540,7 @@ function EvidenceCenterScreen() {
             </div>
             <div className="evidence-search-box" style={{ position: 'relative' }}>
               <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: t.textDim }} />
-              <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por nombre, control o persona…" style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', width: '270px', outline: 'none' }} />
+              <input value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar por nombre o persona…" style={{ padding: '8px 12px 8px 36px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', width: '270px', outline: 'none' }} />
             </div>
           </div>
           <div className="evidence-table-scroll" style={{ overflowX: 'auto' }}>
@@ -563,7 +548,6 @@ function EvidenceCenterScreen() {
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
                   <th style={th}>Evidencia</th>
-                  <th style={th}>Control</th>
                   <th style={th}>Lectura de la IA</th>
                   <th style={th}>Subida</th>
                   <th style={{ ...th, textAlign: 'right' }}><span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Acciones</span></th>
@@ -572,7 +556,7 @@ function EvidenceCenterScreen() {
               <tbody>
                 {evidenciasFiltradas.length === 0 && (
                   <tr>
-                    <td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: errorEv ? '#dc2626' : t.textDim, fontSize: '14px' }}>
+                    <td colSpan={4} style={{ padding: '40px 20px', textAlign: 'center', color: errorEv ? '#dc2626' : t.textDim, fontSize: '14px' }}>
                       {cargandoEv ? 'Cargando evidencias…'
                         : errorEv ? <>{errorEv} <button onClick={cargarEvidencias} style={{ marginLeft: '8px', padding: '6px 12px', borderRadius: '8px', background: '#004ac6', border: 'none', color: 'white', cursor: 'pointer' }}>Reintentar</button></>
                         : evidencias.length === 0 ? 'Aún no hay evidencias. Usa "Agregar evidencia" o arrastra archivos aquí. Los documentos que subas en Análisis de Brechas también aparecen en esta lista.'
@@ -599,7 +583,6 @@ function EvidenceCenterScreen() {
                           </div>
                         </div>
                       </td>
-                      <td style={td}><span style={{ padding: '4px 10px', background: '#8b5cf620', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#8b5cf6', whiteSpace: 'nowrap' }}>{ev.control}</span></td>
                       <td style={td}><span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: lectura.color, whiteSpace: 'nowrap' }}><IconoLectura size={14} /> {lectura.texto}</span></td>
                       <td style={td}><span style={{ fontSize: '13px', color: t.textMuted, whiteSpace: 'nowrap' }} title={ev.lastUpdated.toLocaleString()}>{haceCuanto(ev.lastUpdated)}</span></td>
                       <td style={{ ...td, textAlign: 'right' }}>
@@ -628,7 +611,6 @@ function EvidenceCenterScreen() {
               <thead>
                 <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
                   <th style={th}>Evidencia solicitada</th>
-                  <th style={th}>Control</th>
                   <th style={th}>Asignada a</th>
                   <th style={th}>Fecha límite</th>
                   <th style={th}>Estado</th>
@@ -637,7 +619,7 @@ function EvidenceCenterScreen() {
               </thead>
               <tbody>
                 {solicitudes.length === 0 && (
-                  <tr><td colSpan={6} style={{ padding: '40px 20px', textAlign: 'center', color: errorSol ? '#dc2626' : t.textDim, fontSize: '14px' }}>
+                  <tr><td colSpan={5} style={{ padding: '40px 20px', textAlign: 'center', color: errorSol ? '#dc2626' : t.textDim, fontSize: '14px' }}>
                     {errorSol || 'No hay solicitudes de evidencia.'}
                   </td></tr>
                 )}
@@ -652,7 +634,6 @@ function EvidenceCenterScreen() {
                           Pedida por {s.solicitante_nombre}{s.evidencia_nombre ? ` · Subido: ${s.evidencia_nombre}` : ''}
                         </div>
                       </td>
-                      <td style={td}>{s.control ? <span style={{ padding: '4px 10px', background: '#8b5cf620', borderRadius: '6px', fontSize: '12px', fontWeight: 600, color: '#8b5cf6' }}>{s.control}</span> : <span style={{ color: t.textDim }}>—</span>}</td>
                       <td style={td}>
                         <div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{s.asignado_nombre}{s.soy_asignado ? ' (tú)' : ''}</div>
                         <div style={{ fontSize: '11px', color: t.textDim }}>{s.asignado_email}</div>
@@ -718,7 +699,6 @@ function ModalSolicitud({ t, darkMode, onCerrar, onCreada }) {
     try {
       const r = await evidenceRequestsAPI.create({
         titulo: f.titulo.value.trim(),
-        control: f.control.value === 'General' ? null : f.control.value,
         asignado_a: f.asignado.value,
         fecha_limite: f.fecha.value,
       });
@@ -746,17 +726,9 @@ function ModalSolicitud({ t, darkMode, onCerrar, onCreada }) {
             <label htmlFor="sol-titulo" style={etiqueta}>Documento o evidencia que necesitas</label>
             <input id="sol-titulo" name="titulo" placeholder="Por ejemplo: registro de proveedores firmado" minLength={3} maxLength={300} required style={campo} />
           </div>
-          <div className="evidence-modal-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div>
-              <label htmlFor="sol-control" style={etiqueta}>Control relacionado</label>
-              <select id="sol-control" name="control" defaultValue="General" style={campo}>
-                {CONTROLES.map(([v, txt]) => <option key={v} value={v}>{txt}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="sol-fecha" style={etiqueta}>Fecha límite</label>
-              <input id="sol-fecha" type="date" name="fecha" min={minimo} required style={campo} />
-            </div>
+          <div>
+            <label htmlFor="sol-fecha" style={etiqueta}>Fecha límite</label>
+            <input id="sol-fecha" type="date" name="fecha" min={minimo} required style={campo} />
           </div>
           <div>
             <label htmlFor="sol-asignado" style={etiqueta}>Asignar a</label>
