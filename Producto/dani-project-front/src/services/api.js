@@ -625,3 +625,13 @@ const api = {
 };
 
 export default api;
+// Consumo de la IA (Groq) frente a sus límites por minuto y por día. Solo superadmin.
+export const usoIAAPI = {
+  get: async () => {
+    const activeToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/ai/uso`, { headers: { ...(activeToken && { Authorization: `Bearer ${activeToken}` }) } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo leer el uso de la IA');
+    return body;
+  },
+};

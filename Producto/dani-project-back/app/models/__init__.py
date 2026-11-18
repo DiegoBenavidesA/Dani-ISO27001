@@ -25,6 +25,7 @@ from app.models.law_obligation import LawObligation  # Catálogo de obligaciones
 # --- Multi-tenant: estado por empresa separado de los catálogos (N6) ---
 from app.models.control_status import ControlStatus
 from app.models.assessment_answer import AssessmentAnswer
+from app.models.uso_ia import UsoIA  # Consumo de la IA frente a sus límites
 
 __all__ = [
     "Organization",

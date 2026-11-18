@@ -14,11 +14,15 @@ class AIService:
             logger.warning("⚠️ API key no configurada")
             self.client = None
         else:
+            import httpx
+            from app.services import uso_ia
             self.client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=settings.AI_BASE_URL,
                 timeout=30.0,
                 max_retries=1,
+                # Cada respuesta pasa por uso_ia para medir tokens y límites de Groq.
+                http_client=httpx.AsyncClient(timeout=30.0, event_hooks={"response": [uso_ia.al_recibir_respuesta]}),
             )
             logger.info(f"✅ AI client inicializado en {settings.AI_BASE_URL}")
     
