@@ -155,12 +155,14 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Se evalúa desde Gap Analysis eligiendo el marco Ley N.º 21.719; la IA responde cada pregunta con veredicto, justificación y nivel de confianza
 - Las preguntas que no aplican a la empresa se pueden marcar como "no aplica" y quedan fuera de la evaluación
 
-### Vulneraciones de Seguridad (Ley N.º 21.719)
-- Registro simple: solo se describe lo ocurrido y cuándo se detectó
+### Incidentes de Seguridad (ISO 27001 y Ley N.º 21.719)
+- Registro simple: se describe lo ocurrido, cuándo se detectó y si afecta datos de personas
+- Cada incidente queda etiquetado como incidente de ISO 27001 o, si afecta datos personales, como vulneración de la Ley 21.719
 - Análisis con IA: gravedad, datos posiblemente afectados, si corresponde notificar a la Agencia y a los titulares, acciones inmediatas y preguntas pendientes
 - Aviso automático a owner, admin y DPO, en la plataforma y por correo
 - Revisión humana: una persona confirma o corrige la gravedad, los afectados y las medidas de contención
-- Control del plazo de 72 horas para notificar a la Agencia, con alerta cuando está por vencer o vencido
+- Plazo interno de 72 horas para reportar a la Agencia las vulneraciones de datos personales (la ley exige hacerlo sin dilaciones indebidas), con alerta cuando está por vencer o vencido
+- Vínculo con el riesgo del Mapa de Riesgos que se materializó, para reevaluarlo
 - Registro de la notificación a la Agencia y cierre con causa raíz y resolución
 - Disponible para superadmin (con empresa seleccionada), owner, admin y DPO
 
@@ -199,7 +201,7 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Administrar los bancos de preguntas de ISO 27001 y de la Ley N.º 21.719, con importación desde Excel
 
 ### Notificaciones
-- Campana con alertas de evidencias, documentos, acciones correctivas y vulneraciones por revisar o con el plazo de 72 horas en riesgo
+- Campana con alertas de evidencias, documentos, acciones correctivas y vulneraciones por revisar o con el plazo interno de 72 horas en riesgo
 
 ### Employee Portal
 - Vista de políticas publicadas con acuse de recibo digital

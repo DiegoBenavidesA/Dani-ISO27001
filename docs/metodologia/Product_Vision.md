@@ -4,7 +4,7 @@ Equipo: Celine Alcaíno, Raúl Barrera y Justo Cano. Metodología: Scrum. Proyec
 
 ## 1. Problema
 
-La Ley N.º 21.719 de protección de datos personales entra en vigencia general el 1 de diciembre de 2026. Desde esa fecha, las organizaciones que tratan datos personales en Chile deben demostrar su cumplimiento ante la Agencia de Protección de Datos Personales y notificarle, dentro de 72 horas, las vulneraciones de seguridad que correspondan. Muchas de ellas también trabajan con ISO/IEC 27001:2022 para la seguridad de la información.
+La Ley N.º 21.719 de protección de datos personales entra en vigencia general el 1 de diciembre de 2026. Desde esa fecha, las organizaciones que tratan datos personales en Chile deben demostrar su cumplimiento ante la Agencia de Protección de Datos Personales y reportarle, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales. Muchas de ellas también trabajan con ISO/IEC 27001:2022 para la seguridad de la información.
 
 Hoy esa gestión suele hacerse con planillas y documentos sueltos que no muestran el estado real de cumplimiento, o con consultorías puntuales. Una pyme no sabe con claridad cuánto le falta para cumplir ni tiene un procedimiento definido cuando ocurre un incidente.
 
@@ -14,7 +14,7 @@ El proyecto partió de una plataforma GRC existente (DANI) orientada solo a ISO 
 
 | Perfil | Necesidad principal |
 |---|---|
-| Encargado de cumplimiento o DPO | Saber qué le falta para cumplir y gestionar las vulneraciones dentro del plazo legal |
+| Encargado de cumplimiento o DPO | Saber qué le falta para cumplir, gestionar los incidentes de seguridad y reportar a tiempo las vulneraciones de datos personales |
 | Responsable de seguridad de la información | Evaluar controles ISO 27001, riesgos y evidencias |
 | Auditor interno | Consultar evaluaciones y evidencias sin modificarlas |
 | Owner o administrador de la empresa | Gestionar usuarios y permisos de su organización |
@@ -25,7 +25,7 @@ Partes interesadas indirectas: el docente, en el rol de cliente, y las personas 
 
 ## 3. Declaración de visión
 
-> Para organizaciones chilenas que deben cumplir ISO/IEC 27001 y la Ley N.º 21.719, que necesitan saber cuánto les falta para cumplir y responder a tiempo ante una vulneración, NormIA es una plataforma GRC que evalúa el cumplimiento con inteligencia artificial a partir de los documentos de la propia empresa y guía la gestión de vulneraciones dentro del plazo de 72 horas. A diferencia de las planillas o de las herramientas GRC internacionales, trabaja en español, incorpora la ley chilena y deja registro de cada decisión, siempre con revisión humana.
+> Para organizaciones chilenas que deben cumplir ISO/IEC 27001 y la Ley N.º 21.719, que necesitan saber cuánto les falta para cumplir y responder a tiempo ante un incidente de seguridad, NormIA es una plataforma GRC que evalúa el cumplimiento con inteligencia artificial a partir de los documentos de la propia empresa y guía la gestión de incidentes de seguridad y el reporte oportuno de las vulneraciones de datos personales. A diferencia de las planillas o de las herramientas GRC internacionales, trabaja en español, incorpora la ley chilena y deja registro de cada decisión, siempre con revisión humana.
 
 ## 4. Propuesta de valor
 
@@ -33,7 +33,7 @@ Partes interesadas indirectas: el docente, en el rol de cliente, y las personas 
 |---|---|
 | Evaluación basada en evidencia | La IA responde las preguntas de ISO 27001 y de la Ley 21.719 a partir de los documentos subidos, con justificación y nivel de confianza |
 | Dos marcos en una plataforma | La evidencia reunida para ISO 27001 también respalda las medidas de seguridad que exige la ley |
-| Vulneraciones con plazo legal | Registro simple, análisis con IA, aviso a los responsables, confirmación humana y control de las 72 horas |
+| Incidentes de seguridad (ISO 27001 y Ley 21.719) | Registro simple, clasificación según si afectan datos personales, análisis con IA, aviso a los responsables, confirmación humana y plazo interno de 72 horas para reportar las vulneraciones |
 | Varias empresas | Cada organización ve solo sus datos, con roles diferenciados |
 
 ## 5. Objetivos
@@ -53,7 +53,7 @@ Objetivos específicos:
 El producto mínimo entregado incluye:
 
 - Evaluación con IA de ISO 27001 (339 preguntas sobre 24 requisitos y 93 controles) y de la Ley 21.719 (265 preguntas del listado de cumplimiento de la AEPD entregado por el docente, en 7 temas), con Análisis de Brechas y Declaración de Aplicabilidad.
-- Gestión de vulneraciones de seguridad con análisis de IA, revisión humana, aviso a los responsables, control de 72 horas, registro de la notificación a la Agencia y cierre con causa raíz.
+- Gestión de incidentes de seguridad para ISO 27001 y la Ley 21.719: clasificación según si afectan datos personales, análisis de IA, revisión humana, aviso a los responsables, plazo interno de 72 horas para las vulneraciones, registro del reporte a la Agencia, vínculo con el riesgo materializado y cierre con causa raíz.
 - Gestión de empresas, usuarios y roles, con datos separados por organización.
 - Centro de evidencias, generador de documentos, mapa de riesgos y asistente con el contexto de la empresa.
 - Despliegue en la nube y ejecución local con Docker Compose.

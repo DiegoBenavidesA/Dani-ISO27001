@@ -16,7 +16,7 @@ Documentos relacionados:
 NormIA es una plataforma web de gobierno, riesgo y cumplimiento (GRC) que ayuda a las organizaciones a cumplir ISO/IEC 27001:2022 y la Ley N.º 21.719 de protección de datos personales. El diseño cubre:
 
 - La evaluación del cumplimiento con IA a partir de los documentos de cada empresa.
-- La gestión de vulneraciones de seguridad con el plazo legal de 72 horas.
+- La gestión de incidentes de seguridad (ISO 27001) y de vulneraciones de datos personales (Ley 21.719), con un plazo interno de 72 horas para reportarlas.
 - La gestión de riesgos, la Declaración de Aplicabilidad (SOA), las evidencias y los documentos.
 - La administración de varias empresas en una sola instalación, con datos separados.
 
@@ -58,7 +58,7 @@ flowchart LR
             m2["Riesgos y acciones correctivas"]
             m3["Declaración de Aplicabilidad - SOA"]
             m4["Evaluación de cumplimiento ISO 27001 y Ley 21.719"]
-            m5["Vulneraciones de seguridad - plazo de 72 horas"]
+            m5["Incidentes de seguridad y vulneraciones"]
             m6["Evidencias y documentos"]
             alertas["Alertas y notificaciones"]
         end
@@ -66,7 +66,7 @@ flowchart LR
             extr["Extracción de texto y fragmentos"]
             motor["Motor de IA - RAG"]
             chat["Chat con búsqueda semántica"]
-            vulia["Análisis de vulneraciones con IA"]
+            vulia["Análisis de incidentes con IA"]
         end
     end
     subgraph externos["Datos y servicios externos"]
@@ -141,6 +141,8 @@ El navegador nunca habla directamente con la base de datos ni con los servicios 
 | D14 | Docker Compose para levantar el sistema completo | Instalar Python, Node.js y PostgreSQL a mano | Cualquier persona lo levanta con un comando, igual en todos los equipos | La producción no usa contenedores; Compose es para desarrollo, pruebas y revisión |
 | D15 | Retirar los módulos de tratamientos, consentimientos, solicitudes de titulares, proveedores y evaluación de impacto | Mantenerlos | Indicación del docente: evaluar la Ley 21.719 con preguntas, igual que ISO 27001 (commit `390b324`) | Las tablas se conservaron para no perder datos; la ley se cubre con el banco de preguntas de la AEPD (D16) y el módulo de vulneraciones |
 | D16 | Evaluar la Ley 21.719 con el listado de cumplimiento del RGPD de la AEPD (265 preguntas) | El catálogo propio inicial de 24 preguntas | Indicación del docente. La Ley 21.719 sigue el modelo del RGPD europeo, y el listado de la AEPD es una lista de verificación pública y detallada de esas obligaciones | Algunos ítems mencionan instituciones europeas (Comisión Europea, autoridad de control); se interpretan con sus equivalentes chilenos, como la Agencia de Protección de Datos Personales. El catálogo inicial (`app/data/catalogo_ley21719.json`) quedó sin uso |
+| D17 | Gestionar todos los incidentes de seguridad y marcar como vulneración de la Ley 21.719 solo los que afectan datos personales | Un módulo de vulneraciones solo para la ley | ISO 27001 exige gestionar todo incidente (A.5.24 a A.5.28); la ley solo obliga a reportar a la Agencia los que afectan datos personales (art. 14 sexies) | Cada incidente lleva su etiqueta; los que no afectan datos personales no tienen plazo ni reporte, y el servidor rechaza reportarlos |
+| D18 | Mostrar el resultado del Análisis de Brechas como matriz de prioridad (impacto × nivel de incumplimiento) | Un mapa de calor con probabilidad, igual al del Mapa de Riesgos | El porcentaje de incumplimiento no es la probabilidad de un evento; dos mapas iguales con significados distintos confunden | Queda un solo mapa de riesgos; la matriz de brechas solo ordena qué atacar primero y "Registrar como riesgo" lleva la brecha al Mapa de Riesgos |
 
 ## 4. Diseño de los módulos
 
@@ -152,7 +154,7 @@ El navegador nunca habla directamente con la base de datos ni con los servicios 
 | Evaluación de cumplimiento | `/api/assessment-questions`, `/api/gap-analysis` | `GapAnalysisScreen.jsx`, `QuestionsScreen.jsx` | `assessment_questions`, `assessment_answers`, `control_status` | Owner, admin, manager; auditor y DPO en lectura según la matriz |
 | SOA | `/api/compliance` | `GapAnalysisScreen.jsx` | `iso_controls`, `control_status` | Owner, admin, manager, auditor, DPO |
 | Riesgos y acciones correctivas | `/api/risks`, `/api/capas` | `RiskMapScreen.jsx` | `risks`, `capas` | Owner, admin, manager |
-| Vulneraciones de seguridad | `/api/breaches` | `BreachesScreen.jsx` | `data_breaches` | Owner, admin, DPO |
+| Incidentes de seguridad | `/api/breaches` | `BreachesScreen.jsx` | `data_breaches` | Owner, admin, DPO |
 | Evidencias | `/api/evidence` | `EvidenceCenterScreen.jsx` | `evidences`, `evidence_chunks` | Owner, admin, manager, auditor |
 | Documentos | `/api/documents` | `DocGeneratorScreen.jsx`, `DocumentsScreen.jsx`, `EmployeePortal.jsx` | `documents`, `document_acknowledgements` | Equipo; los empleados leen y confirman |
 | Asistente | `/api/chat` | `ChatDANI.jsx` | `evidence_chunks`, `normative_chunks` | Usuarios con sesión |
@@ -277,7 +279,7 @@ sequenceDiagram
     FE-->>U: Resultados por pregunta y brechas
 ```
 
-Gestión de una vulneración de seguridad, la función principal de la Ley 21.719:
+Gestión de un incidente de seguridad. Si afecta datos personales es una vulneración de la Ley 21.719 y sigue el reporte a la Agencia:
 
 ```mermaid
 sequenceDiagram
@@ -290,7 +292,7 @@ sequenceDiagram
     participant M as Brevo
     R->>FE: Describe lo ocurrido y cuándo se detectó
     FE->>API: POST /api/breaches/
-    API->>DB: Guarda la vulneración y calcula el plazo de 72 horas
+    API->>DB: Guarda el incidente y calcula el plazo interno de 72 horas
     API-->>FE: Vulneración con análisis pendiente
     par En segundo plano
         API->>LLM: Pide gravedad, datos afectados y si notificar

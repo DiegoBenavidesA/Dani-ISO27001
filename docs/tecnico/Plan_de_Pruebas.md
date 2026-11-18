@@ -88,7 +88,7 @@ Estado actual de cada archivo de `tests/`:
 | `test_integration_auth.py` | Nada: usa `TestClient` y no se conecta a la base de datos | `pytest tests/test_integration_auth.py -v` (3 pruebas: PT-02, PT-03 y PT-06) |
 | `test_breaches_permisos.py` | Nada: usa `TestClient`, tokens JWT locales y override de la base de datos | `pytest tests/test_breaches_permisos.py -v` (PT-14 y validación HTTP del módulo Ley 21.719) |
 | `test_breaches_logica.py` | Nada: valida funciones puras y modelos Pydantic con datos locales | `pytest tests/test_breaches_logica.py -v` (casos unitarios de análisis y normalización Ley 21.719) |
-| `test_breaches_flujo.py` | Sesión falsa y mocks de acceso a datos; no ejecuta IA ni notificaciones reales | `pytest tests/test_breaches_flujo.py -v` (flujo de revisión, notificación, cierre y plazo de 72 horas) |
+| `test_breaches_flujo.py` | Sesión falsa y mocks de acceso a datos; no ejecuta IA ni notificaciones reales | `pytest tests/test_breaches_flujo.py -v` (flujo de revisión, notificación, cierre y plazo interno de 72 horas); `test_incidentes_iso_ley.py` prueba la clasificación entre incidente ISO 27001 y vulneración de la Ley 21.719 |
 | `test_general.py` | Nada: usa `TestClient` sin depender de BD externa | `pytest tests/test_general.py -v` (PT-01 y PT-21; validación de login con `password` omitido) |
 | `test_api.py` | Backend levantado en `http://localhost:8000` y base de datos con usuario de prueba | `pytest tests/test_api.py -v` |
 | `performance/prueba_rendimiento.py` | Backend levantado (`docker compose up`) y un usuario de prueba en `PERF_EMAIL` y `PERF_PASSWORD` | `python tests/performance/prueba_rendimiento.py --url http://localhost:8000` (PT-18, PT-19, RNF-01, RNF-13 y RNF-17; ver sección 5.1) |

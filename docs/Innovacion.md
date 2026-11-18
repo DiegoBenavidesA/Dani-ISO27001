@@ -6,7 +6,7 @@ Este documento explica qué problema resuelve NormIA, en qué se diferencia de o
 
 ## 1. Problema que resuelve
 
-La entrada en vigencia general de la Ley N.º 21.719 de protección de datos personales está prevista para el 1 de diciembre de 2026. Las organizaciones a las que se aplique la ley deberán cumplir las obligaciones correspondientes; entre ellas, notificar a la Agencia dentro de 72 horas las vulneraciones que deban notificarse conforme a la ley. NormIA busca ayudar a organizar y documentar parte de esa gestión. Muchas organizaciones también trabajan, o quieren trabajar, con ISO/IEC 27001:2022 para la seguridad de la información.
+La entrada en vigencia general de la Ley N.º 21.719 de protección de datos personales está prevista para el 1 de diciembre de 2026. Las organizaciones a las que se aplique la ley deberán cumplir las obligaciones correspondientes; entre ellas, reportar a la Agencia de Protección de Datos Personales, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales (artículo 14 sexies). NormIA busca ayudar a organizar y documentar parte de esa gestión. Muchas organizaciones también trabajan, o quieren trabajar, con ISO/IEC 27001:2022 para la seguridad de la información.
 
 Hoy esto se resuelve de tres maneras:
 
@@ -32,18 +32,19 @@ La plataforma tiene un banco de 339 preguntas para ISO 27001 sobre sus 24 requis
 
 Ambos marcos pueden compartir evidencia pertinente, aunque cumplir uno no implica automáticamente cumplir el otro.
 
-### 2.3 Gestión de vulneraciones con el plazo legal de 72 horas
+### 2.3 Gestión de incidentes de seguridad y vulneraciones de datos personales
 
-El módulo de vulneraciones (`app/routes/breaches.py`, `BreachesScreen.jsx`) ofrece un flujo guiado para el owner, el administrador y el DPO de la empresa:
+El módulo de incidentes de seguridad (`app/routes/breaches.py`, `BreachesScreen.jsx`) gestiona todos los incidentes, como pide ISO 27001 (A.5.24 a A.5.28). Los que afectan datos personales son además vulneraciones de la Ley 21.719 y siguen el flujo de reporte a la Agencia. Ofrece un flujo guiado para el owner, el administrador y el DPO de la empresa:
 
-1. El responsable registra lo ocurrido con sus propias palabras y cuándo se detectó, sin tener que clasificar la gravedad.
-2. La IA analiza el reporte y propone la gravedad, los datos posiblemente afectados, si corresponde notificar a la Agencia y a los titulares, las acciones inmediatas y las preguntas que faltan responder.
+1. El responsable registra lo ocurrido con sus propias palabras, cuándo se detectó y si afecta datos de personas (sí, no o no lo sabe), sin tener que clasificar la gravedad.
+2. La IA analiza el reporte y propone si afecta datos personales, la gravedad, los datos posiblemente afectados, si corresponde notificar a la Agencia y a los titulares, las acciones inmediatas y las preguntas que faltan responder.
 3. El owner, los administradores y el DPO reciben un aviso en la plataforma y por correo.
 4. Una persona confirma o corrige la evaluación de la IA. La decisión final siempre es humana.
-5. La plataforma calcula un plazo de 72 horas desde la detección y alerta cuando está por vencer o ya venció.
+5. Si el incidente afecta datos personales, queda etiquetado como vulneración de la Ley 21.719 y la plataforma fija un plazo interno de 72 horas desde la detección para cumplir el deber de reportar sin dilaciones indebidas; alerta cuando está por vencer o ya venció. Si no los afecta, queda como incidente de ISO 27001, sin plazo ni reporte a la Agencia.
 6. Una persona registra que notificó a la Agencia cuando corresponde; al cerrar el caso se guarda la causa raíz y cómo se resolvió.
+7. El incidente se puede asociar al riesgo del Mapa de Riesgos que se materializó, para reevaluarlo como pide ISO 27001 (cláusula 8.2).
 
-Queda constancia de quién reportó, quién confirmó y quién resolvió cada vulneración (`reportado_por`, `confirmada_por`, `resuelta_por`).
+Queda constancia de quién reportó, quién confirmó y quién resolvió cada incidente (`reportado_por`, `confirmada_por`, `resuelta_por`).
 
 ### 2.4 Asistente con el contexto de la empresa
 
