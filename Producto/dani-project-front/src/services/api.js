@@ -372,6 +372,7 @@ export const breachesAPI = {
   create: (breachData) => breachRequest('', 'POST', breachData),
   analizar: (breachId) => breachRequest(`${breachId}/analizar`, 'POST'),
   revisar: (breachId, data) => breachRequest(`${breachId}/revision`, 'PUT', data),
+  vincularRiesgo: (breachId, riesgoId) => breachRequest(`${breachId}/riesgo`, 'PUT', { riesgo_id: riesgoId || null }),
   notify: (breachId) => breachRequest(`${breachId}/notify`, 'POST'),
   resolver: (breachId, data) => breachRequest(`${breachId}/resolver`, 'POST', data),
   delete: (breachId) => breachRequest(breachId, 'DELETE'),

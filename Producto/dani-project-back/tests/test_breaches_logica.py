@@ -19,6 +19,7 @@ from app.routes.breaches import (
 
 
 EXPECTED_KEYS = {
+    "afecta_datos_personales",
     "gravedad",
     "justificacion",
     "datos_posibles",

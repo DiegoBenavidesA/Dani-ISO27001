@@ -67,7 +67,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
       return;
     }
     setNewRisk(prev => ({ ...prev, ...pre }));
-    setAvisoBrecha('Formulario precargado desde el Análisis de Brechas. Revisa la descripción antes de guardar.');
+    setAvisoBrecha('Formulario precargado desde el Análisis de Brechas. Revisa la descripción y la probabilidad antes de guardar: la del Análisis mide cuánto falta para cumplir, no qué tan probable es el evento.');
     setShowAddModal(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navParams, risksLoaded]);

@@ -48,7 +48,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'documents', label: l.documents, icon: FileText, roles: DASH, group: 'documentar' },
     { id: 'evidence', label: l.evidenceCenter, icon: Database, roles: ISO_VIEW, group: 'documentar' },
     { id: 'audit-room', label: l.auditRoom, icon: FileCheck, roles: ISO_VIEW, group: 'auditar', marco: 'ISO 27001' },
-    { id: 'breaches', label: language === 'es' ? 'Vulneraciones' : 'Breaches', icon: ShieldAlert, roles: LEY, group: 'auditar', marco: 'Ley 21.719' },
+    { id: 'breaches', label: language === 'es' ? 'Incidentes' : 'Incidents', icon: ShieldAlert, roles: LEY, group: 'auditar', marco: 'ISO · Ley' },
     { id: 'user-management', label: l.userManagement, icon: Users, roles: MANAGE_USERS, group: 'general' },
     { id: 'organizations', label: language === 'es' ? 'Gestión de Empresas' : 'Organizations', icon: Building2, roles: PLATFORM, group: 'general' },
     { id: 'questions', label: language === 'es' ? 'Preguntas' : 'Questions', icon: ListChecks, roles: PLATFORM, group: 'general' },

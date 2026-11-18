@@ -82,8 +82,10 @@ GRAVEDADES = ("baja", "media", "alta", "critica")
 
 class BreachCreate(BaseModel):
     descripcion: str = Field(..., min_length=10)
-    # Cuándo se tomó conocimiento; por defecto, ahora. De aquí corren las 72 h.
+    # Cuándo se tomó conocimiento; por defecto, ahora. De aquí corre el plazo interno.
     fecha_deteccion: Optional[datetime] = None
+    # ¿Afecta datos personales? Sí, No o None (no se sabe todavía).
+    afecta_datos_personales: Optional[bool] = None
 
 class BreachReview(BaseModel):
     gravedad: str
@@ -92,6 +94,10 @@ class BreachReview(BaseModel):
     afectados_estimacion: Optional[str] = None  # exacto | aproximado | desconocido
     medidas_tomadas: Optional[str] = None
     notificacion_requerida: bool = True
+    afecta_datos_personales: Optional[bool] = None
+
+class BreachRiesgo(BaseModel):
+    riesgo_id: Optional[str] = None  # None quita la asociación
 
 class BreachResolve(BaseModel):
     causa_raiz: str = Field(..., min_length=10)
@@ -106,6 +112,8 @@ class BreachResponse(BaseModel):
     cantidad_afectados: Optional[int] = None
     afectados_estimacion: Optional[str] = None
     gravedad: Optional[str] = None
+    afecta_datos_personales: Optional[bool] = None
+    riesgo_id: Optional[str] = None
     analisis_ia: Optional[dict] = None
     analisis_estado: Optional[str] = None
     gravedad_confirmada: bool = False
@@ -158,6 +166,7 @@ Un trabajador reportó este incidente con sus propias palabras:
 {descripcion}
 >>>
 
+Primero determina si el incidente afecta datos personales (de pacientes, clientes, trabajadores u otras personas). Si no los afecta, es un incidente de seguridad de la información (ISO 27001) y no se reporta a la Agencia.
 Evalúa el riesgo para las personas cuyos datos podrían estar involucrados. No inventes hechos que el relato no menciona: si falta información, inclúyela en "preguntas".
 La ley aplicable es la Ley 21.719 y la autoridad es la Agencia de Protección de Datos Personales; no cites otros números de ley ni artículos.
 Criterio de gravedad:
@@ -167,7 +176,8 @@ Criterio de gravedad:
 - critica: datos sensibles (salud, biométricos, menores, etc.), credenciales o exposición masiva.
 
 Responde SOLO con un objeto JSON:
-{{"gravedad": "baja|media|alta|critica",
+{{"afecta_datos_personales": true,
+  "gravedad": "baja|media|alta|critica",
   "justificacion": "2 a 4 oraciones",
   "datos_posibles": ["categorías de datos personales que podrían estar afectados"],
   "notificar_agencia": true,
@@ -191,6 +201,7 @@ def _parsear_objeto(respuesta: str) -> dict:
     lista = lambda v: [str(x) for x in v][:8] if isinstance(v, list) else []
     gravedad = str(data.get("gravedad", "")).lower().replace("í", "i")
     return {
+        "afecta_datos_personales": data.get("afecta_datos_personales") if isinstance(data.get("afecta_datos_personales"), bool) else None,
         "gravedad": gravedad if gravedad in GRAVEDADES else "media",
         "justificacion": str(data.get("justificacion") or "")[:1500],
         "datos_posibles": lista(data.get("datos_posibles")),
@@ -234,31 +245,34 @@ async def _avisar_responsables(db: AsyncSession, breach: DataBreach, org_id: str
 
     gravedad = (breach.gravedad.value if hasattr(breach.gravedad, "value") else breach.gravedad) or "sin evaluar"
     limite = breach.fecha_limite_notificacion.strftime("%d/%m/%Y %H:%M UTC")
+    datos_personales = breach.afecta_datos_personales is not False
+    linea_plazo = (f"<strong>Plazo interno para reportar a la Agencia:</strong> {limite}" if datos_personales
+                   else "<strong>No afecta datos personales:</strong> incidente ISO 27001, sin reporte a la Agencia")
     resumen = html_escape(breach.descripcion if len(breach.descripcion) <= 300 else breach.descripcion[:300] + "…")
     justificacion = html_escape((breach.analisis_ia or {}).get("justificacion", ""))
 
     tokens = [u.push_token for u in responsables if u.push_token]
     if tokens:
         asyncio.create_task(send_push_notification(
-            tokens, "⚠️ Nueva vulneración de seguridad",
+            tokens, "⚠️ Nuevo incidente de seguridad",
             f"[{gravedad.upper()}] {breach.descripcion[:60]}…", data={"breach_id": breach.id},
         ))
 
     url = f"{settings.FRONTEND_URL.rstrip('/')}/"
     html = f"""<div style="font-family:Arial,sans-serif;max-width:560px;color:#0f172a">
-<h2 style="color:#e11d48;margin:0 0 12px">Nueva vulneración de seguridad reportada</h2>
+<h2 style="color:#e11d48;margin:0 0 12px">Nuevo incidente de seguridad reportado</h2>
 <p><strong>Reportada por:</strong> {html_escape(breach.reportado_por or '—')}<br>
 <strong>Gravedad sugerida por la IA:</strong> {gravedad.upper()} (pendiente de tu revisión)<br>
-<strong>Plazo para notificar a la Agencia:</strong> {limite}</p>
+{linea_plazo}</p>
 <p style="background:#f1f5f9;padding:12px;border-radius:8px">{resumen}</p>
 {f'<p style="color:#475569">{justificacion}</p>' if justificacion else ''}
-<p>Revísala en NormIA → Vulneraciones de Seguridad para confirmar la gravedad y decidir si corresponde notificar.</p>
+<p>Revísalo en NormIA → Incidentes de seguridad para confirmar la gravedad, si afecta datos personales y si corresponde reportarlo.</p>
 <p><a href="{url}" style="background:#2563eb;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;display:inline-block">Abrir NormIA</a></p>
 </div>"""
     for u in responsables:
         if u.email:
             try:
-                await send_email_async(u.email, "⚠️ Nueva vulneración de seguridad por revisar", html)
+                await send_email_async(u.email, "⚠️ Nuevo incidente de seguridad por revisar", html)
             except Exception as e:
                 logger.error(f"No se pudo enviar el aviso de vulneración a {u.email}: {e}")
 
@@ -284,6 +298,7 @@ async def create_breach(
         fecha_deteccion=fecha_deteccion,
         fecha_limite_notificacion=fecha_deteccion + timedelta(hours=72),
         estado="detectada",
+        afecta_datos_personales=breach_data.afecta_datos_personales,
         reportado_por=await _nombre_usuario(db, current_user),
         analisis_estado="pendiente",
         gravedad_confirmada=False,
@@ -370,13 +385,18 @@ async def review_breach(
         raise HTTPException(status_code=400, detail="Estimación de afectados no válida.")
     if breach.estado == "notificada" and not data.notificacion_requerida:
         raise HTTPException(status_code=400, detail="Ya fue notificada a la Agencia.")
+    if data.afecta_datos_personales is False and breach.estado == "notificada":
+        raise HTTPException(status_code=400, detail="Ya fue reportada a la Agencia como vulneración de datos personales.")
+    if data.afecta_datos_personales is not None:
+        breach.afecta_datos_personales = data.afecta_datos_personales
 
     breach.gravedad = data.gravedad
     breach.datos_afectados = (data.datos_afectados or "").strip() or None
     breach.afectados_estimacion = data.afectados_estimacion
     breach.cantidad_afectados = None if data.afectados_estimacion == "desconocido" else data.cantidad_afectados
     breach.medidas_tomadas = (data.medidas_tomadas or "").strip() or None
-    breach.notificacion_requerida = data.notificacion_requerida
+    # Sin datos personales no hay obligación de reportar a la Agencia.
+    breach.notificacion_requerida = data.notificacion_requerida and breach.afecta_datos_personales is not False
     if not breach.gravedad_confirmada:
         breach.gravedad_confirmada = True
         breach.confirmada_por = await _nombre_usuario(db, current_user)
@@ -407,12 +427,39 @@ async def notify_breach(
         raise HTTPException(status_code=400, detail="Primero revisa y confirma la gravedad de la vulneración.")
     if breach.estado in ("notificada", "cerrada"):
         raise HTTPException(status_code=400, detail="La vulneración ya fue notificada o cerrada.")
+    if breach.afecta_datos_personales is False:
+        raise HTTPException(status_code=400, detail="Este incidente no afecta datos personales: no se reporta a la Agencia.")
 
     breach.estado = "notificada"
     breach.notificacion_requerida = True
     breach.fecha_notificacion = datetime.utcnow()
     breach.updated_at = datetime.utcnow()
 
+    await db.commit()
+    await db.refresh(breach)
+    return breach
+
+
+# =========================================================
+# RIESGO QUE SE MATERIALIZÓ
+# =========================================================
+
+@router.put("/{breach_id}/riesgo", response_model=BreachResponse)
+async def link_risk(
+    breach_id: str,
+    data: BreachRiesgo,
+    org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(GESTIONA),
+    db: AsyncSession = Depends(get_db)
+):
+    """Asocia el incidente al riesgo del Mapa de Riesgos que se materializó,
+    para reevaluarlo (ISO 27001, 8.2: evaluar riesgos después de incidentes)."""
+    breach = await get_scoped_or_404(db, DataBreach, breach_id, org_id, detail="Brecha no encontrada")
+    if data.riesgo_id:
+        from app.models.risk import Risk
+        await get_scoped_or_404(db, Risk, data.riesgo_id, org_id, detail="Riesgo no encontrado")
+    breach.riesgo_id = data.riesgo_id or None
+    breach.updated_at = datetime.utcnow()
     await db.commit()
     await db.refresh(breach)
     return breach

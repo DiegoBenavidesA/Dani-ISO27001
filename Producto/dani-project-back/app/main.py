@@ -72,6 +72,10 @@ async def lifespan(app: FastAPI):
         # NUEVO: Crear la columna push_token en users si no existe para evitar UndefinedColumnError
         await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token VARCHAR(255);"))
 
+        # Incidentes: si afectan datos personales (Ley 21.719) y el riesgo que se materializó.
+        await conn.execute(text("ALTER TABLE data_breaches ADD COLUMN IF NOT EXISTS afecta_datos_personales BOOLEAN;"))
+        await conn.execute(text("ALTER TABLE data_breaches ADD COLUMN IF NOT EXISTS riesgo_id VARCHAR(36);"))
+
         _consent_cols = [
             "ADD COLUMN IF NOT EXISTS titular_email VARCHAR(255)",
             "ADD COLUMN IF NOT EXISTS acceptance_token_hash VARCHAR(64)",

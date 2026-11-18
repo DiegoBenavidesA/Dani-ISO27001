@@ -13,8 +13,11 @@ import { nivelRiesgo } from '../utils/nivelRiesgo';
 //   "No aplica" y las aún sin responder no cuentan.
 // - Impacto (1-5): fijo por tema, según el daño posible a los titulares y la
 //   gravedad de la infracción (ver IMPACTO_POR_TEMA).
-// - Probabilidad (1-5): según el % de cumplimiento del tema (ver probabilidad()).
-// - Prioridad = impacto × probabilidad.
+// - Nivel de incumplimiento (1-5): según el % de cumplimiento del tema (ver
+//   probabilidad()). NO es la probabilidad de un evento: este gráfico es una
+//   matriz de PRIORIDAD de brechas, no un mapa de riesgos. Los riesgos (eventos
+//   con su probabilidad real) se evalúan en el Mapa de Riesgos.
+// - Prioridad = impacto × nivel de incumplimiento.
 // =====================================================================
 
 const sinAcentos = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -36,8 +39,17 @@ export const impactoDeTema = (tema) => {
 
 export const probabilidad = (pct) => (pct >= 90 ? 1 : pct >= 70 ? 2 : pct >= 50 ? 3 : pct >= 25 ? 4 : 5);
 
-// Misma escala que el Mapa de Riesgos y el backend (utils/nivelRiesgo.js).
-const nivel = nivelRiesgo;
+// Prioridad de la brecha: mismos cortes que el riesgo (15, 8, 4) para que sea
+// fácil de leer, pero otros nombres y otra paleta (violeta) para que no se
+// confunda con el Mapa de Riesgos.
+const PRIORIDADES = [
+  { nombre: 'Baja', color: '#475569', fondo: '#f1f5f9' },
+  { nombre: 'Media', color: '#6d28d9', fondo: '#ede9fe' },
+  { nombre: 'Alta', color: '#5b21b6', fondo: '#ddd6fe' },
+  { nombre: 'Urgente', color: '#ffffff', fondo: '#6d28d9' },
+];
+const nivel = (score) => PRIORIDADES[NIVELES_INDICE(nivelRiesgo(score))];
+const NIVELES_INDICE = (nv) => ({ Bajo: 0, Medio: 1, Alto: 2, 'Crítico': 3 })[nv.nombre];
 
 /**
  * Calcula el resultado a partir de las fases del cuestionario.
@@ -100,7 +112,7 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
     return (
       <section style={{ ...card, textAlign: 'center', padding: '32px' }}>
         <h2 style={{ fontSize: '16px', margin: '0 0 6px', color: t.text }}>Todavía no hay resultado</h2>
-        <p style={{ fontSize: '13px', color: t.textDim, margin: 0 }}>Responde el cuestionario o usa "Evaluar con IA" con tus documentos para ver tu nivel de cumplimiento de {marcoLabel} y el mapa de calor de brechas.</p>
+        <p style={{ fontSize: '13px', color: t.textDim, margin: 0 }}>Responde el cuestionario o usa "Evaluar con IA" con tus documentos para ver tu nivel de cumplimiento de {marcoLabel} y la matriz de prioridad de brechas.</p>
       </section>
     );
   }
@@ -126,8 +138,8 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
           </h2>
           <p style={{ fontSize: '13px', color: t.textMuted, margin: '0 0 6px', lineHeight: 1.5 }}>
             {criticos.length
-              ? <>Empieza por {criticos.length === 1 ? 'el tema crítico' : `los ${criticos.length} temas críticos`}: <strong>{criticos.slice(0, 4).map((x) => x.nombre).join(' · ')}</strong>{criticos.length > 4 ? '…' : ''}</>
-              : conBrecha.length ? <>No hay temas críticos. Prioriza <strong>{conBrecha[0].nombre}</strong>.</> : 'No se detectaron brechas en las preguntas respondidas.'}
+              ? <>Empieza por {criticos.length === 1 ? 'el tema de prioridad urgente' : `los ${criticos.length} temas de prioridad urgente`}: <strong>{criticos.slice(0, 4).map((x) => x.nombre).join(' · ')}</strong>{criticos.length > 4 ? '…' : ''}</>
+              : conBrecha.length ? <>No hay temas urgentes. Prioriza <strong>{conBrecha[0].nombre}</strong>.</> : 'No se detectaron brechas en las preguntas respondidas.'}
           </p>
           <p style={{ fontSize: '11px', color: t.textDim, margin: 0 }}>
             Basado en {r.respondidas} de {r.aplicables} preguntas que aplican{r.totalNA ? ` · ${r.totalNA} declaradas "No aplica"` : ''}{r.respondidas < r.aplicables ? ' · responde o evalúa el resto para un resultado completo' : ''}.
@@ -136,10 +148,10 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-        {/* MAPA DE CALOR */}
-        <section style={card} aria-label="Mapa de calor de brechas">
+        {/* MATRIZ DE PRIORIDAD (no es un mapa de riesgos) */}
+        <section style={card} aria-label="Matriz de prioridad de brechas">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', gap: '8px' }}>
-            <h3 style={{ fontSize: '14px', margin: 0, color: t.text }}>Mapa de calor de brechas</h3>
+            <h3 style={{ fontSize: '14px', margin: 0, color: t.text }}>Matriz de prioridad de brechas</h3>
             {celda && <button type="button" onClick={() => setCelda(null)} style={{ fontSize: '11px', border: `1px solid ${t.border}`, background: 'transparent', color: t.textMuted, borderRadius: '8px', padding: '4px 8px', cursor: 'pointer' }}>Ver todos</button>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '22px repeat(5, 1fr)', gap: '4px', alignItems: 'stretch' }}>
@@ -152,7 +164,7 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
                   const activa = celda && celda.impacto === impacto && celda.prob === prob;
                   return (
                     <button key={impacto} type="button" disabled={!n} onClick={() => setCelda(activa ? null : { impacto, prob })}
-                      aria-label={`Impacto ${impacto}, probabilidad ${prob}: ${n} temas`}
+                      aria-label={`Impacto ${impacto}, incumplimiento ${prob}: ${n} temas`}
                       style={{ aspectRatio: '1.4', minHeight: '36px', borderRadius: '6px', border: activa ? `2px solid ${t.text}` : '1px solid transparent', background: nv.fondo, color: nv.color, fontSize: '15px', fontWeight: 800, cursor: n ? 'pointer' : 'default', opacity: n ? 1 : 0.45 }}>
                       {n || ''}
                     </button>
@@ -164,9 +176,9 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
             {[1, 2, 3, 4, 5].map((i) => <div key={i} style={{ fontSize: '10px', color: t.textDim, textAlign: 'center' }}>{i}</div>)}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', color: t.textDim, marginTop: '6px' }}>
-            <span>↑ Probabilidad (según % de cumplimiento del tema)</span><span>Impacto →</span>
+            <span>↑ Nivel de incumplimiento del tema</span><span>Impacto →</span>
           </div>
-          <p style={{ fontSize: '11px', color: t.textDim, margin: '8px 0 0' }}>Cada número es la cantidad de <strong>temas</strong> en esa celda. Púlsala para ver cuáles.</p>
+          <p style={{ fontSize: '11px', color: t.textDim, margin: '8px 0 0' }}>Cada número es la cantidad de <strong>temas</strong> en esa celda. Púlsala para ver cuáles. Ordena qué brecha atacar primero; los riesgos se evalúan en el Mapa de Riesgos.</p>
         </section>
 
         {/* CUMPLIMIENTO POR GRUPO */}
@@ -190,9 +202,9 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
       {/* LISTA PRIORIZADA */}
       <section style={card} aria-label="Brechas priorizadas">
         <h3 style={{ fontSize: '14px', margin: '0 0 4px', color: t.text }}>
-          {celda ? `Temas con impacto ${celda.impacto} y probabilidad ${celda.prob}` : 'Brechas priorizadas'}
+          {celda ? `Temas con impacto ${celda.impacto} e incumplimiento ${celda.prob}` : 'Brechas priorizadas'}
         </h3>
-        <p style={{ fontSize: '11px', color: t.textDim, margin: '0 0 12px' }}>Ordenadas por prioridad (impacto × probabilidad). Abre un tema para ver qué preguntas fallan.</p>
+        <p style={{ fontSize: '11px', color: t.textDim, margin: '0 0 12px' }}>Ordenadas por prioridad (impacto × nivel de incumplimiento). Abre un tema para ver qué preguntas fallan.</p>
         {listaVisible.length === 0 && <p style={{ fontSize: '13px', color: t.textDim }}>Sin brechas en esta selección.</p>}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {listaVisible.map((tema) => {
@@ -203,10 +215,10 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
                 <button type="button" onClick={() => setAbiertos((p) => ({ ...p, [tema.nombre]: !abierto }))} aria-expanded={abierto}
                   style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: t.text }}>
                   {abierto ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: nv.fondo, color: nv.color, flexShrink: 0 }}>{nv.nombre} · {tema.score}</span>
+                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: nv.fondo, color: nv.color, flexShrink: 0 }}>Prioridad {nv.nombre.toLowerCase()} · {tema.score}</span>
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: '13px', fontWeight: 600 }}>{tema.nombre}</span>
-                    <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{tema.grupo} · impacto {tema.impacto} · probabilidad {tema.prob}</span>
+                    <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{tema.grupo} · impacto {tema.impacto} · incumplimiento {tema.prob}</span>
                   </span>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: t.textMuted, flexShrink: 0 }}>{tema.pct}% · {tema.fallas.length} {tema.fallas.length === 1 ? 'falla' : 'fallas'}</span>
                 </button>
@@ -216,7 +228,7 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
                       style={{ fontSize: '11px', fontWeight: 700, color: '#fff', background: '#004ac6', border: 'none', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer' }}>
                       Registrar como riesgo
                     </button>
-                    <span style={{ fontSize: '11px', color: t.textDim }}>Lo lleva al Mapa de Riesgos con este impacto y probabilidad para definir su tratamiento.</span>
+                    <span style={{ fontSize: '11px', color: t.textDim }}>Lo lleva al Mapa de Riesgos, donde se estima la probabilidad real del evento y se define su tratamiento.</span>
                   </div>
                 )}
                 {abierto && (
@@ -265,10 +277,11 @@ function ResultadoBrechas({ phases, answers, noAplica, aiResults, valorDe, marco
         {verMetodo && (
           <ul style={{ fontSize: '12px', color: t.textMuted, lineHeight: 1.6, margin: '8px 0 0', paddingLeft: '18px' }}>
             <li><strong>Cumplimiento:</strong> Sí = 1, Parcialmente = 0,5, No o sin evidencia = 0. Las preguntas "No aplica" y las sin responder no cuentan.</li>
-            <li><strong>Unidad del mapa:</strong> cada punto es un tema del cuestionario, no una pregunta.</li>
+            <li><strong>Qué es la matriz:</strong> ordena las brechas por prioridad, para saber qué atacar primero. No es un mapa de riesgos: los riesgos (lo que podría pasar, con su probabilidad real) se evalúan en el Mapa de Riesgos.</li>
+            <li><strong>Unidad de la matriz:</strong> cada punto es un tema del cuestionario, no una pregunta.</li>
             <li><strong>Impacto (1–5):</strong> {textoImpacto || 'fijo por tema según el daño a los titulares y la gravedad de la infracción. 5: datos sensibles, menores, seguridad y vulneraciones · 4: licitud, consentimiento, derechos, transferencias · 3: encargados, evaluación de impacto, diseño, responsabilidad · 2: registro y delegado.'}</li>
-            <li><strong>Probabilidad (1–5):</strong> según el cumplimiento del tema. 1: 90% o más · 2: 70–89% · 3: 50–69% · 4: 25–49% · 5: menos de 25%.</li>
-            <li><strong>Prioridad:</strong> impacto × probabilidad. Crítico 15–25 · Alto 8–14 · Medio 4–7 · Bajo 1–3.</li>
+            <li><strong>Nivel de incumplimiento (1–5):</strong> según el cumplimiento del tema. 1: 90% o más · 2: 70–89% · 3: 50–69% · 4: 25–49% · 5: menos de 25%.</li>
+            <li><strong>Prioridad:</strong> impacto × nivel de incumplimiento. Urgente 15–25 · Alta 8–14 · Media 4–7 · Baja 1–3.</li>
           </ul>
         )}
       </section>

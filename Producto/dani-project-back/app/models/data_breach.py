@@ -20,7 +20,7 @@ class DataBreach(Base):
     __tablename__ = "data_breaches"
     
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), unique=True, index=True)
-    # Desde aquí corren las 72 h: cuando la empresa tomó conocimiento.
+    # Cuándo la empresa tomó conocimiento; desde aquí corre el plazo interno.
     fecha_deteccion = Column(DateTime, nullable=False)
     descripcion = Column(Text, nullable=False)
     reportado_por = Column(String(255), nullable=True)
@@ -31,6 +31,13 @@ class DataBreach(Base):
     cantidad_afectados = Column(Integer, nullable=True)
     afectados_estimacion = Column(String(20), nullable=True)  # exacto | aproximado | desconocido
     gravedad = Column(SQLEnum(SeverityLevel), nullable=True)
+
+    # Todo incidente de seguridad se gestiona (ISO 27001, A.5.24 a A.5.28).
+    # Si afecta datos personales es además una vulneración de la Ley 21.719
+    # (art. 14 sexies) y puede requerir reporte a la Agencia. None = por determinar.
+    afecta_datos_personales = Column(Boolean, nullable=True)
+    # Riesgo del Mapa de Riesgos que se materializó (para reevaluarlo, ISO 8.2).
+    riesgo_id = Column(String(36), nullable=True)
 
     # Análisis de la IA: {gravedad, justificacion, datos_posibles, notificar_agencia,
     # notificar_titulares, acciones_inmediatas, preguntas}
@@ -43,7 +50,8 @@ class DataBreach(Base):
     confirmada_por = Column(String(255), nullable=True)
     fecha_confirmacion = Column(DateTime, nullable=True)
     
-    # Plazos (Obligación O4: 72 horas)
+    # Plazos. La Ley 21.719 exige reportar "sin dilaciones indebidas"; la
+    # plataforma usa 72 horas como plazo interno para cumplirlo.
     fecha_limite_notificacion = Column(DateTime, nullable=False)
     fecha_notificacion = Column(DateTime, nullable=True)
     

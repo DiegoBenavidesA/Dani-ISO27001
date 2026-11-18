@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { breachesAPI } from '../services/api';
+import { breachesAPI, riskAPI } from '../services/api';
 
 const GRAVEDADES = [
   { value: 'baja', label: 'Baja' },
@@ -41,7 +41,7 @@ const BreachesScreen = () => {
   const [error, setError] = useState(null);
 
   const [showReport, setShowReport] = useState(false);
-  const [reporte, setReporte] = useState({ descripcion: '', fecha: ahoraLocal() });
+  const [reporte, setReporte] = useState({ descripcion: '', fecha: ahoraLocal(), afecta: null });
   const [reportError, setReportError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reportOk, setReportOk] = useState(null);
@@ -67,8 +67,8 @@ const BreachesScreen = () => {
     try {
       setBreaches(await breachesAPI.getAll());
     } catch (err) {
-      console.error('Error al cargar vulneraciones.', err);
-      setError('No se pudieron cargar las vulneraciones: ' + err.message);
+      console.error('Error al cargar incidentes.', err);
+      setError('No se pudieron cargar los incidentes: ' + err.message);
     } finally {
       if (!silencioso) setLoading(false);
     }
@@ -79,11 +79,11 @@ const BreachesScreen = () => {
     setIsSubmitting(true); setReportError(null);
     try {
       const fecha = reporte.fecha ? new Date(reporte.fecha) : null;
-      await breachesAPI.create({ descripcion: reporte.descripcion.trim(), ...(fecha && !isNaN(fecha) && { fecha_deteccion: fecha.toISOString() }) });
+      await breachesAPI.create({ descripcion: reporte.descripcion.trim(), afecta_datos_personales: reporte.afecta, ...(fecha && !isNaN(fecha) && { fecha_deteccion: fecha.toISOString() }) });
       setShowReport(false);
       setReportOk(gestiona
-        ? 'Vulneración reportada. La IA la está analizando; luego confirma la gravedad en el detalle.'
-        : 'Vulneración reportada. La IA la está analizando y se avisó a los responsables de la empresa.');
+        ? 'Incidente reportado. La IA lo está analizando; luego confirma la gravedad en el detalle.'
+        : 'Incidente reportado. La IA lo está analizando y se avisó a los responsables de la empresa.');
       await fetchBreaches(true);
     } catch (err) {
       setReportError('No se pudo reportar: ' + err.message);
@@ -105,15 +105,16 @@ const BreachesScreen = () => {
       const aTiempo = parseServerDate(b.fecha_notificacion) <= parseServerDate(b.fecha_limite_notificacion);
       return { text: aTiempo ? 'Notificada a tiempo' : 'Notificada fuera de plazo', color: aTiempo ? '#2563eb' : '#e11d48', icon: CheckCircle };
     }
+    if (b.afecta_datos_personales === false) return { text: 'Sin reporte a la Agencia', color: t.textDim, icon: CheckCircle };
     if (b.estado === 'cerrada' || b.notificacion_requerida === false) return { text: 'No requiere notificación', color: t.textDim, icon: CheckCircle };
     const horas = horasRestantes(b);
     if (horas < 0) return { text: `Plazo vencido hace ${Math.abs(horas)} h`, color: '#e11d48', icon: AlertTriangle };
-    return { text: `${horas} h para notificar`, color: horas <= 24 ? '#d97706' : '#2563eb', icon: Clock };
+    return { text: `${horas} h para reportar (plazo interno)`, color: horas <= 24 ? '#d97706' : '#2563eb', icon: Clock };
   };
 
   const abiertas = breaches.filter(b => b.estado !== 'cerrada');
   const porRevisar = breaches.filter(b => !b.gravedad_confirmada && b.estado !== 'cerrada').length;
-  const vencidas = abiertas.filter(b => b.estado !== 'notificada' && b.notificacion_requerida !== false && horasRestantes(b) < 0).length;
+  const vencidas = abiertas.filter(b => b.estado !== 'notificada' && b.notificacion_requerida !== false && b.afecta_datos_personales !== false && horasRestantes(b) < 0).length;
   const cerradas = breaches.length - abiertas.length;
 
   const metric = (label, value, color) => (
@@ -132,10 +133,10 @@ const BreachesScreen = () => {
             <div style={{ padding: '6px', background: 'rgba(13, 148, 136, 0.1)', color: '#0d9488', borderRadius: '8px' }}>
               <ShieldAlert size={20} />
             </div>
-            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: t.text }}>Vulneraciones de Seguridad</h1>
+            <h1 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: t.text }}>Incidentes de Seguridad</h1>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim, paddingLeft: '4px' }}>
-            <span style={{ fontWeight: 600, color: t.text }}>Obligación O4 · Ley 21.719:</span> toda vulneración de seguridad que afecte datos personales debe notificarse a la Agencia en un plazo máximo de <strong style={{ color: t.text, fontWeight: 700 }}>72 horas</strong> desde que se detecta.
+            Todo incidente se gestiona según <strong style={{ color: t.text }}>ISO 27001</strong> (A.5.24 a A.5.28). Si afecta datos personales es además una <strong style={{ color: t.text }}>vulneración de la Ley 21.719</strong>: se reporta a la Agencia sin dilaciones indebidas, con un plazo interno de 72 horas.
           </p>
         </div>
 
@@ -143,8 +144,8 @@ const BreachesScreen = () => {
           <button className="btn-refresh" onClick={() => fetchBreaches()} style={{ padding: '10px 12px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 1 }}>
             <RefreshCw size={14} color={t.textDim} /> Actualizar
           </button>
-          <button className="btn-new" onClick={() => { setReporte({ descripcion: '', fecha: ahoraLocal() }); setReportError(null); setShowReport(true); }} style={{ padding: '10px 12px', background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 2, boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)' }}>
-            <Plus size={16} strokeWidth={2.5} /> Reportar vulneración
+          <button className="btn-new" onClick={() => { setReporte({ descripcion: '', fecha: ahoraLocal(), afecta: null }); setReportError(null); setShowReport(true); }} style={{ padding: '10px 12px', background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 2, boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)' }}>
+            <Plus size={16} strokeWidth={2.5} /> Reportar incidente
           </button>
         </div>
       </section>
@@ -168,15 +169,15 @@ const BreachesScreen = () => {
         {metric('Cerradas', cerradas, '#059669')}
       </section>
 
-      <section aria-label="Lista de vulneraciones">
+      <section aria-label="Lista de incidentes">
         {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>Cargando vulneraciones…</div>
+          <div style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>Cargando incidentes…</div>
         ) : breaches.length === 0 ? (
           <div style={{ padding: '40px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
             <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: t.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, marginBottom: '12px' }}>
               <ShieldAlert size={24} />
             </div>
-            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: t.text }}>No hay vulneraciones registradas.</p>
+            <p style={{ margin: '0 0 4px', fontSize: '14px', fontWeight: 600, color: t.text }}>No hay incidentes registrados.</p>
             <p style={{ margin: 0, fontSize: '12px', color: t.textDim, maxWidth: '320px' }}>Si ocurre un incidente, repórtalo con tus palabras: la IA estimará su gravedad y se avisará a los responsables.</p>
           </div>
         ) : (
@@ -191,6 +192,7 @@ const BreachesScreen = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '6px' }}>
                       <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, color: est.color, background: est.bg, textTransform: 'uppercase' }}>{est.label}</span>
                       <GravedadPill b={b} />
+                      <TipoIncidente b={b} />
                     </div>
                     <p style={{ margin: 0, fontSize: '13px', fontWeight: 500, lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{b.descripcion}</p>
                     <p style={{ margin: '4px 0 0', fontSize: '11px', color: t.textDim }}>
@@ -211,7 +213,7 @@ const BreachesScreen = () => {
       </section>
 
       {showReport && (
-        <Modal t={t} titulo="Reportar vulneración" onClose={() => setShowReport(false)} maxWidth="520px">
+        <Modal t={t} titulo="Reportar incidente" onClose={() => setShowReport(false)} maxWidth="520px">
           <p style={{ margin: '0 0 16px', fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>
             Cuenta con tus palabras qué ocurrió. No necesitas saber qué tan grave es: la IA lo evaluará y se avisará a los responsables de la empresa para que lo revisen.
           </p>
@@ -223,10 +225,22 @@ const BreachesScreen = () => {
             placeholder="Ej: Hoy en la mañana nos robaron 3 computadoras de la oficina. Las usaba el equipo de ventas."
             autoFocus
           />
+          <label style={{ ...labelStyle(t), marginTop: '14px' }}>¿Afecta datos de personas (pacientes, clientes o trabajadores)?</label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {[{ v: true, l: 'Sí' }, { v: false, l: 'No' }, { v: null, l: 'No lo sé' }].map((op) => (
+              <button key={op.l} type="button" onClick={() => setReporte({ ...reporte, afecta: op.v })} aria-pressed={reporte.afecta === op.v}
+                style={{ ...secondaryBtn(t), borderColor: reporte.afecta === op.v ? '#2563eb' : t.border, color: reporte.afecta === op.v ? '#2563eb' : t.text, fontWeight: reporte.afecta === op.v ? 700 : 500 }}>
+                {op.l}
+              </button>
+            ))}
+          </div>
+          <p style={{ color: t.textDim, fontSize: '11px', margin: '6px 0 0', lineHeight: 1.4 }}>
+            Si afecta datos personales es una vulneración de la Ley 21.719 y puede requerir reporte a la Agencia. Si no lo sabes, la IA lo propondrá y un responsable lo confirmará.
+          </p>
           <label style={{ ...labelStyle(t), marginTop: '14px' }}>¿Cuándo se detectó?</label>
           <input type="datetime-local" value={reporte.fecha} max={ahoraLocal()} onChange={(e) => setReporte({ ...reporte, fecha: e.target.value })} style={inputStyle(t)} />
           <p style={{ color: t.textDim, fontSize: '11px', margin: '6px 0 0', lineHeight: 1.4 }}>
-            El plazo de <strong style={{ color: t.text }}>72 horas</strong> para notificar a la Agencia corre desde este momento. Corrígelo si te enteraste antes.
+            Si afecta datos personales, el plazo interno de <strong style={{ color: t.text }}>72 horas</strong> para reportar a la Agencia corre desde este momento. Corrígelo si te enteraste antes.
           </p>
           {reportError && <p style={{ color: '#e11d48', fontSize: '12px', margin: '12px 0 0' }}>{reportError}</p>}
           <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '20px' }}>
@@ -291,7 +305,11 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
     cantidad_afectados: b.cantidad_afectados ?? '',
     medidas_tomadas: b.medidas_tomadas || '',
     notificacion_requerida: b.notificacion_requerida ?? (ia ? ia.notificar_agencia !== false : true),
+    afecta_datos_personales: b.afecta_datos_personales ?? (typeof ia?.afecta_datos_personales === 'boolean' ? ia.afecta_datos_personales : null),
   }));
+  // Riesgos de la empresa, para asociar el que se materializó (ISO 27001, 8.2).
+  const [riesgos, setRiesgos] = useState(null);
+  useEffect(() => { riskAPI.getAll().then((r) => setRiesgos(Array.isArray(r) ? r : [])).catch(() => setRiesgos(null)); }, []);
   const [cierre, setCierre] = useState({ causa_raiz: '', resolucion: '' });
   const [busy, setBusy] = useState(null);
   const [msg, setMsg] = useState(null);
@@ -304,6 +322,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
       gravedad: ia.gravedad || r.gravedad,
       datos_afectados: r.datos_afectados || (ia.datos_posibles || []).join(', '),
       notificacion_requerida: ia.notificar_agencia !== false,
+      afecta_datos_personales: r.afecta_datos_personales ?? (typeof ia.afecta_datos_personales === 'boolean' ? ia.afecta_datos_personales : null),
     }));
   }, [b.analisis_estado]);
 
@@ -350,20 +369,22 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
   };
 
   const eliminar = async () => {
-    if (!window.confirm('¿Eliminar permanentemente esta vulneración? Se pierde también su historial.')) return;
+    if (!window.confirm('¿Eliminar permanentemente este incidente? Se pierde también su historial.')) return;
     if (await accion('delete', () => breachesAPI.delete(b.id).then(() => null))) onDeleted();
   };
 
   const est = ESTADOS[b.estado] || ESTADOS.detectada;
   const PlazoIcon = plazo.icon;
-  const puedeNotificar = gestiona && b.gravedad_confirmada && !notificada && !cerrada && b.notificacion_requerida !== false;
+  const sinDatosPersonales = b.afecta_datos_personales === false;
+  const puedeNotificar = gestiona && b.gravedad_confirmada && !notificada && !cerrada && b.notificacion_requerida !== false && !sinDatosPersonales;
   const puedeCerrar = gestiona && b.gravedad_confirmada && !cerrada && (notificada || b.notificacion_requerida === false);
 
   return (
-    <Modal t={t} titulo="Detalle de la vulneración" onClose={onClose} maxWidth="760px">
+    <Modal t={t} titulo="Detalle del incidente" onClose={onClose} maxWidth="760px">
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, color: est.color, background: est.bg, textTransform: 'uppercase' }}>{est.label}</span>
         <GravedadPill b={b} />
+        <TipoIncidente b={b} />
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: plazo.color, fontWeight: 700, fontSize: '12px', marginLeft: 'auto' }}>
           <PlazoIcon size={14} /> {plazo.text}
         </span>
@@ -373,7 +394,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
       <Seccion t={t} paso="1" titulo="Lo reportado">
         <p style={{ margin: '0 0 8px', fontSize: '13px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{b.descripcion}</p>
         <p style={{ margin: 0, fontSize: '11px', color: t.textDim }}>
-          Detectada el {formatFecha(b.fecha_deteccion)}{b.reportado_por ? ` · Reportada por ${b.reportado_por}` : ''} · Límite para notificar: {formatFecha(b.fecha_limite_notificacion)}
+          Detectada el {formatFecha(b.fecha_deteccion)}{b.reportado_por ? ` · Reportado por ${b.reportado_por}` : ''}{sinDatosPersonales ? '' : ` · Plazo interno para reportar: ${formatFecha(b.fecha_limite_notificacion)}`}
         </p>
       </Seccion>
 
@@ -383,7 +404,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim, display: 'flex', alignItems: 'center', gap: '8px' }}><Loader2 size={14} className="spin" /> La IA está analizando lo reportado…</p>
         ) : !ia ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            <p style={{ margin: 0, fontSize: '12px', color: t.textDim, flex: 1 }}>{b.analisis_estado === 'error' ? 'El análisis no se pudo completar.' : 'Esta vulneración no tiene análisis de IA.'}</p>
+            <p style={{ margin: 0, fontSize: '12px', color: t.textDim, flex: 1 }}>{b.analisis_estado === 'error' ? 'El análisis no se pudo completar.' : 'Este incidente no tiene análisis de IA.'}</p>
             {gestiona && !cerrada && (
               <button onClick={() => accion('analizar', () => breachesAPI.analizar(b.id))} disabled={!!busy} style={secondaryBtn(t)}>
                 {busy === 'analizar' ? <Loader2 size={14} className="spin" /> : <RefreshCw size={14} />} Analizar con IA
@@ -393,6 +414,9 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         ) : (
           <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
             <p style={{ margin: '0 0 10px' }}><strong>Gravedad sugerida: {gravedadLabel(ia.gravedad)}.</strong> {ia.justificacion}</p>
+            {typeof ia.afecta_datos_personales === 'boolean' && (
+              <p style={{ margin: '0 0 10px' }}><strong>¿Afecta datos personales?</strong> {ia.afecta_datos_personales ? 'Sí: es una vulneración de la Ley 21.719.' : 'No: es un incidente de seguridad (ISO 27001), sin reporte a la Agencia.'}</p>
+            )}
             <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <Lista t={t} titulo="Datos que podrían estar afectados" items={ia.datos_posibles} />
               <div>
@@ -438,14 +462,21 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
                 </div>
               </div>
             </div>
+            <label style={{ ...labelStyle(t), marginTop: '12px' }}>¿Afecta datos personales?</label>
+            <select value={rev.afecta_datos_personales === null ? '' : String(rev.afecta_datos_personales)} disabled={cerrada || notificada}
+              onChange={(e) => setRev({ ...rev, afecta_datos_personales: e.target.value === '' ? null : e.target.value === 'true' })} style={inputStyle(t)}>
+              <option value="">Por determinar</option>
+              <option value="true">Sí: vulneración de la Ley 21.719 (y también incidente ISO 27001)</option>
+              <option value="false">No: incidente de seguridad ISO 27001, sin reporte a la Agencia</option>
+            </select>
             <label style={{ ...labelStyle(t), marginTop: '12px' }}>Datos personales afectados</label>
             <input value={rev.datos_afectados} disabled={cerrada} onChange={(e) => setRev({ ...rev, datos_afectados: e.target.value })} placeholder="Ej: nombres, RUT, correos" style={inputStyle(t)} />
             <label style={{ ...labelStyle(t), marginTop: '12px' }}>Medidas de contención tomadas</label>
             <textarea value={rev.medidas_tomadas} disabled={cerrada} onChange={(e) => setRev({ ...rev, medidas_tomadas: e.target.value })} placeholder="Ej: se bloquearon las cuentas de los equipos robados y se cambiaron contraseñas" style={{ ...inputStyle(t), minHeight: '64px', resize: 'vertical' }} />
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', fontSize: '12px', cursor: cerrada || notificada ? 'default' : 'pointer' }}>
+            {rev.afecta_datos_personales !== false && <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', fontSize: '12px', cursor: cerrada || notificada ? 'default' : 'pointer' }}>
               <input type="checkbox" checked={rev.notificacion_requerida} disabled={cerrada || notificada} onChange={(e) => setRev({ ...rev, notificacion_requerida: e.target.checked })} style={{ marginTop: '2px' }} />
               <span>Requiere notificarse a la Agencia <span style={{ color: t.textDim }}>(desmárcalo solo si es improbable que afecte los derechos de las personas; queda registrado quién lo decidió)</span></span>
-            </label>
+            </label>}
             {!cerrada && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
                 <button onClick={guardarRevision} disabled={!!busy} style={{ ...primaryBtn, opacity: busy ? 0.7 : 1 }}>
@@ -458,9 +489,11 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
       </Seccion>
 
       {/* 4. Notificación a la Agencia */}
-      <Seccion t={t} paso="4" titulo="Notificación a la Agencia" icono={<Send size={14} color="#2563eb" />} apagada={!b.gravedad_confirmada}>
+      <Seccion t={t} paso="4" titulo="Reporte a la Agencia (Ley 21.719)" icono={<Send size={14} color="#2563eb" />} apagada={!b.gravedad_confirmada || sinDatosPersonales}>
         {notificada ? (
           <p style={{ margin: 0, fontSize: '12px' }}>Notificada el {formatFecha(b.fecha_notificacion)} · <strong style={{ color: plazo.color }}>{plazo.text}</strong></p>
+        ) : sinDatosPersonales ? (
+          <p style={{ margin: 0, fontSize: '12px', color: t.textDim }}>No aplica: el incidente no afecta datos personales. Se gestiona como incidente de seguridad de ISO 27001.</p>
         ) : b.notificacion_requerida === false ? (
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim }}>El responsable determinó que no requiere notificación.</p>
         ) : !b.gravedad_confirmada ? (
@@ -476,6 +509,19 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
           </div>
         )}
       </Seccion>
+
+      {/* Riesgo que se materializó (ISO 27001, 8.2) */}
+      {gestiona && riesgos && (
+        <Seccion t={t} paso="·" titulo="Riesgo relacionado" icono={<AlertTriangle size={14} color="#d97706" />}>
+          <p style={{ margin: '0 0 8px', fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>Si este incidente es un riesgo del Mapa de Riesgos que se materializó, asócialo: ISO 27001 pide reevaluar los riesgos después de un incidente.</p>
+          <select value={b.riesgo_id || ''} disabled={!!busy}
+            onChange={(e) => accion('riesgo', () => breachesAPI.vincularRiesgo(b.id, e.target.value))} style={inputStyle(t)}>
+            <option value="">Sin riesgo asociado</option>
+            {riesgos.map((r) => <option key={r.id} value={r.id}>{r.title} (P{r.likelihood} × I{r.impact})</option>)}
+          </select>
+          {b.riesgo_id && <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#d97706' }}>Se materializó: revisa su probabilidad e impacto en el Mapa de Riesgos.</p>}
+        </Seccion>
+      )}
 
       {/* 5. Cierre */}
       <Seccion t={t} paso="5" titulo={cerrada ? 'Resuelta' : 'Resolver y cerrar'} icono={<CheckCircle size={14} color="#059669" />} apagada={!puedeCerrar && !cerrada}>
@@ -493,7 +539,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
             <textarea value={cierre.resolucion} onChange={(e) => setCierre({ ...cierre, resolucion: e.target.value })} placeholder="Ej: se activó el cifrado en todos los equipos y se reforzó el control de acceso a la oficina" style={{ ...inputStyle(t), minHeight: '60px', resize: 'vertical' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
               <button onClick={cerrar} disabled={!!busy} style={{ ...primaryBtn, background: '#059669' }}>
-                {busy === 'resolver' ? <Loader2 size={14} className="spin" /> : <CheckCircle size={14} />} Cerrar vulneración
+                {busy === 'resolver' ? <Loader2 size={14} className="spin" /> : <CheckCircle size={14} />} Cerrar incidente
               </button>
             </div>
           </>
@@ -550,6 +596,15 @@ const Lista = ({ t, titulo, items }) => (
     ) : <p style={{ margin: 0, color: t.textDim }}>—</p>}
   </div>
 );
+
+// Qué norma regula el incidente: todos son de ISO 27001; los que afectan
+// datos personales son además vulneraciones de la Ley 21.719.
+const TipoIncidente = ({ b }) => {
+  const base = { padding: '3px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 700 };
+  if (b.afecta_datos_personales === true) return <span style={{ ...base, color: '#be123c', background: 'rgba(225,29,72,0.1)' }} title="Afecta datos personales: también es un incidente ISO 27001">Vulneración · Ley 21.719</span>;
+  if (b.afecta_datos_personales === false) return <span style={{ ...base, color: '#0f766e', background: 'rgba(13,148,136,0.1)' }}>Incidente · ISO 27001</span>;
+  return <span style={{ ...base, color: '#64748b', background: 'rgba(100,116,139,0.12)' }}>Por clasificar</span>;
+};
 
 const GravedadPill = ({ b }) => {
   if (!b.gravedad) {
