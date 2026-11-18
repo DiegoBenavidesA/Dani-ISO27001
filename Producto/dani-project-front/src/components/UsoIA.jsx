@@ -69,7 +69,9 @@ function Detalle({ titulo, bloque, unidad, nota, t }) {
   );
 }
 
-export default function UsoIA() {
+// panel: tarjeta con el detalle a la vista (página de superadmin). Sin panel:
+// botón compacto con dos barras que abre el detalle.
+export default function UsoIA({ panel = false }) {
   const { theme: t, darkMode } = useContext(ThemeContext);
   const [datos, setDatos] = useState(null);      // última respuesta del servidor
   const [recibido, setRecibido] = useState(0);   // cuándo llegó (reloj del navegador)
@@ -105,6 +107,34 @@ export default function UsoIA() {
   const solicitudes = avanzar(datos?.solicitudes_dia, pasado, 'minuto');
   const sincronizado = datos?.dia?.sincronizado_con_groq;
 
+  const detalles = (
+    <>
+      {error && <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '10px' }}>{error}</div>}
+      <Detalle titulo="Tokens por minuto" unidad="tokens" bloque={minuto} t={t}
+        nota={minuto ? 'Valor informado por Groq en la última llamada.' : null} />
+      <Detalle titulo="Tokens por día" unidad="tokens" bloque={dia} t={t}
+        nota={`Groq repone ${formato(datos?.dia?.se_recupera_por_minuto)} tokens por minuto. ${sincronizado
+          ? `Sincronizado con Groq el ${new Date(sincronizado * 1000).toLocaleString('es-CL')}.`
+          : 'Estimado con las llamadas de la plataforma; se sincroniza con Groq si se alcanza el límite.'}`} />
+      <Detalle titulo="Solicitudes por día" unidad="solicitudes" bloque={solicitudes} t={t} />
+      {!minuto && <div style={{ fontSize: '12px', color: t.textMuted }}>Los valores por minuto aparecen después de la primera llamada a la IA.</div>}
+    </>
+  );
+
+  if (panel) {
+    return (
+      <section aria-label="Consumo de la IA" style={{ background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px', padding: '18px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 700, color: t.text, marginBottom: '4px' }}>
+          <Gauge size={18} /> Consumo de la IA (Groq)
+        </div>
+        <div style={{ fontSize: '12px', color: t.textMuted, marginBottom: '14px' }}>
+          Cuota compartida por todas las empresas de la plataforma. Solo la ve el equipo de NormIA.
+        </div>
+        {detalles}
+      </section>
+    );
+  }
+
   return (
     <div ref={caja} className="normia-uso-ia" style={{ position: 'relative' }}>
       <button
@@ -125,15 +155,7 @@ export default function UsoIA() {
       {abierto && (
         <div role="dialog" aria-label="Consumo de la IA" style={{ position: 'absolute', top: '100%', right: 0, marginTop: '8px', width: '340px', background: darkMode ? '#1e293b' : '#ffffff', border: `1px solid ${t.border}`, borderRadius: '12px', padding: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', zIndex: 100 }}>
           <div style={{ fontSize: '14px', fontWeight: 700, color: t.text, marginBottom: '12px' }}>Consumo de la IA (Groq)</div>
-          {error && <div style={{ fontSize: '12px', color: '#dc2626', marginBottom: '10px' }}>{error}</div>}
-          <Detalle titulo="Tokens por minuto" unidad="tokens" bloque={minuto} t={t}
-            nota={minuto ? 'Valor informado por Groq en la última llamada.' : null} />
-          <Detalle titulo="Tokens por día" unidad="tokens" bloque={dia} t={t}
-            nota={`Groq repone ${formato(datos?.dia?.se_recupera_por_minuto)} tokens por minuto. ${sincronizado
-              ? `Sincronizado con Groq el ${new Date(sincronizado * 1000).toLocaleString('es-CL')}.`
-              : 'Estimado con las llamadas de la plataforma; se sincroniza con Groq si se alcanza el límite.'}`} />
-          <Detalle titulo="Solicitudes por día" unidad="solicitudes" bloque={solicitudes} t={t} />
-          {!minuto && <div style={{ fontSize: '12px', color: t.textMuted }}>Los valores por minuto aparecen después de la primera llamada a la IA.</div>}
+          {detalles}
         </div>
       )}
       <style>{`@media (max-width: 768px) { .normia-uso-ia { display: none; } }`}</style>

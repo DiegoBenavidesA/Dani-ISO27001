@@ -22,7 +22,6 @@ import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
 import OrganizationsScreen from './pages/OrganizationsScreen';
 import QuestionsScreen from './pages/QuestionsScreen';
-import UsoIA from './components/UsoIA';
 
 import BreachesScreen from './pages/BreachesScreen';
 
@@ -155,9 +154,6 @@ export default function DaniPlatform() {
           >
             <Menu size={22} />
           </button>
-
-          {/* Consumo de la IA: es uno solo para toda la plataforma, por eso solo lo ve el superadmin. */}
-          {isSuperadmin && <UsoIA />}
 
           <div style={{ position: 'relative' }}>
             <button

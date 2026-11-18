@@ -3,6 +3,7 @@ import { Building2, Search, Activity, PauseCircle, Plus, X, UserPlus, MoreVertic
 import { ThemeContext } from '../contexts/ThemeContext';
 import { organizationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import UsoIA from '../components/UsoIA';
 
 export default function OrganizationsScreen() {
   const { theme: t, darkMode } = useContext(ThemeContext);
@@ -108,6 +109,9 @@ export default function OrganizationsScreen() {
           <Plus size={16} strokeWidth={2.5} /> Nueva Empresa
         </button>
       </section>
+
+      {/* Consumo de la IA: cuota de toda la plataforma, solo para el equipo de NormIA. */}
+      <UsoIA panel />
 
       {/* MÉTRICAS (GRID ADAPTABLE) */}
       <div className="metrics-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '20px' }}>

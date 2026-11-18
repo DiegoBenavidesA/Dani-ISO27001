@@ -70,3 +70,10 @@ def test_brevo_envia_correctamente(monkeypatch):
     monkeypatch.setattr(email_service.httpx, "post", _respuesta_falsa(201, {"messageId": "x"}))
     datos = asyncio.run(email_service.diagnosticar_correo("destino@empresa.cl"))
     assert datos["enviado"] is True and datos["detalle"] is None
+
+
+def test_ip_no_autorizada_en_brevo_se_explica_como_tal():
+    from app.services.email_service import _motivo_brevo
+    cuerpo = '{"message":"We have detected you are using an unrecognised IP address 200.86.155.200. If you performed this action make sure to add the new IP address in this link: https://app.brevo.com/security/authorised_ips","code":"unauthorized"}'
+    motivo = _motivo_brevo(401, cuerpo, "remitente@ejemplo.cl")
+    assert "IP" in motivo and "Authorized IPs" in motivo and "no es válida" not in motivo

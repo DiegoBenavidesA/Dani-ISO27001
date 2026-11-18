@@ -75,6 +75,10 @@ def _motivo_brevo(codigo: int, cuerpo: str, remitente: str) -> str:
     except Exception:
         mensaje = ""
     mensaje = str(mensaje)[:200]
+    if codigo == 401 and "ip address" in mensaje.lower():
+        return ("Brevo bloqueó el envío porque la IP del servidor no está autorizada. En Brevo, entra a "
+                "Security > Authorized IPs y desactiva el bloqueo por IP, o agrega las IP de salida del servidor "
+                "(en Render: el servicio > Connect > Outbound).")
     if codigo == 401:
         return "Brevo rechazó la clave: BREVO_API_KEY no es válida o fue revocada."
     if codigo == 400 and "sender" in mensaje.lower():
