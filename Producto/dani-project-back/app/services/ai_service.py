@@ -5,6 +5,21 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def proteger_datos_personales(cliente):
+    """Toda llamada a la IA pasa primero por el ocultamiento de datos personales
+    (RUT, correos, teléfonos y tarjetas), sin importar qué función la haga."""
+    from app.services.datos_personales import ocultar_mensajes
+    original = cliente.chat.completions.create
+
+    async def create_sin_datos_personales(*args, **kwargs):
+        if "messages" in kwargs:
+            kwargs["messages"] = ocultar_mensajes(kwargs["messages"])
+        return await original(*args, **kwargs)
+
+    cliente.chat.completions.create = create_sin_datos_personales
+    return cliente
+
+
 class AIService:
     def __init__(self):
         # Configuracion general apuntando al API key y URL dinámica
@@ -24,6 +39,7 @@ class AIService:
                 # Cada respuesta pasa por uso_ia para medir tokens y límites de Groq.
                 http_client=httpx.AsyncClient(timeout=30.0, event_hooks={"response": [uso_ia.al_recibir_respuesta]}),
             )
+            proteger_datos_personales(self.client)
             logger.info(f"✅ AI client inicializado en {settings.AI_BASE_URL}")
     
     async def chat(self, message: str, context: str = None, language: str = "es", history: list = None) -> str:

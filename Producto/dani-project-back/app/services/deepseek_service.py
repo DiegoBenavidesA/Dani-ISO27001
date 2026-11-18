@@ -7,10 +7,14 @@ from app.models.prompt import AIPrompt
 class DeepSeekService:
     def __init__(self):
         # Configuración compatible con OpenAI apuntando de forma dinámica a Groq o DeepSeek
-        self.client = openai.AsyncOpenAI(
-            api_key=settings.AI_API_KEY, 
-            base_url=settings.AI_BASE_URL
-        )
+        import httpx
+        from app.services import uso_ia
+        from app.services.ai_service import proteger_datos_personales
+        self.client = proteger_datos_personales(openai.AsyncOpenAI(
+            api_key=settings.AI_API_KEY,
+            base_url=settings.AI_BASE_URL,
+            http_client=httpx.AsyncClient(timeout=60.0, event_hooks={"response": [uso_ia.al_recibir_respuesta]}),
+        ))
         
     async def get_prompt_from_db(self, prompt_name: str):
         """Busca el prompt en PostgreSQL por su nombre único"""

@@ -450,10 +450,14 @@ Responde con este JSON exacto (sin texto extra):
 }}"""
 
         try:
-            client = openai.AsyncOpenAI(
+            import httpx
+            from app.services import uso_ia
+            from app.services.ai_service import proteger_datos_personales
+            client = proteger_datos_personales(openai.AsyncOpenAI(
                 api_key=settings.AI_API_KEY,
-                base_url=settings.AI_BASE_URL
-            )
+                base_url=settings.AI_BASE_URL,
+                http_client=httpx.AsyncClient(timeout=60.0, event_hooks={"response": [uso_ia.al_recibir_respuesta]}),
+            ))
             response = await client.chat.completions.create(
                 model=settings.AI_MODEL,
                 messages=[

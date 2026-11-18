@@ -324,6 +324,9 @@ function EvidenceCenterScreen() {
           agregarAviso('warning', `"${archivo.name}" no tiene texto legible (por ejemplo, un PDF escaneado). La IA no podrá usarlo.`);
         } else {
           agregarAviso('ok', `"${archivo.name}" se subió y la IA podrá leerlo.`);
+          if (r.datos_personales_texto) {
+            agregarAviso('warning', `"${archivo.name}" contiene datos personales (${r.datos_personales_texto}). Se ocultan siempre antes de enviar el texto a la IA, pero revisa si este documento realmente necesita esos datos.`);
+          }
         }
         if (r.archivo_guardado === false) {
           agregarAviso('warning', `"${archivo.name}": el archivo original no se pudo guardar. ${r.motivo_no_guardado || ''} La IA puede usar su texto, pero no podrás abrir ni descargar el original.`);
@@ -591,6 +594,7 @@ function EvidenceCenterScreen() {
                             <div style={{ fontSize: '11px', color: t.textDim }}>
                               {ev.subido_por ? `Subida por ${ev.subido_por}` : ev.source}
                               {ev.archivo_guardado === false && <span style={{ color: '#b45309' }}> · Solo texto, sin archivo original</span>}
+                              {ev.datos_personales_texto && <span style={{ color: '#7c3aed' }} title="Estos datos se reemplazan por marcas antes de enviar el texto a la IA."> · Datos personales ocultos a la IA: {ev.datos_personales_texto}</span>}
                             </div>
                           </div>
                         </div>

@@ -95,9 +95,20 @@ async def get_all_evidence(
             "subido_por": nombres.get(ev.uploaded_by),
             "indexing_status": ev.indexing_status,
             "archivo_guardado": bool(ev.file_url) and not ev.file_url.startswith("local:"),
+            "datos_personales_texto": _datos_personales_de(ev),
         }
         for ev in evidences
     ]
+
+
+def _datos_personales_de(ev) -> str:
+    """'3 RUT y 2 correos' si la evidencia tiene datos personales; '' si no.
+    Las evidencias subidas antes de esta función se revisan en el momento."""
+    from app.services.datos_personales import contar, describir
+    conteo = (ev.evidence_metadata or {}).get("datos_personales")
+    if conteo is None:
+        conteo = contar(texto_guardado_valido(ev.extracted_text, ev.file_name or ev.title or ""))
+    return describir(conteo)
 
 @router.post("/upload")
 async def upload_evidence(
@@ -146,6 +157,11 @@ async def upload_evidence(
         # con IA no dependa del almacenamiento ni del indexado. Las imágenes se
         # guardan como respaldo, pero no tienen texto que la IA pueda leer.
         extracted_text = extraer_texto(file_bytes, file.filename)
+        # Datos personales con formato fijo (RUT, correos, teléfonos, tarjetas):
+        # se avisa al usuario; el texto se guarda completo, pero se ocultan
+        # siempre antes de enviarlo a la IA (ver services/datos_personales.py).
+        from app.services.datos_personales import contar, describir
+        datos_personales = contar(extracted_text or "")
 
         now = datetime.utcnow()
         new_evidence = Evidence(
@@ -164,6 +180,7 @@ async def upload_evidence(
                 "control": control,
                 "type": "manual",
                 "source": source,
+                "datos_personales": datos_personales,
             }
         )
 
@@ -198,6 +215,8 @@ async def upload_evidence(
             "es_imagen": es_imagen(file.filename),
             "solicitudes_vinculadas": vinculadas,
             "archivo_guardado": motivo_no_guardado is None,
+            "datos_personales": datos_personales,
+            "datos_personales_texto": describir(datos_personales),
             "motivo_no_guardado": motivo_no_guardado,
         }
     except Exception as e:
