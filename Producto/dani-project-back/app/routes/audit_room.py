@@ -405,12 +405,12 @@ async def paquete(
             contenido.append(("Registro_de_actividad.csv", f"{len(filas)} acciones"))
 
         puntajes = [(c["nombre"], f"{c['puntaje']} %" if c["puntaje"] is not None else "Sin evaluar",
-                     f"{c['evaluadas']} de {c['total_preguntas']}", len(c["documentos"]))
+                     f"{c['cumplen']} de {c['total_preguntas']}", len(c["documentos"]))
                     for c in datos["carpetas"] if c["tipo"] == "clausula" and c["id"] in elegidas]
         resumen = (f"<h1>Paquete de auditoría ISO 27001</h1><p class='meta'>{html.escape(datos['empresa'])} · "
                    f"generado el {ahora.strftime('%d-%m-%Y %H:%M')} UTC por {html.escape(current_user.get('sub') or '')}</p>"
                    "<h2>Cumplimiento por cláusula</h2>"
-                   + _tabla_html(["Cláusula", "Puntaje", "Preguntas evaluadas", "Documentos publicados"], puntajes)
+                   + _tabla_html(["Cláusula", "Puntaje", "Preguntas que cumplen", "Documentos publicados"], puntajes)
                    + f"<p class='meta'>Meta de la empresa: {datos['meta']} %. Solo se incluyen documentos publicados.</p>"
                    + "<h2>Contenido</h2>" + _tabla_html(["Archivo", "Detalle"], contenido))
         if integridad:

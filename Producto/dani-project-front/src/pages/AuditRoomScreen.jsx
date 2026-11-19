@@ -179,10 +179,10 @@ function TarjetaCarpeta({ c, t, card, onClick }) {
       ) : (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
           <div style={{ fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>
-            {c.evaluadas} de {c.total_preguntas} preguntas evaluadas<br />
+            {c.cumplen} de {c.total_preguntas} preguntas cumplen<br />
             {c.documentos.length} {c.documentos.length === 1 ? 'documento' : 'documentos'}
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 700, color: est.color }}>{c.puntaje == null ? '—' : `${c.puntaje} %`}</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: est.color, whiteSpace: 'nowrap' }}>{c.puntaje == null ? '—' : `${c.puntaje} %`}</div>
         </div>
       )}
     </button>
@@ -193,7 +193,7 @@ function DetalleCarpeta({ c, t, meta, vistaAuditor, onClose }) {
   const esEvidencias = c.tipo === 'evidencias';
   return (
     <Modal t={t} titulo={c.nombre} onClose={onClose}
-      subtitulo={esEvidencias ? `${c.evidencias.length} evidencias` : (c.puntaje == null ? 'Sin evaluar en el Análisis de Brechas' : `${c.puntaje} % · meta ${meta} % · ${c.cumplen} de ${c.evaluadas} preguntas cumplen`)}>
+      subtitulo={esEvidencias ? `${c.evidencias.length} evidencias` : (c.puntaje == null ? 'Sin evaluar en el Análisis de Brechas' : `${c.puntaje} % · meta ${meta} % · ${c.cumplen} de ${c.total_preguntas} preguntas cumplen (las parciales valen media)`)}>
       {esEvidencias ? (
         c.evidencias.length === 0 ? <p style={{ color: t.textDim }}>La empresa aún no sube evidencias.</p> : (
           <div className="sa-scroll">

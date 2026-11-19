@@ -271,14 +271,26 @@ function GapAnalysisScreen({ onNavigate }) {
   useEffect(() => { loadAnalysis(); }, []);
 
   const totalQuestions = phases.reduce((sum, p) => sum + p.questions.length, 0);
-  const answeredCount = phases.reduce((count, p) => count + p.questions.filter(q => answers[q.id]).length, 0);
-  const globalProgress = totalQuestions > 0 ? Math.min(100, Math.round((answeredCount / totalQuestions) * 100)) : 0;
-  
+  // El avance cuenta las preguntas que CUMPLEN (respuesta "Sí"), no las
+  // respondidas: la IA responde todas, así que "respondidas" siempre llegaba
+  // al 100 % aunque la empresa cumpliera un 20 %. "No aplica" no cuenta.
+  const cuenta = (preguntas) => {
+    const aplican = preguntas.filter((q) => answers[q.id] !== NO_APLICA);
+    return {
+      aplican: aplican.length,
+      cumplen: aplican.filter((q) => answers[q.id] === tText.yes).length,
+      parciales: aplican.filter((q) => answers[q.id] === tText.partially).length,
+      respondidas: aplican.filter((q) => answers[q.id]).length,
+    };
+  };
+  const avance = cuenta(phases.flatMap((p) => p.questions));
+  const globalProgress = avance.aplican > 0 ? Math.round((avance.cumplen / avance.aplican) * 100) : 0;
+
   const getPhaseProgress = (idx) => {
     const phase = phases[idx];
-    if (!phase || phase.questions.length === 0) return 0;
-    const answered = phase.questions.filter(q => answers[q.id]).length;
-    return Math.round((answered / phase.questions.length) * 100);
+    if (!phase) return 0;
+    const c = cuenta(phase.questions);
+    return c.aplican ? Math.round((c.cumplen / c.aplican) * 100) : 100;
   };
   
   const currentPhaseData = phases[currentPhase];
@@ -726,12 +738,13 @@ function GapAnalysisScreen({ onNavigate }) {
     (currentPhaseData?.questions || []).forEach((q, i) => {
       const nombre = q.subtema || currentPhaseData.name;
       let tema = lista.find((x) => x.nombre === nombre);
-      if (!tema) { tema = { nombre, inicio: i, total: 0, respondidas: 0 }; lista.push(tema); }
+      if (!tema) { tema = { nombre, inicio: i, total: 0, cumplen: 0 }; lista.push(tema); }
+      if (answers[q.id] === NO_APLICA) return;  // "No aplica" no cuenta
       tema.total += 1;
-      if (answers[q.id]) tema.respondidas += 1;
+      if (answers[q.id] === tText.yes) tema.cumplen += 1;
     });
     return lista;
-  }, [currentPhaseData, answers]);
+  }, [currentPhaseData, answers, NO_APLICA, tText.yes]);
   const temasVisibles = temaFiltro.trim()
     ? temasFase.filter((x) => sinAcentos(x.nombre).includes(sinAcentos(temaFiltro.trim())))
     : temasFase;
@@ -794,11 +807,16 @@ function GapAnalysisScreen({ onNavigate }) {
         {activeMainTab === 'assessment' && (
           <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Avance global del cuestionario</span>
-              <span style={{ fontSize: '12px', color: t.textDim, fontWeight: 500 }}>{answeredCount} de {totalQuestions} preguntas respondidas</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: t.text }}>Preguntas que cumplen</span>
+              <span style={{ fontSize: '12px', color: t.textDim, fontWeight: 500 }}>
+                {avance.cumplen} de {avance.aplican} con "Sí"
+                {avance.parciales > 0 && ` · ${avance.parciales} parciales`}
+                {avance.respondidas < avance.aplican && ` · ${avance.aplican - avance.respondidas} sin responder`}
+                {totalQuestions > avance.aplican && ` · ${totalQuestions - avance.aplican} no aplican`}
+              </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '260px', maxWidth: '100%' }}>
-              <div role="progressbar" aria-valuenow={globalProgress} aria-valuemin={0} aria-valuemax={100} aria-label="Avance global" style={{ flex: 1, height: '8px', background: t.inputBg, borderRadius: '999px', overflow: 'hidden' }}>
+              <div role="progressbar" aria-valuenow={globalProgress} aria-valuemin={0} aria-valuemax={100} aria-label="Preguntas que cumplen" style={{ flex: 1, height: '8px', background: t.inputBg, borderRadius: '999px', overflow: 'hidden' }}>
                 <div style={{ width: `${globalProgress}%`, height: '100%', background: '#2563eb', borderRadius: '999px', transition: 'width .3s' }} />
               </div>
               <span style={{ fontSize: '12px', fontWeight: 700, color: t.text, fontVariantNumeric: 'tabular-nums' }}>{globalProgress}%</span>
@@ -831,8 +849,8 @@ function GapAnalysisScreen({ onNavigate }) {
                     {currentPhaseData?.name}
                   </h2>
                   <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: t.textDim }}>
-                    <span>Progreso de fase</span>
-                    <span style={{ fontWeight: 600, color: t.textMuted }}>{getPhaseProgress(currentPhase)}% completado</span>
+                    <span>Cumplen en esta fase</span>
+                    <span style={{ fontWeight: 600, color: t.textMuted }}>{getPhaseProgress(currentPhase)}%</span>
                   </div>
                 </div>
 
@@ -867,7 +885,7 @@ function GapAnalysisScreen({ onNavigate }) {
                       {temasVisibles.length === 0 && <p style={{ fontSize: '12px', color: t.textDim, padding: '8px', margin: 0 }}>Ningún tema coincide.</p>}
                       {temasVisibles.map((tema) => {
                         const activo = tema.nombre === currentQuestionData?.subtema;
-                        const completo = tema.respondidas === tema.total;
+                        const completo = tema.cumplen === tema.total;
                         return (
                           <button key={tema.nombre} type="button" onClick={() => setCurrentQuestion(tema.inicio)} aria-current={activo ? 'true' : undefined}
                             style={{ width: '100%', textAlign: 'left', padding: '10px', borderRadius: '8px', border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}`, background: activo ? '#eff6ff' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
@@ -876,7 +894,7 @@ function GapAnalysisScreen({ onNavigate }) {
                               <span style={{ fontSize: '12px', fontWeight: activo ? 600 : 500, color: activo ? '#1e3a8a' : t.text, lineHeight: 1.35 }}>{tema.nombre}</span>
                             </span>
                             <span style={{ fontSize: '11px', fontWeight: 600, padding: '2px 8px', borderRadius: '999px', flex: 'none', background: activo ? t.cardBg : t.inputBg, color: completo ? '#059669' : (activo ? '#1d4ed8' : t.textDim), border: `1px solid ${activo ? '#bfdbfe' : 'transparent'}` }}>
-                              {tema.respondidas}/{tema.total}
+                              {tema.total === 0 ? 'No aplica' : <span title="Preguntas con Sí / preguntas que aplican">{tema.cumplen}/{tema.total}</span>}
                             </span>
                           </button>
                         );
