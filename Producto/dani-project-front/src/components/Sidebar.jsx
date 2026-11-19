@@ -42,6 +42,7 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
   const navItems = [
 
     { id: 'dashboard', label: l.dashboard, icon: LayoutDashboard, roles: DASH, group: 'general' },
+    { id: 'platform-dashboard', label: language === 'es' ? 'Panel' : 'Dashboard', icon: LayoutDashboard, roles: PLATFORM, group: 'general' },
     { id: 'gap-analysis', label: l.gapAnalysis, icon: Search, roles: ISO_VIEW, group: 'evaluar' },
     { id: 'risk-map', label: l.riskMap, icon: AlertTriangle, roles: ISO_MANAGE, group: 'evaluar' },
     { id: 'doc-generator', label: l.docGenerator, icon: FilePlus2, roles: ISO_MANAGE, group: 'documentar' },
@@ -55,9 +56,9 @@ const Sidebar = ({ activeScreen, setActiveScreen, sidebarCollapsed, setSidebarCo
     { id: 'employee-portal', label: language === 'es' ? 'Portal de Empleados' : 'Employee Portal', icon: UserCircle, roles: null, group: 'general' },
 
   ].filter(item => {
-    if (superadminPlataforma) return ['organizations', 'questions', 'user-management'].includes(item.id);
+    if (superadminPlataforma) return ['platform-dashboard', 'organizations', 'questions', 'user-management'].includes(item.id);
     // El catálogo de preguntas es global: se administra fuera de las empresas.
-    if (superadminEnOrg) return !['organizations', 'questions'].includes(item.id);
+    if (superadminEnOrg) return !['platform-dashboard', 'organizations', 'questions'].includes(item.id);
     return !item.roles || item.roles.includes(role);
 
   });

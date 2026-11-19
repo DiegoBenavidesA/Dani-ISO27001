@@ -37,17 +37,19 @@ async def get_notifications(
         for b in br_result.scalars().all():
             if b.gravedad_confirmada and b.notificacion_requerida is False:
                 continue
+            if b.afecta_datos_personales is False and b.gravedad_confirmada:
+                continue  # incidente ISO sin datos personales: no se reporta a la Agencia
             resumen = b.descripcion if len(b.descripcion) <= 70 else b.descripcion[:70] + "…"
             horas = int((b.fecha_limite_notificacion - now).total_seconds() // 3600)
             if not b.gravedad_confirmada:
-                titulo, tipo, detalle = "Vulneración por revisar", "error", f"{resumen} — confirma la gravedad"
+                titulo, tipo, detalle = "Incidente por revisar", "error", f"{resumen}: confirma la gravedad"
             else:
-                titulo, tipo, detalle = "Vulneración sin notificar a la Agencia", "warning", resumen
+                titulo, tipo, detalle = "Vulneración sin reportar a la Agencia", "warning", resumen
             if horas < 0:
                 tipo = "error"
-                detalle += f" · plazo de 72 h vencido hace {abs(horas)} h"
+                detalle += f" · plazo interno de 72 h vencido hace {abs(horas)} h"
             else:
-                detalle += f" · quedan {horas} h para notificar"
+                detalle += f" · quedan {horas} h para reportar"
             notifications.append({
                 "id": f"breach-{b.id}-{'notif' if b.gravedad_confirmada else 'rev'}",
                 "type": tipo,
@@ -56,6 +58,28 @@ async def get_notifications(
                 "time": b.fecha_deteccion.strftime("%d/%m/%Y"),
                 "read": False,
                 "screen": "breaches",
+            })
+
+    # Riesgos con el tratamiento vencido o por reevaluar: a su responsable y a
+    # quienes administran la empresa.
+    from app.models.risk import Risk
+    correo = current_user.get("sub")
+    riesgos = (await db.execute(select(Risk).where(Risk.organization_id == org_id))).scalars().all()
+    for r in riesgos:
+        if not (role in ("superadmin", "owner", "admin") or (correo and r.owner == correo)):
+            continue
+        estado = r.status.value if hasattr(r.status, "value") else r.status
+        if r.due_date and r.due_date < now and estado in ("open", "in_review"):
+            notifications.append({
+                "id": f"risk-{r.id}-vencido", "type": "error", "title": "Tratamiento de riesgo vencido",
+                "message": f"{r.title[:70]}: el plazo era el {r.due_date.strftime('%d/%m/%Y')}",
+                "time": r.due_date.strftime("%d/%m/%Y"), "read": False, "screen": "risk-map",
+            })
+        elif r.revision_fecha and r.revision_fecha < now and estado == "accepted":
+            notifications.append({
+                "id": f"risk-{r.id}-revision", "type": "warning", "title": "Riesgo por reevaluar",
+                "message": f"{r.title[:70]}: toca su revisión periódica",
+                "time": r.revision_fecha.strftime("%d/%m/%Y"), "read": False, "screen": "risk-map",
             })
 
     # Solicitudes de evidencia: a quien la pidió, cuando ya subieron algo;

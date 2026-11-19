@@ -67,6 +67,65 @@ async def get_all_organizations(
     result = await db.execute(select(Organization).order_by(Organization.created_at.desc()))
     return result.scalars().all()
 
+
+# ---- Panel de la plataforma (solo superadmin) ---------------------------------
+
+UMBRAL_CUMPLE = 90  # % desde el que una empresa se cuenta como "cumple" en el panel
+VALOR_VEREDICTO = {"cumple": 1.0, "parcial": 0.5, "no_cumple": 0.0, "sin_evidencia": 0.0}
+
+
+def resumen_cumplimiento(orgs, filas, usuarios_activos: int) -> dict:
+    """orgs: [(id, nombre, activo)]; filas: [(org_id, marco, veredicto, cantidad)].
+    Mismo cálculo que el Resultado del Análisis de Brechas: Sí = 1, Parcial = 0,5,
+    No o sin evidencia = 0; "No aplica" no cuenta."""
+    nombres = {o[0]: o[1] for o in orgs}
+    acum = {}  # (org, marco) -> [suma, respondidas]
+    for org_id, marco, veredicto, cantidad in filas:
+        if org_id not in nombres or veredicto not in VALOR_VEREDICTO:
+            continue
+        a = acum.setdefault((org_id, marco), [0.0, 0])
+        a[0] += VALOR_VEREDICTO[veredicto] * cantidad
+        a[1] += cantidad
+
+    def marco(clave):
+        empresas = [
+            {"id": org_id, "nombre": nombres[org_id], "pct": round(s / n * 100), "respondidas": n}
+            for (org_id, m), (s, n) in acum.items() if m == clave and n
+        ]
+        empresas.sort(key=lambda e: (-e["pct"], e["nombre"]))
+        return {"evaluadas": len(empresas), "cumplen": sum(1 for e in empresas if e["pct"] >= UMBRAL_CUMPLE),
+                "top": empresas[:5]}
+
+    return {
+        "empresas_activas": sum(1 for o in orgs if o[2]),
+        "total_empresas": len(orgs),
+        "usuarios_activos": usuarios_activos,
+        "umbral_cumple": UMBRAL_CUMPLE,
+        "iso27001": marco("iso27001"),
+        "ley21719": marco("ley21719"),
+    }
+
+
+@router.get("/resumen")
+async def resumen_plataforma(
+    current_user: dict = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Datos del panel de la plataforma: empresas, usuarios y cumplimiento por empresa."""
+    from sqlalchemy import func
+    from app.models.assessment_answer import AssessmentAnswer
+    from app.models.assessment_question import AssessmentQuestion
+    orgs = (await db.execute(select(Organization.id, Organization.nombre, Organization.activo))).all()
+    filas = (await db.execute(
+        select(AssessmentAnswer.organization_id, AssessmentQuestion.marco, AssessmentAnswer.veredicto, func.count())
+        .join(AssessmentQuestion, AssessmentQuestion.id == AssessmentAnswer.question_id)
+        .group_by(AssessmentAnswer.organization_id, AssessmentQuestion.marco, AssessmentAnswer.veredicto)
+    )).all()
+    usuarios = (await db.execute(
+        select(func.count()).select_from(User).where(User.is_active.is_(True), User.organization_id.isnot(None))
+    )).scalar() or 0
+    return resumen_cumplimiento([tuple(o) for o in orgs], [tuple(f) for f in filas], usuarios)
+
 @router.post("/", response_model=OrganizationResponse, status_code=status.HTTP_201_CREATED)
 async def create_organization(
     org_data: OrganizationCreate,

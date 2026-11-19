@@ -21,6 +21,7 @@ import SettingsModal from './pages/SettingsModal';
 import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
 import OrganizationsScreen from './pages/OrganizationsScreen';
+import PlatformDashboard from './pages/PlatformDashboard';
 import QuestionsScreen from './pages/QuestionsScreen';
 
 import BreachesScreen from './pages/BreachesScreen';
@@ -35,7 +36,7 @@ export default function DaniPlatform() {
   } = useTheme();
 
   const initialScreen = platformMode
-    ? 'organizations'
+    ? 'platform-dashboard'
     : (user?.role === 'employee'
       ? 'employee-portal'
       : ({ assessment: 'gap-analysis', predictive: 'gap-analysis' }[sessionStorage.getItem('dani_active_screen')]
@@ -45,7 +46,7 @@ export default function DaniPlatform() {
 
   useEffect(() => {
     if (isSuperadmin) {
-      setActiveScreen(impersonatedOrg ? 'dashboard' : 'organizations');
+      setActiveScreen(impersonatedOrg ? 'dashboard' : 'platform-dashboard');
     }
   }, [impersonatedOrg, isSuperadmin]);
 
@@ -235,6 +236,7 @@ export default function DaniPlatform() {
           {activeScreen === 'user-management' && <UserManagementScreen />}
           {activeScreen === 'breaches' && <BreachesScreen />}
           {activeScreen === 'employee-portal' && <EmployeePortalScreen />}
+          {activeScreen === 'platform-dashboard' && isSuperadmin && <PlatformDashboard />}
           {activeScreen === 'organizations' && <OrganizationsScreen />}
           {activeScreen === 'questions' && isSuperadmin && <QuestionsScreen />}
         </div>

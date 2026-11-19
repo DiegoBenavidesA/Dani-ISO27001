@@ -6,11 +6,47 @@ import {
   Layers, Cloud, Globe, FileText
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 import { riskAPI } from '../services/api';
 import { NIVELES_RIESGO, UMBRALES_RIESGO, nivelRiesgo } from '../utils/nivelRiesgo';
 
 const RiskMapScreen = ({ navParams } = {}) => {
   const { theme: t, language, darkMode, highContrast } = useContext(ThemeContext);
+  const { user } = useAuth();
+  const [responsables, setResponsables] = useState([]);
+  const [guardando, setGuardando] = useState(false);
+  const [errorGuardar, setErrorGuardar] = useState(null);
+  useEffect(() => { riskAPI.responsables().then((l) => setResponsables(Array.isArray(l) ? l : [])).catch(() => {}); }, []);
+
+  // Al elegir un riesgo se cargan los controles de su plan guardado como aplicados.
+  const seleccionar = (r) => {
+    setSelectedRisk({ ...r, name: r.title, prob: Math.max(1, r.likelihood || r.prob || 1) });
+    setAppliedControls((r.controls || []).map((c) => c.id));
+    setAnalisisError(null); setErrorGuardar(null);
+  };
+
+  // Guarda cambios del riesgo o de su tratamiento y actualiza la matriz.
+  const guardarRiesgo = async (cambios) => {
+    if (!selectedRisk) return;
+    setGuardando(true); setErrorGuardar(null);
+    try {
+      const r = await riskAPI.update(selectedRisk.id, cambios);
+      setRisks((prev) => prev.map((x) => (x.id === r.id ? r : x)));
+      const sugerencias = (selectedRisk.controls || []).filter((c) => !(r.controls || []).some((g) => g.codigo === c.codigo));
+      setSelectedRisk({ ...r, name: r.title, prob: Math.max(1, r.likelihood || 1), controls: [...(r.controls || []), ...sugerencias] });
+      setAppliedControls((r.controls || []).map((c) => c.id));
+    } catch (err) {
+      setErrorGuardar(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const guardarPlan = () => {
+    const elegidos = (selectedRisk.controls || []).filter((c) => appliedControls.includes(c.id));
+    const estado = selectedRisk.status === 'open' && elegidos.length ? { status: 'in_review' } : {};
+    guardarRiesgo({ controls: elegidos, ...estado });
+  };
   
   // ==========================================
   // 1. ESTADOS LOCALES Y DE LA API
@@ -25,7 +61,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
   useEffect(() => { setAnalisisError(null); }, [selectedRisk?.id]);
 
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+  const [newRisk, setNewRisk] = useState({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: '', due_date: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [avisoBrecha, setAvisoBrecha] = useState(null);
@@ -41,10 +77,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
         const lista = Array.isArray(data) ? data : [];
         setRisks(lista);
         setLoadError(null);
-        if (lista.length > 0) {
-          const first = lista[0];
-          setSelectedRisk({ ...first, name: first.title, prob: Math.max(1, first.likelihood || first.prob || 1) });
-        }
+        if (lista.length > 0) seleccionar(lista[0]);
       } catch (error) {
         console.error("Error conectando con la API de Riesgos.", error);
         setLoadError('No se pudieron cargar los riesgos. Revisa tu conexión y recarga la página.');
@@ -62,7 +95,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
     if (!pre || !risksLoaded) return;
     const existente = risks.find(r => (r.title || '').trim().toLowerCase() === pre.title.trim().toLowerCase());
     if (existente) {
-      setSelectedRisk({ ...existente, name: existente.title, prob: Math.max(1, existente.likelihood || existente.prob || 1) });
+      seleccionar(existente);
       setAvisoBrecha(`Esta brecha ya está registrada como riesgo ("${existente.title}"). Se muestra en el simulador.`);
       return;
     }
@@ -155,13 +188,14 @@ const RiskMapScreen = ({ navParams } = {}) => {
     try {
       setAnalisisError(null);
       const response = await riskAPI.analyzeWithAI(selectedRisk.id);
-      setSelectedRisk(prev => ({ ...prev, controls: response.controls || [] }));
-      setAppliedControls([]);
+      // El plan guardado se mantiene; las sugerencias nuevas se agregan sin repetir controles.
+      const plan = (risks.find((x) => x.id === selectedRisk.id)?.controls) || [];
+      const nuevas = (response.controls || []).filter((c) => !plan.some((g) => g.codigo === c.codigo));
+      setSelectedRisk(prev => ({ ...prev, controls: [...plan, ...nuevas] }));
+      setAppliedControls(plan.map((c) => c.id));
     } catch (error) {
       // Sin respuesta de la IA no se muestran controles inventados.
       setAnalisisError(error.message || 'No se pudo consultar a la IA.');
-      setSelectedRisk(prev => ({ ...prev, controls: [] }));
-      setAppliedControls([]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -171,11 +205,12 @@ const RiskMapScreen = ({ navParams } = {}) => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const createdRisk = await riskAPI.create(newRisk);
+      const createdRisk = await riskAPI.create({ ...newRisk, owner: newRisk.owner || user?.email || undefined, due_date: newRisk.due_date ? `${newRisk.due_date}T23:59:00` : null });
       setRisks(prev => [...prev, createdRisk]);
+      seleccionar(createdRisk);
       setShowAddModal(false);
       setAvisoBrecha(null);
-      setNewRisk({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: 'admin@dani27001.com' });
+      setNewRisk({ title: '', description: '', likelihood: 3, impact: 3, category: 'security', owner: '', due_date: '' });
     } catch (err) {
       alert("Error al crear el riesgo: " + err.message);
     } finally {
@@ -458,9 +493,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
                         title={`Probabilidad ${prob} · Impacto ${impact} · ${levelLabel}${riskCount ? ` · ${riskCount} riesgo(s)` : ' · Click para agregar'}`}
                         onClick={() => {
                           if (cellRisks.length > 0) {
-                            const r = cellRisks[0];
-                            setSelectedRisk({ ...r, name: r.title, prob: r.likelihood || r.prob, impact: r.impact });
-                            setAppliedControls([]);
+                            seleccionar(cellRisks[0]);
                           } else {
                             setNewRisk(prev => ({ ...prev, likelihood: prob, impact }));
                             setShowAddModal(true);
@@ -539,7 +572,17 @@ const RiskMapScreen = ({ navParams } = {}) => {
             </div>
             <div>
               <h2 className="riskmap-risk-title" style={{ fontSize: '18px', fontWeight: 700, color: t.text, marginBottom: '6px' }}>{selectedRisk.name}</h2>
-              <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{selectedRisk.category || 'General'}</span>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', padding: '4px 10px', background: t.inputBg, borderRadius: '6px', color: t.textDim }}>{ESTADOS_RIESGO[selectedRisk.status] || 'Abierto'}</span>
+                {selectedRisk.tratamiento_vencido && <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', background: 'rgba(220,38,38,0.1)', borderRadius: '6px', color: '#dc2626' }}>Tratamiento vencido</span>}
+                {selectedRisk.revision_pendiente && <span style={{ fontSize: '11px', fontWeight: 700, padding: '4px 10px', background: 'rgba(217,119,6,0.12)', borderRadius: '6px', color: '#b45309' }}>Por reevaluar</span>}
+                {risks.length > 1 && (
+                  <select aria-label="Elegir otro riesgo" value={selectedRisk.id} onChange={(e) => seleccionar(risks.find((x) => x.id === e.target.value))}
+                    style={{ fontSize: '11px', padding: '4px 8px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '6px', color: t.text, maxWidth: '220px' }}>
+                    {risks.map((x) => <option key={x.id} value={x.id}>{x.title}</option>)}
+                  </select>
+                )}
+              </div>
             </div>
           </div>
 
@@ -634,7 +677,18 @@ const RiskMapScreen = ({ navParams } = {}) => {
                 );
               })}
             </div>
+            {selectedRisk.controls && selectedRisk.controls.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginTop: '16px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', color: t.textDim }}>Los controles marcados forman el plan de tratamiento y se guardan con el riesgo.</span>
+                <button type="button" onClick={guardarPlan} disabled={guardando}
+                  style={{ padding: '8px 14px', background: '#004ac6', border: 'none', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 700, cursor: guardando ? 'not-allowed' : 'pointer', opacity: guardando ? 0.7 : 1 }}>
+                  {guardando ? 'Guardando…' : `Guardar plan (${appliedControls.length} ${appliedControls.length === 1 ? 'control' : 'controles'})`}
+                </button>
+              </div>
+            )}
           </div>
+
+          <TratamientoRiesgo t={t} riesgo={selectedRisk} responsables={responsables} guardando={guardando} error={errorGuardar} onGuardar={guardarRiesgo} />
           </>}
 
         </div>
@@ -670,6 +724,20 @@ const RiskMapScreen = ({ navParams } = {}) => {
                 </div>
               </div>
 
+              <div className="riskmap-modal-number-fields" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '16px' }}>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Responsable (dueño del riesgo)</label>
+                  <select value={newRisk.owner || user?.email || ''} onChange={e => setNewRisk({ ...newRisk, owner: e.target.value })} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }}>
+                    {!responsables.some(r => r.email === (newRisk.owner || user?.email)) && <option value={newRisk.owner || user?.email || ''}>{newRisk.owner || user?.email || 'Yo'}</option>}
+                    {responsables.map(r => <option key={r.email} value={r.email}>{r.nombre}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: t.textDim, marginBottom: '6px', display: 'block' }}>Plazo para tratarlo</label>
+                  <input type="date" value={newRisk.due_date} onChange={e => setNewRisk({ ...newRisk, due_date: e.target.value })} style={{ width: '100%', padding: '12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, outline: 'none' }} />
+                </div>
+              </div>
+
               <div className="riskmap-modal-actions" style={{ marginTop: '16px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddModal(false)} style={{ padding: '12px 20px', background: 'transparent', border: 'none', color: t.textDim, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={isSubmitting} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: isSubmitting ? 'not-allowed' : 'pointer', opacity: isSubmitting ? 0.7 : 1 }}>
@@ -685,3 +753,103 @@ const RiskMapScreen = ({ navParams } = {}) => {
 };
 
 export default RiskMapScreen; 
+
+
+// Estados del ciclo de tratamiento (ISO 27001, 6.1.3 y 8.3).
+const ESTADOS_RIESGO = { open: 'Abierto', in_review: 'En tratamiento', mitigated: 'En tratamiento', accepted: 'Aceptado', closed: 'Cerrado' };
+
+const fechaCorta = (s) => (s ? new Date(s.endsWith('Z') ? s : `${s}Z`).toLocaleDateString('es-CL') : '—');
+const soloFecha = (s) => (s ? String(s).slice(0, 10) : '');
+
+// Gestión del tratamiento: estado, probabilidad e impacto, responsable, plazo,
+// aceptación del riesgo residual e incidentes en que se materializó.
+function TratamientoRiesgo({ t, riesgo, responsables, guardando, error, onGuardar }) {
+  const [form, setForm] = useState(null);
+  useEffect(() => {
+    setForm({ likelihood: riesgo.likelihood, impact: riesgo.impact, owner: riesgo.owner || '', due_date: soloFecha(riesgo.due_date) });
+  }, [riesgo.id, riesgo.likelihood, riesgo.impact, riesgo.owner, riesgo.due_date]);
+  if (!form) return null;
+
+  const campo = { width: '100%', padding: '9px 10px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '13px', outline: 'none', boxSizing: 'border-box' };
+  const etiqueta = { fontSize: '11px', fontWeight: 700, color: t.textDim, marginBottom: '4px', display: 'block' };
+  const cambio = form.likelihood !== riesgo.likelihood || form.impact !== riesgo.impact || form.owner !== (riesgo.owner || '') || form.due_date !== soloFecha(riesgo.due_date);
+  const residualScore = riesgo.residual_likelihood && riesgo.residual_impact ? riesgo.residual_likelihood * riesgo.residual_impact : null;
+  const estado = riesgo.status || 'open';
+  const boton = (texto, onClick, primario) => (
+    <button type="button" onClick={onClick} disabled={guardando}
+      style={{ padding: '8px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: guardando ? 'not-allowed' : 'pointer', border: primario ? 'none' : `1px solid ${t.border}`, background: primario ? '#004ac6' : 'transparent', color: primario ? 'white' : t.text }}>
+      {texto}
+    </button>
+  );
+
+  return (
+    <div style={{ background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <h3 style={{ fontSize: '11px', fontWeight: 700, color: t.textDim, textTransform: 'uppercase', letterSpacing: '1px', margin: 0 }}>Tratamiento del riesgo</h3>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+        <div>
+          <label style={etiqueta}>Probabilidad</label>
+          <select value={form.likelihood} onChange={(e) => setForm({ ...form, likelihood: Number(e.target.value) })} style={campo}>
+            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={etiqueta}>Impacto</label>
+          <select value={form.impact} onChange={(e) => setForm({ ...form, impact: Number(e.target.value) })} style={campo}>
+            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={etiqueta}>Responsable</label>
+          <select value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })} style={campo}>
+            {!responsables.some((r) => r.email === form.owner) && <option value={form.owner}>{riesgo.owner_nombre || form.owner || 'Sin responsable'}</option>}
+            {responsables.map((r) => <option key={r.email} value={r.email}>{r.nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={etiqueta}>Plazo para tratarlo</label>
+          <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} style={campo} />
+        </div>
+      </div>
+      {cambio && (
+        <div>{boton(guardando ? 'Guardando…' : 'Guardar cambios', () => onGuardar({
+          likelihood: form.likelihood, impact: form.impact, owner: form.owner || undefined,
+          due_date: form.due_date ? `${form.due_date}T23:59:00` : null,
+        }), true)}</div>
+      )}
+
+      <div style={{ padding: '12px', borderRadius: '10px', background: t.inputBg, fontSize: '12px', color: t.text, lineHeight: 1.6 }}>
+        <div><strong>Estado:</strong> {ESTADOS_RIESGO[estado] || estado}{riesgo.tratamiento_vencido ? ' · el plazo de tratamiento venció' : ''}</div>
+        <div><strong>Riesgo residual del plan:</strong> {residualScore ? `${residualScore} (${nivelRiesgo(residualScore).nombre})` : 'sin plan guardado'}</div>
+        {estado === 'accepted' && (
+          <div>Aceptado por {riesgo.aceptado_por || '—'} el {fechaCorta(riesgo.aceptado_en)} · próxima revisión: {fechaCorta(riesgo.revision_fecha)}</div>
+        )}
+        {estado === 'closed' && <div>Cerrado el {fechaCorta(riesgo.closed_at)}</div>}
+      </div>
+
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {estado === 'open' && boton('Iniciar tratamiento', () => onGuardar({ status: 'in_review' }))}
+        {(estado === 'open' || estado === 'in_review' || estado === 'mitigated') && boton('Aceptar riesgo residual', () => {
+          if (window.confirm(`¿Aceptas formalmente el riesgo residual${residualScore ? ` (${residualScore})` : ''}? Quedará registrado con tu nombre y la fecha, y se fijará su revisión en un año.`)) onGuardar({ status: 'accepted' });
+        }, true)}
+        {estado === 'accepted' && boton('Reevaluar', () => onGuardar({ status: 'in_review' }))}
+        {estado !== 'closed' && boton('Cerrar (ya no existe la actividad)', () => {
+          if (window.confirm('Cerrar el riesgo es solo para cuando desaparece la actividad que lo causa. ¿Confirmas?')) onGuardar({ status: 'closed' });
+        })}
+        {estado === 'closed' && boton('Reabrir', () => onGuardar({ status: 'open' }))}
+      </div>
+      {error && <div role="alert" style={{ fontSize: '12px', color: '#dc2626' }}>{error}</div>}
+
+      <div>
+        <div style={etiqueta}>Incidentes en que se materializó</div>
+        {(riesgo.incidentes || []).length === 0 ? (
+          <div style={{ fontSize: '12px', color: t.textDim }}>Ninguno. Se asocian desde Incidentes de seguridad.</div>
+        ) : (
+          <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '12px', color: t.text, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {riesgo.incidentes.map((i) => <li key={i.id}>{fechaCorta(i.fecha_deteccion)} · {i.descripcion} <span style={{ color: t.textDim }}>({i.estado})</span></li>)}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}

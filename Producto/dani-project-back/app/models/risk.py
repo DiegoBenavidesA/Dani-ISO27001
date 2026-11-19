@@ -51,6 +51,13 @@ class Risk(Base):
     owner = Column(String(100), nullable=False)  # Email del responsable
     due_date = Column(DateTime, nullable=True)
     closed_at = Column(DateTime, nullable=True)
+    # Tratamiento: riesgo residual con los controles del plan, quién aceptó ese
+    # riesgo residual (ISO 27001, 6.1.3 f) y cuándo se reevalúa (8.2).
+    residual_likelihood = Column(Integer, nullable=True)
+    residual_impact = Column(Integer, nullable=True)
+    aceptado_por = Column(String(255), nullable=True)
+    aceptado_en = Column(DateTime, nullable=True)
+    revision_fecha = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     
     # Relaciones

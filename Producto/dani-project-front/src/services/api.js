@@ -304,6 +304,22 @@ export const riskAPI = {
   create: async (riskData, token) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/risks`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(riskData) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || `Error ${response.status}`);
+    return body;
+  },
+  // Edita el riesgo y su tratamiento (estado, responsable, plazo, plan de controles).
+  update: async (riskId, data) => {
+    const activeToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/risks/${riskId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify(data) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : `Error ${response.status}`);
+    return body;
+  },
+  responsables: async () => {
+    const activeToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/risks/responsables`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    if (!response.ok) return [];
     return response.json();
   },
   getStatistics: async (token) => {
@@ -401,6 +417,14 @@ export const endpoints = {
 };
 
 export const organizationsAPI = {
+  // Panel de la plataforma (solo superadmin): empresas, usuarios y cumplimiento por empresa.
+  resumen: async () => {
+    const activeToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/resumen`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo cargar el resumen');
+    return body;
+  },
   getAll: async (token = null) => {
     const activeToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/organizations/`, { headers: { ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) } });
