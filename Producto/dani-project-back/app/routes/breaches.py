@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.dependencies.auth import get_current_org, get_current_user, RequireRole
+from app.services.registro import registrar
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.models.data_breach import DataBreach
 from app.models.user import User, UserRole
@@ -37,7 +38,7 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
     """
     if not tokens:
         return
-        
+
     messages = []
     for token in tokens:
         if token and token.startswith("ExponentPushToken"):
@@ -48,7 +49,7 @@ async def send_push_notification(tokens: List[str], title: str, body: str, data:
                 "body": body,
                 "data": data or {}
             })
-            
+
     if not messages:
         return
 
@@ -307,6 +308,7 @@ async def create_breach(
     db.add(new_breach)
     await db.commit()
     await db.refresh(new_breach)
+    await registrar(db, org_id, current_user, "creo", "incidente", (new_breach.descripcion or "Incidente")[:120])
 
     asyncio.create_task(_analizar_y_avisar(new_breach.id, org_id, avisar=True))
     return new_breach
@@ -407,6 +409,7 @@ async def review_breach(
 
     await db.commit()
     await db.refresh(breach)
+    await registrar(db, org_id, current_user, "modifico", "incidente", (getattr(breach, 'descripcion', None) or 'Incidente')[:120], f"Revisión: {breach.estado}")
     return breach
 
 
@@ -437,6 +440,7 @@ async def notify_breach(
 
     await db.commit()
     await db.refresh(breach)
+    await registrar(db, org_id, current_user, "modifico", "incidente", (getattr(breach, 'descripcion', None) or 'Incidente')[:120], "Notificado a la Agencia")
     return breach
 
 
@@ -494,6 +498,7 @@ async def resolve_breach(
 
     await db.commit()
     await db.refresh(breach)
+    await registrar(db, org_id, current_user, "modifico", "incidente", (getattr(breach, 'descripcion', None) or 'Incidente')[:120], "Cerrado")
     return breach
 
 
@@ -516,7 +521,9 @@ async def delete_breach(
         detail="Brecha no encontrada"
     )
 
+    titulo = (getattr(breach, 'descripcion', None) or 'Incidente')[:120]
     await db.delete(breach)
     await db.commit()
+    await registrar(db, org_id, current_user, "elimino", "incidente", titulo)
 
     return {"message": "Brecha eliminada exitosamente"}

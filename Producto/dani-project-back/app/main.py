@@ -12,6 +12,7 @@ from app.dependencies.database import engine, Base, AsyncSessionLocal
 # --- Routers ---
 from app.routes import auth, risk, evidence, documents, users
 from app.routes import chat
+from app.routes import audit_room
 from app.routes import gap_analysis
 from app.routes import ai_routes
 from app.routes import compliance
@@ -28,12 +29,13 @@ from fastapi import Depends
 from app.dependencies.auth import RequireRole, ELEVATED_READ, ELEVATED_NO_DPO, ELEVATED_WRITE, LEY_ROLES
 
 # --- Modelos base (se importan para que SQLAlchemy los registre) ---
-from app.models.organization import Organization   
-from app.models.control_status import ControlStatus   
-from app.models.assessment_answer import AssessmentAnswer  
+from app.models.organization import Organization
+from app.models.control_status import ControlStatus
+from app.models.assessment_answer import AssessmentAnswer
 from app.models.iso_controls import ISOCControl
 from app.models.capa import CAPA
 from app.models.document import Document, DocumentAcknowledgement
+from app.models.registro_actividad import RegistroActividad
 from app.models.evidence import Evidence
 from app.models.evidence_request import EvidenceRequest
 
@@ -255,6 +257,10 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# La IP de cada petición queda disponible para el registro de actividad.
+from app.services.registro import IPMiddleware
+app.add_middleware(IPMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -268,20 +274,22 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Org-Id"],
+    expose_headers=["Content-Disposition"],
 )
 
 # --- Include routers ---
 app.include_router(auth.router)
 app.include_router(users.router)
-app.include_router(risk.router, dependencies=[Depends(RequireRole(ELEVATED_WRITE))]) 
-app.include_router(evidence.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))]) 
+app.include_router(risk.router, dependencies=[Depends(RequireRole(ELEVATED_WRITE))])
+app.include_router(evidence.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])
 app.include_router(evidence_requests.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])
-app.include_router(documents.router) 
-app.include_router(compliance.router, dependencies=[Depends(RequireRole(ELEVATED_READ))]) 
-app.include_router(chat.router) 
-app.include_router(gap_analysis.router) 
-app.include_router(capa.router) 
-app.include_router(notifications.router) 
+app.include_router(documents.router)
+app.include_router(compliance.router, dependencies=[Depends(RequireRole(ELEVATED_READ))])
+app.include_router(chat.router)
+app.include_router(audit_room.router)
+app.include_router(gap_analysis.router)
+app.include_router(capa.router)
+app.include_router(notifications.router)
 app.include_router(report.router, dependencies=[Depends(RequireRole(ELEVATED_READ))])
 app.include_router(ai_routes.router)
 app.include_router(integrations.router, dependencies=[Depends(RequireRole(ELEVATED_WRITE))])
@@ -294,7 +302,7 @@ _ley = [Depends(RequireRole(LEY_ROLES))]
 app.include_router(breaches.router, dependencies=_ley)
 
 app.include_router(assessment_questions.router, dependencies=[Depends(RequireRole(ELEVATED_NO_DPO))])
-app.include_router(organizations.router)  
+app.include_router(organizations.router)
 
 @app.get("/")
 async def root():

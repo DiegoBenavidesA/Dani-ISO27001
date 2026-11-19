@@ -12,6 +12,7 @@ import uuid
 import os
 
 from app.dependencies.auth import get_current_user, get_current_org, RequireRole, ELEVATED_WRITE
+from app.services.registro import registrar
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db, AsyncSessionLocal
 from app.models.evidence import Evidence, EvidenceType
@@ -206,6 +207,9 @@ async def upload_evidence(
             new_evidence.indexing_status = "done"
             await db.commit()
 
+        await registrar(db, org_id, current_user, "creo", "evidencia", file.filename,
+                        f"{describir(datos_personales) or 'Sin datos personales detectados'}"
+                        + ("" if motivo_no_guardado is None else " · archivo original no guardado"))
         return {
             "message": "Evidencia subida correctamente. Indexando en segundo plano...",
             "id": evidence_id,
@@ -276,9 +280,11 @@ async def delete_evidence(
     conservan; se recomienda re-evaluar después."""
     evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
     ruta = evidence.file_url or ""
+    titulo = evidence.title or evidence.file_name
     await db.execute(sa_delete(EvidenceChunk).where(EvidenceChunk.evidence_id == evidence_id))
     await db.delete(evidence)
     await db.commit()
+    await registrar(db, org_id, current_user, "elimino", "evidencia", titulo)
     if ruta and not ruta.startswith("local:"):
         try:
             await storage_service.delete(ruta)
@@ -292,6 +298,7 @@ async def download_evidence(
     evidence_id: str,
     inline: bool = False,
     org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
@@ -308,6 +315,8 @@ async def download_evidence(
     # El nombre va codificado (RFC 5987): con tildes o ñ, una cabecera en
     # latin-1 hacía fallar la respuesta.
     nombre = evidence.file_name or "evidencia"
+    await registrar(db, org_id, current_user, "descargo", "evidencia", evidence.title or nombre,
+                    "Vista en pantalla" if inline else "Descarga del archivo original")
     ascii_nombre = nombre.encode("ascii", "ignore").decode().replace('"', "") or "evidencia"
     disposicion = "inline" if inline else "attachment"
     return StreamingResponse(
@@ -343,15 +352,15 @@ def _make_pdf(title: str, subtitle: str, sections: list) -> bytes:
     import fitz
     doc = fitz.open()
     page = doc.new_page()
-    
+
     y = 50
     page.insert_text((50, y), title, fontsize=16, fontname="hebo")
     y += 20
     page.insert_text((50, y), subtitle, fontsize=12, fontname="helv", color=(0.5, 0.5, 0.5))
     y += 30
-    
+
     for heading, fields in sections:
-        if y > 750:  
+        if y > 750:
             page = doc.new_page()
             y = 50
         page.insert_text((50, y), heading, fontsize=12, fontname="hebo")
@@ -373,7 +382,7 @@ async def export_evidences_zip(
     db: AsyncSession = Depends(get_db)
 ):
     from app.models.risk import Risk
-    
+
     # Exportación estrictamente multi-tenant
     ev_stmt = scope_to_org(select(Evidence), Evidence, org_id)
     ev_result = await db.execute(ev_stmt)

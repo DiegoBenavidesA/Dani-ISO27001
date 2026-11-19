@@ -671,3 +671,44 @@ export const usoIAAPI = {
     return body;
   },
 };
+
+// Sala de Auditoría: carpetas, registro de actividad y paquete para el auditor.
+const _salaHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+const _salaError = async (response, porDefecto) => {
+  const body = await response.json().catch(() => ({}));
+  return new Error(typeof body.detail === 'string' ? body.detail : porDefecto);
+};
+const _salaArchivo = async (response, nombrePorDefecto) => {
+  const disposicion = response.headers.get('Content-Disposition') || '';
+  const m = disposicion.match(/filename=([^;]+)/);
+  return { url: URL.createObjectURL(await response.blob()), nombre: m ? m[1].replace(/"/g, '').trim() : nombrePorDefecto };
+};
+export const salaAuditoriaAPI = {
+  carpetas: async (vistaAuditor = true) => {
+    const response = await fetch(`${API_URL}/api/sala-auditoria/carpetas?vista_auditor=${vistaAuditor}`, { headers: _salaHeaders() });
+    if (!response.ok) throw await _salaError(response, 'No se pudieron cargar las carpetas');
+    return response.json();
+  },
+  registro: async ({ accion, dias } = {}) => {
+    const q = new URLSearchParams();
+    if (accion) q.set('accion', accion);
+    if (dias) q.set('dias', dias);
+    const response = await fetch(`${API_URL}/api/sala-auditoria/registro?${q}`, { headers: _salaHeaders() });
+    if (!response.ok) throw await _salaError(response, 'No se pudo cargar el registro de actividad');
+    return response.json();
+  },
+  registroCsv: async () => {
+    const response = await fetch(`${API_URL}/api/sala-auditoria/registro/csv`, { headers: _salaHeaders() });
+    if (!response.ok) throw await _salaError(response, 'No se pudo descargar el registro');
+    return _salaArchivo(response, 'Registro_de_actividad.csv');
+  },
+  paquete: async (carpetas, incluirRegistro) => {
+    const q = new URLSearchParams({ carpetas: carpetas.join(','), incluir_registro: incluirRegistro });
+    const response = await fetch(`${API_URL}/api/sala-auditoria/paquete?${q}`, { headers: _salaHeaders() });
+    if (!response.ok) throw await _salaError(response, 'No se pudo generar el paquete');
+    return _salaArchivo(response, 'Paquete_Auditoria.zip');
+  },
+};

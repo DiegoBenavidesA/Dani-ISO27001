@@ -3,6 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.dependencies.auth import get_current_user, get_current_org
+from app.services.registro import registrar
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 from app.dependencies.database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,6 +117,7 @@ async def generate_document(
 async def save_document(
     data: DocumentCreate,
     org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     try:
@@ -123,6 +125,8 @@ async def save_document(
         result = await db.execute(stmt)
         document = result.scalar_one_or_none()
 
+        nuevo = document is None
+        cambio_contenido = bool(document) and document.content != data.content
         if document:
             if document.content != data.content and document.status in (DocumentStatus.APPROVED, DocumentStatus.PUBLISHED):
                 document.status = DocumentStatus.DRAFT
@@ -141,6 +145,9 @@ async def save_document(
 
         await db.commit()
         await db.refresh(document)
+        if nuevo or cambio_contenido:
+            await registrar(db, org_id, current_user, "creo" if nuevo else "modifico", "documento", document.title,
+                            f"{document.version} · queda en Borrador" if not nuevo else "Primera versión en Borrador")
         return {"message": "Document saved successfully", "id": document.id, "status": document.status.value}
 
     except Exception as e:
@@ -200,6 +207,8 @@ async def acknowledge_policy(
         db.add(ack)
         await db.commit()
         await db.refresh(ack)
+        await registrar(db, org_id, current_user, "acepto", "documento", document.title,
+                        f"Aceptó la {document.version} en el Portal de Empleados")
 
     return {"document_id": document_id, "acknowledged": True, "acknowledged_at": ack.acknowledged_at}
 
@@ -319,4 +328,8 @@ async def update_document_status(
     document.status = new_status
 
     await db.commit()
+    if new_status != actual:
+        accion = {DocumentStatus.APPROVED: "aprobo", DocumentStatus.PUBLISHED: "publico"}.get(new_status, "modifico")
+        await registrar(db, org_id, current_user, accion, "documento", getattr(document, "title", ""),
+                        f"{NOMBRE_ESTADO[actual]} a {NOMBRE_ESTADO[new_status]} · {document.version}")
     return {"message": f"Status updated", "version": document.version}

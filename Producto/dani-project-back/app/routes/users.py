@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.dependencies.database import get_db
 from app.dependencies.auth import get_current_user, require_admin, get_current_org
+from app.services.registro import registrar
 from app.models.user import User, UserRole
 from app.models.organization import Organization
 from app.services.auth_service import AuthService
@@ -139,6 +140,7 @@ async def invite_user(
         raise HTTPException(status_code=500, detail=f"Error al invitar usuario: {str(e)}")
 
     email_sent, activation_url = await _enviar_invitacion(invited, org, data.role)
+    await registrar(db, org.id, current_user, "creo", "usuario", invited.email, f"Invitado con rol {data.role}")
     return {"user_id": invited.id, "email": invited.email, "role": data.role, "email_sent": email_sent, "activation_url": activation_url}
 
 
@@ -210,7 +212,7 @@ async def create_user(
     result = await db.execute(query)
     if result.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="El correo ya está registrado.")
-    
+
     # Hash password
     hashed_pwd = AuthService.get_password_hash(user_data.password)
 
@@ -241,7 +243,9 @@ async def create_user(
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
+    await registrar(db, new_user.organization_id, current_user, "creo", "usuario", new_user.email,
+                    f"Rol {new_user.role.value if hasattr(new_user.role, 'value') else new_user.role}")
+
     return {"message": "Usuario creado exitosamente", "id": new_user.id}
 
 
@@ -373,10 +377,13 @@ async def update_user(
             user.role = nuevo_rol
     if user_data.is_active is not None:
         user.is_active = user_data.is_active
-        
+
     await db.commit()
     await db.refresh(user)
-    
+    await registrar(db, user.organization_id, current_user, "modifico", "usuario", user.email,
+                    f"Rol {user.role.value if hasattr(user.role, 'value') else user.role} · "
+                    + ("activo" if user.is_active else "desactivado"))
+
     return {
         "message": "Usuario actualizado exitosamente",
         "user": {
@@ -413,7 +420,9 @@ async def delete_user(
             detail="No tienes permisos para eliminar al owner de la empresa."
         )
 
+    correo, org_usuario = user.email, user.organization_id
     await db.delete(user)
     await db.commit()
+    await registrar(db, org_usuario, current_user, "elimino", "usuario", correo)
 
     return {"message": "Usuario eliminado exitosamente"}

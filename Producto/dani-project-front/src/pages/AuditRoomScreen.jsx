@@ -1,1250 +1,476 @@
-// src/pages/AuditRoomScreen.jsx
-
-import React, { useState, useContext, useEffect } from 'react';
-
+// Sala de Auditoría: lo que la empresa le muestra al auditor externo (ISO 27001).
+// Todo lo que se ve aquí lo calcula el servidor: carpetas, vista del auditor,
+// registro de actividad y paquete. La pantalla no inventa números.
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import {
-
-  Search, Download, Folder, Eye, Lock, History, Sparkles,
-
-  CheckCircle2, Clock, ExternalLink, FileText, X, Check,
-
-  RefreshCw, Plus, Edit3, Trash2
-
+  Search, Download, Folder, Eye, Lock, History, Sparkles, CheckCircle2, Clock,
+  X, RefreshCw, ShieldCheck, ShieldAlert, FileText, Database, Package
 } from 'lucide-react';
-
-import { ThemeContext, useTranslation } from '../contexts/ThemeContext';
-
-import { API_URL } from '../services/api';
-
-
-
-const labels = {
-
-  en: {
-
-    title: 'Audit Room', subtitle: 'Organized evidence for ISO 27001 certification',
-
-    readOnly: 'Auditor View', fullAccess: 'Full Access',
-
-    semanticSearch: 'Search across all evidence and documentation...', aiSearch: 'AI Search',
-
-    items: 'items', complete: 'Complete', partial: 'Partial',
-
-    auditorsBinder: "Auditor's Binder",
-
-    exportTitle: 'Export Audit Package', exportDescription: 'Generate a complete audit package organized by ISO 27001 clauses',
-
-    exportFormat: 'Export Format', pdfFormat: 'PDF Document', zipFormat: 'ZIP Archive',
-
-    pdfDesc: 'Single document with all annexes embedded', zipDesc: 'Folder structure matching ISO clauses',
-
-    selectClauses: 'Select Clauses', selectAll: 'Select All', deselectAll: 'Deselect All',
-
-    includeAnnexes: 'Include Evidence Annexes', includeTrail: 'Include Audit Trail Log',
-
-    generatePackage: 'Generate Package', generating: 'Generating...',
-
-    estimatedSize: 'Estimated Size', evidenceCount: 'Evidence Count',
-
-    exportReady: 'Export Ready!', downloadNow: 'Download Now',
-
-    auditTrail: 'Platform Audit Trail', integrityLog: 'Integrity Log',
-
-    timestamp: 'Timestamp', user: 'User', action: 'Action', resource: 'Resource',
-
-    ipAddress: 'IP Address', details: 'Details',
-
-    allActions: 'All Actions', created: 'Created', modified: 'Modified', deleted: 'Deleted',
-
-    approved: 'Approved', exported: 'Exported', viewed: 'Viewed',
-
-    exportTrail: 'Export Trail', last24h: 'Last 24h', last7d: 'Last 7d', last30d: 'Last 30d', allTime: 'All time',
-
-    auditorModeLabel: 'Auditor Mode', approvedOnly: 'Showing approved evidence only',
-
-    switchToFull: 'Switch to Full Access', folders: 'Evidence Folders', auditLog: 'Audit Log', export: 'Export'
-
-  },
-
-  es: {
-
-    title: 'Sala de Auditoría', subtitle: 'Evidencias organizadas para certificación ISO 27001',
-
-    readOnly: 'Vista Auditor', fullAccess: 'Acceso Completo',
-
-    semanticSearch: 'Buscar en todas las evidencias...', aiSearch: 'Buscar con IA',
-
-    items: 'elementos', complete: 'Completo', partial: 'Parcial',
-
-    auditorsBinder: 'Carpeta del Auditor',
-
-    exportTitle: 'Exportar Paquete', exportDescription: 'Genera un paquete por cláusulas ISO 27001',
-
-    exportFormat: 'Formato', pdfFormat: 'Documento PDF', zipFormat: 'Archivo ZIP',
-
-    pdfDesc: 'Documento único con anexos', zipDesc: 'Carpetas según cláusulas ISO',
-
-    selectClauses: 'Seleccionar Cláusulas', selectAll: 'Todo', deselectAll: 'Nada',
-
-    includeAnnexes: 'Incluir Anexos', includeTrail: 'Incluir Log',
-
-    generatePackage: 'Generar Paquete', generating: 'Generando...',
-
-    estimatedSize: 'Tamaño Est.', evidenceCount: 'Evidencias',
-
-    exportReady: '¡Listo!', downloadNow: 'Descargar',
-
-    auditTrail: 'Auditoría', integrityLog: 'Log de Integridad',
-
-    timestamp: 'Fecha', user: 'Usuario', action: 'Acción', resource: 'Recurso',
-
-    ipAddress: 'IP', details: 'Detalles',
-
-    allActions: 'Todas', created: 'Creado', modified: 'Modificado', deleted: 'Eliminado',
-
-    approved: 'Aprobado', exported: 'Exportado', viewed: 'Visto',
-
-    exportTrail: 'Exportar', last24h: '24h', last7d: '7d', last30d: '30d', allTime: 'Todo',
-
-    auditorModeLabel: 'Modo Auditor', approvedOnly: 'Solo evidencias aprobadas',
-
-    switchToFull: 'Acceso Completo', folders: 'Carpetas', auditLog: 'Log', export: 'Exportar'
-
-  },
-
-  pt: {
-
-    title: 'Sala de Auditoria', subtitle: 'Evidências para certificação ISO 27001',
-
-    readOnly: 'Vista Auditor', fullAccess: 'Acesso Completo',
-
-    semanticSearch: 'Buscar evidências...', aiSearch: 'Busca IA',
-
-    items: 'itens', complete: 'Completo', partial: 'Parcial',
-
-    auditorsBinder: 'Pasta do Auditor',
-
-    exportTitle: 'Exportar Pacote', exportDescription: 'Gera pacote por cláusulas ISO 27001',
-
-    exportFormat: 'Formato', pdfFormat: 'Documento PDF', zipFormat: 'Arquivo ZIP',
-
-    pdfDesc: 'Documento único com anexos', zipDesc: 'Pastas conforme cláusulas ISO',
-
-    selectClauses: 'Selecionar', selectAll: 'Tudo', deselectAll: 'Nada',
-
-    includeAnnexes: 'Incluir Anexos', includeTrail: 'Incluir Log',
-
-    generatePackage: 'Gerar Pacote', generating: 'Gerando...',
-
-    estimatedSize: 'Tamanho', evidenceCount: 'Evidências',
-
-    exportReady: 'Pronto!', downloadNow: 'Baixar',
-
-    auditTrail: 'Auditoria', integrityLog: 'Log de Integridade',
-
-    timestamp: 'Data', user: 'Usuário', action: 'Ação', resource: 'Recurso',
-
-    ipAddress: 'IP', details: 'Detalhes',
-
-    allActions: 'Todas', created: 'Criado', modified: 'Modificado', deleted: 'Excluído',
-
-    approved: 'Aprovado', exported: 'Exportado', viewed: 'Visto',
-
-    exportTrail: 'Exportar', last24h: '24h', last7d: '7d', last30d: '30d', allTime: 'Tudo',
-
-    auditorModeLabel: 'Modo Auditor', approvedOnly: 'Apenas aprovadas',
-
-    switchToFull: 'Acesso Completo', folders: 'Pastas', auditLog: 'Log', export: 'Exportar'
-
-  }
-
+import { ThemeContext } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
+import { chatAPI, salaAuditoriaAPI } from '../services/api';
+
+const MORADO = '#7c3aed';
+const ACCIONES = [
+  ['', 'Todas las acciones'], ['creo', 'Creó'], ['modifico', 'Modificó'], ['elimino', 'Eliminó'],
+  ['aprobo', 'Aprobó'], ['publico', 'Publicó'], ['acepto', 'Aceptó'], ['exporto', 'Exportó'], ['descargo', 'Descargó'],
+];
+const PERIODOS = [['1', 'Últimas 24 h'], ['7', 'Últimos 7 días'], ['30', 'Últimos 30 días'], ['', 'Todo']];
+const COLOR_ACCION = {
+  creo: '#2563eb', modifico: '#0891b2', elimino: '#dc2626', aprobo: '#7c3aed', publico: '#15803d',
+  acepto: '#0d9488', exporto: '#b45309', descargo: '#64748b',
+};
+const ESTADO_CARPETA = {
+  cumple: { texto: 'Cumple la meta', color: '#15803d', Icono: CheckCircle2 },
+  bajo: { texto: 'Bajo la meta', color: '#b45309', Icono: Clock },
+  sin_evaluar: { texto: 'Sin evaluar', color: '#64748b', Icono: Clock },
+};
+const ROLES = { superadmin: 'Superadmin', owner: 'Dueño', admin: 'Administrador', manager: 'Encargado', auditor: 'Auditor', dpo: 'Delegado', employee: 'Trabajador' };
+
+const tamano = (bytes) => {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 };
 
-
+const descargar = ({ url, nombre }) => {
+  const a = document.createElement('a');
+  a.href = url; a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+};
 
 function AuditRoomScreen() {
-
-  const { darkMode, theme: t, language } = useContext(ThemeContext);
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const [auditorMode, setAuditorMode] = useState(true);
-
-  const [activeTab, setActiveTab] = useState('folders');
-
-  const [showExportModal, setShowExportModal] = useState(false);
-
-  const [exportProgress, setExportProgress] = useState(0);
-
-  const [downloadUrl, setDownloadUrl] = useState(null);
-
-  const [aiResponse, setAiResponse] = useState(null);
-
-  const [isAiSearching, setIsAiSearching] = useState(false);
-
-  const [selectedExportFormat, setSelectedExportFormat] = useState('zip');
-
-  const [selectedClauses, setSelectedClauses] = useState([1, 2, 3, 4, 5, 6, 7, 8]);
-
-  const [includeAnnexes, setIncludeAnnexes] = useState(true);
-
-  const [includeTrail, setIncludeTrail] = useState(true);
-
-  const [trailFilter, setTrailFilter] = useState('all');
-
-  const [timeFilter, setTimeFilter] = useState('7d');
-
-
-
-  const l = labels[language] || labels.en;
-
-
-
-  const CLAUSE_NAMES = {
-
-    '4': '4. Context of the Organization',
-
-    '5': '5. Leadership',
-
-    '6': '6. Planning',
-
-    '7': '7. Support',
-
-    '8': '8. Operation',
-
-    '9': '9. Performance Evaluation',
-
-    '10': '10. Improvement'
-
-  };
-
-
-
-  const DEFAULT_FOLDERS = [
-
-    { id: 1, name: '4. Context of the Organization', items: 0, status: 'partial' },
-
-    { id: 2, name: '5. Leadership', items: 0, status: 'partial' },
-
-    { id: 3, name: '6. Planning', items: 0, status: 'partial' },
-
-    { id: 4, name: '7. Support', items: 0, status: 'partial' },
-
-    { id: 5, name: '8. Operation', items: 0, status: 'partial' },
-
-    { id: 6, name: '9. Performance Evaluation', items: 0, status: 'partial' },
-
-    { id: 7, name: '10. Improvement', items: 0, status: 'partial' },
-
-    { id: 8, name: 'Annex A Controls', items: 93, status: 'partial' }
-
-  ];
-
-
-
-  const [folders, setFolders] = useState(DEFAULT_FOLDERS);
-
-  const [auditTrailEntries, setAuditTrailEntries] = useState([]);
-
-  const [loadingData, setLoadingData] = useState(true);
-
-
-
-  useEffect(() => {
-
-    const token = localStorage.getItem('token');
-
-    const headers = { Authorization: `Bearer ${token}` };
-
-
-
-    Promise.all([
-
-      fetch(`${API_URL}/api/gap-analysis/full`, { headers }).then(r => r.json()).catch(() => null),
-
-      fetch(`${API_URL}/api/evidence`, { headers }).then(r => r.json()).catch(() => []),
-
-      fetch(`${API_URL}/api/documents`, { headers }).then(r => r.json()).catch(() => ({ documents: [] }))
-
-    ]).then(([gapData, evidences, docsData]) => {
-
-      const evArray = Array.isArray(evidences) ? evidences : [];
-
-      const docArray = docsData?.documents || [];
-
-
-
-      // Contar evidencias por cláusula (control "8.1" → cláusula "8"; "A.5.x" → Annex A)
-
-      const evByClause = {};
-
-      evArray.forEach(ev => {
-
-        const ctrl = ev.control || '';
-
-        const match = ctrl.match(/^(\d+)\./);
-
-        const key = match ? match[1] : null;
-
-        if (key) evByClause[key] = (evByClause[key] || 0) + 1;
-
-      });
-
-      const annexACount = evArray.filter(ev => (ev.control || '').startsWith('A.')).length;
-
-
-
-      // Construir carpetas desde scores reales del gap analysis
-
-      if (gapData?.clause_gaps) {
-
-        const newFolders = gapData.clause_gaps.map((c, i) => {
-
-          const docCount = docArray.filter(d => (d.chapter_id || '').startsWith(c.clause_id)).length;
-
-          const evCount = evByClause[c.clause_id] || 0;
-
-          return {
-
-            id: i + 1,
-
-            name: CLAUSE_NAMES[c.clause_id] || `${c.clause_id}. ${c.clause_name}`,
-
-            items: evCount + docCount,
-
-            status: c.current_score >= 75 ? 'complete' : 'partial',
-
-            score: Math.round(c.current_score)
-
-          };
-
-        });
-
-        newFolders.push({
-
-          id: 8,
-
-          name: 'Annex A Controls',
-
-          items: annexACount || 93,
-
-          status: 'partial',
-
-          score: null
-
-        });
-
-        setFolders(newFolders);
-
-      }
-
-
-
-      // Construir audit trail desde documentos y evidencias reales
-
-      const trail = [];
-
-      let trailId = 1;
-
-
-
-      docArray.forEach(doc => {
-
-        const action = doc.status === 'published' ? 'approved'
-
-          : doc.status === 'archived' ? 'deleted'
-
-          : doc.status === 'draft' ? 'created'
-
-          : 'modified';
-
-        trail.push({
-
-          id: trailId++,
-
-          timestamp: doc.updated || 'Reciente',
-
-          rawDate: doc.updated || new Date().toISOString(),
-
-          user: 'Equipo SGSI',
-
-          role: 'Manager',
-
-          action,
-
-          resource: doc.name,
-
-          ip: '—',
-
-          details: `Documento ${doc.status} · v${doc.version || '1.0'}`
-
-        });
-
-      });
-
-
-
-      evArray.slice(0, 15).forEach(ev => {
-
-        const ts = ev.lastUpdated
-
-          ? new Date(ev.lastUpdated).toLocaleDateString('es-CL')
-
-          : 'Reciente';
-
-        trail.push({
-
-          id: trailId++,
-
-          timestamp: ts,
-
-          rawDate: ev.lastUpdated || new Date().toISOString(),
-
-          user: 'Centro Evidencias',
-
-          role: 'Sistema',
-
-          action: 'created',
-
-          resource: ev.name,
-
-          ip: '—',
-
-          details: `Evidencia subida · Control ${ev.control || 'General'}`
-
-        });
-
-      });
-
-
-
-      if (trail.length > 0) setAuditTrailEntries(trail);
-
-      setLoadingData(false);
-
-    }).catch(() => setLoadingData(false));
-
-  }, []);
-
-
-
-  const getActionColor = (action) => {
-
-    switch (action) { case 'created': return '#004ac6'; case 'modified': return '#3b82f6'; case 'deleted': return '#ef4444'; case 'approved': return '#8b5cf6'; case 'exported': return '#f59e0b'; case 'viewed': return '#6b7280'; default: return t.textDim; }
-
-  };
-
-
-
-  const getActionIcon = (action) => {
-
-    switch (action) { case 'created': return Plus; case 'modified': return Edit3; case 'deleted': return Trash2; case 'approved': return CheckCircle2; case 'exported': return Download; case 'viewed': return Eye; default: return FileText; }
-
-  };
-
-
-
-  const handleExport = () => {
-
-    setShowExportModal(true);
-
-    setExportProgress(0);
-
-    setDownloadUrl(null);
-
-
-
-    let intervalId;
-
-
-
-    // Simulador de barra de progreso mientras esperamos al backend
-
-    intervalId = setInterval(() => {
-
-      setExportProgress(prev => {
-
-        if (prev >= 90) { 
-
-          clearInterval(intervalId); 
-
-          return 90; // Se queda en 90% esperando la respuesta de la API
-
-        }
-
-        return prev + Math.random() * 20;
-
-      });
-
-    }, 250);
-
-
-
-    // Iniciar llamada real a la API
-
-    import('../services/api').then(({ evidenceAPI }) => {
-
-      evidenceAPI.exportZip().then(url => {
-
-        clearInterval(intervalId); // Matamos el intervalo inmediatamente
-
-        setDownloadUrl(url);
-
-        setExportProgress(100);
-
-      }).catch(err => {
-
-        clearInterval(intervalId);
-
-        alert("Error generando ZIP: " + err.message);
-
-        setShowExportModal(false);
-
-      });
-
-    });
-
-  };
-
-
-
-  const filteredTrail = auditTrailEntries.filter(entry => {
-
-    if (trailFilter !== 'all' && entry.action !== trailFilter) return false;
-
-    if (timeFilter !== 'all') {
-
-      const cutoff = new Date();
-
-      if (timeFilter === '24h') cutoff.setHours(cutoff.getHours() - 24);
-
-      else if (timeFilter === '7d') cutoff.setDate(cutoff.getDate() - 7);
-
-      else if (timeFilter === '30d') cutoff.setDate(cutoff.getDate() - 30);
-
-      const entryDate = new Date(entry.rawDate);
-
-      if (isNaN(entryDate.getTime()) || entryDate < cutoff) return false;
-
-    }
-
-    return true;
-
-  });
-
-
-
-  const handleAISearch = () => {
-
-    if (!searchQuery.trim()) {
-
-      alert(language === 'es' ? 'Por favor ingresa un término de búsqueda.' : 'Please enter a search query.');
-
-      return;
-
-    }
-
-    setIsAiSearching(true);
-
-    setAiResponse(null);
-
-
-
-    import('../services/api').then(({ chatAPI }) => {
-
-      chatAPI.sendMessage(searchQuery).then(res => {
-
-        setIsAiSearching(false);
-
-        if (res.error) {
-
-          setAiResponse({ error: true, message: res.error });
-
-        } else {
-
-          setAiResponse({ error: false, text: res.reply || res.message });
-
-        }
-
-      }).catch(err => {
-
-        setIsAiSearching(false);
-
-        setAiResponse({ error: true, message: err.message });
-
-      });
-
-    });
-
-  };
-
-
+  const { theme: t } = useContext(ThemeContext);
+  const { user } = useAuth();
+  const esAuditor = user?.role === 'auditor';
+
+  const [vistaAuditor, setVistaAuditor] = useState(true);
+  const [pestana, setPestana] = useState('carpetas');
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState(null);
+  const [abierta, setAbierta] = useState(null);   // carpeta abierta en el detalle
+
+  const cargar = useCallback(async () => {
+    setError(null);
+    try { setDatos(await salaAuditoriaAPI.carpetas(esAuditor || vistaAuditor)); }
+    catch (e) { setError(e.message); }
+  }, [esAuditor, vistaAuditor]);
+
+  useEffect(() => { cargar(); }, [cargar]);
+
+  const card = { background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' };
+  const enVistaAuditor = esAuditor || vistaAuditor;
 
   return (
-
-    <div className="normia-audit-room" style={{ animation: 'fadeIn 0.4s ease', minWidth: 0, maxWidth: '100%' }}>
-
+    <div className="sala-auditoria" style={{ animation: 'fadeIn 0.4s ease', minWidth: 0, maxWidth: '100%' }}>
       <style>{`
-        .normia-audit-room { width: 100%; box-sizing: border-box; }
-        .normia-audit-room *, .normia-audit-room *::before, .normia-audit-room *::after { box-sizing: border-box; }
-        .normia-audit-room .audit-header, .normia-audit-room .audit-header-actions,
-        .normia-audit-room .audit-banner, .normia-audit-room .audit-trail-header,
-        .normia-audit-room .audit-trail-controls, .normia-audit-room .audit-export-summary { min-width: 0; }
-        .normia-audit-room .audit-folder-card { min-width: 0; overflow-wrap: anywhere; }
-        .normia-audit-room .audit-tabs { overflow-x: auto; max-width: 100%; scrollbar-width: thin; }
-        .normia-audit-room .audit-tab-button { flex-shrink: 0; white-space: nowrap; }
-        .normia-audit-room .audit-trail-table { min-width: 740px; }
-        .normia-audit-room .audit-modal-overlay { padding: 16px; }
-        .normia-audit-room .audit-modal-content { box-sizing: border-box; max-width: 100%; }
-        .normia-audit-room .audit-export-modal { overflow-y: auto !important; }
-        .normia-audit-room .audit-search-input { min-width: 0; width: 100%; }
-        @media (max-width: 900px) {
-          .normia-audit-room .audit-header { flex-wrap: wrap; gap: 16px; }
-          .normia-audit-room .audit-header-actions { flex-wrap: wrap; }
-          .normia-audit-room .audit-trail-header { flex-wrap: wrap; gap: 12px; }
-          .normia-audit-room .audit-trail-controls { flex-wrap: wrap; }
-        }
+        .sala-auditoria * { box-sizing: border-box; }
+        .sala-auditoria .sa-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .sala-auditoria .sa-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: ${t.textDim}; padding: 10px 12px; }
+        .sala-auditoria .sa-tabla td { padding: 10px 12px; border-top: 1px solid ${t.border}; vertical-align: top; }
+        .sala-auditoria .sa-scroll { overflow-x: auto; max-width: 100%; }
+        .sala-auditoria .sa-respuesta p { margin: 0 0 8px; }
+        .sala-auditoria .sa-respuesta ul { margin: 0 0 8px; padding-left: 20px; }
         @media (max-width: 640px) {
-          .normia-audit-room .audit-header { flex-direction: column; align-items: stretch !important; }
-          .normia-audit-room .audit-title-row { flex-wrap: wrap; gap: 8px !important; }
-          .normia-audit-room .audit-title { font-size: 24px !important; line-height: 1.2; }
-          .normia-audit-room .audit-header-actions { width: 100%; display: flex; flex-direction: column; align-items: stretch !important; }
-          .normia-audit-room .audit-mode-control { justify-content: space-between; }
-          .normia-audit-room .audit-binder-button { justify-content: center; width: 100%; }
-          .normia-audit-room .audit-banner { flex-direction: column; align-items: stretch !important; gap: 12px; }
-          .normia-audit-room .audit-banner-message { min-width: 0; }
-          .normia-audit-room .audit-banner-button { align-self: flex-start; }
-          .normia-audit-room .audit-search-card { padding: 14px !important; }
-          .normia-audit-room .audit-search-row { flex-direction: column; }
-          .normia-audit-room .audit-search-field { width: 100%; min-width: 0; }
-          .normia-audit-room .audit-search-button { justify-content: center; width: 100%; }
-          .normia-audit-room .audit-tabs { gap: 6px !important; padding-bottom: 4px; }
-          .normia-audit-room .audit-tab-button { padding: 10px 12px !important; }
-          .normia-audit-room .audit-trail-header { padding: 14px !important; }
-          .normia-audit-room .audit-trail-controls { width: 100%; gap: 8px !important; }
-          .normia-audit-room .audit-trail-controls select { flex: 1 1 115px; min-width: 0; }
-          .normia-audit-room .audit-trail-controls button { flex: 1 1 100%; justify-content: center; }
-          .normia-audit-room .audit-export-card { padding: 16px !important; }
-          .normia-audit-room .audit-export-columns { grid-template-columns: minmax(0, 1fr) !important; gap: 20px !important; }
-          .normia-audit-room .audit-export-summary { flex-direction: column; align-items: stretch !important; gap: 16px; padding: 16px !important; }
-          .normia-audit-room .audit-export-stats { justify-content: space-between; gap: 12px !important; }
-          .normia-audit-room .audit-export-button { width: 100%; justify-content: center; }
-          .normia-audit-room .audit-modal-overlay { padding: 12px; }
-          .normia-audit-room .audit-modal-content { padding: 16px !important; max-height: calc(100dvh - 24px) !important; }
+          .sala-auditoria .sa-cabecera { flex-direction: column; align-items: stretch !important; }
+          .sala-auditoria .sa-busqueda { flex-direction: column; }
         }
       `}</style>
-      {/* Header */}
 
-      <div className="audit-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-
-        <div>
-
-          <div className="audit-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-
-            <h1 className="audit-title" style={{ fontSize: '28px', fontWeight: 700 }}>{l.title}</h1>
-
-            <div style={{ padding: '6px 14px', background: auditorMode ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0, 74, 198, 0.15)', border: `1px solid ${auditorMode ? 'rgba(168, 85, 247, 0.3)' : 'rgba(0, 74, 198, 0.3)'}`, borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: auditorMode ? '#a855f7' : '#004ac6', display: 'flex', alignItems: 'center', gap: '6px' }}>
-
-              {auditorMode ? <Eye size={14} /> : <Lock size={14} />}
-
-              {auditorMode ? l.readOnly : l.fullAccess}
-
-            </div>
-
+      {/* Cabecera */}
+      <div className="sa-cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '6px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0 }}>Sala de Auditoría</h1>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
+              color: enVistaAuditor ? MORADO : '#2563eb', background: enVistaAuditor ? 'rgba(124,58,237,0.12)' : 'rgba(37,99,235,0.12)' }}>
+              {enVistaAuditor ? <Eye size={14} /> : <Lock size={14} />}
+              {enVistaAuditor ? 'Vista del auditor' : 'Vista completa'}
+            </span>
           </div>
-
-          <p style={{ color: t.textDim, fontSize: '15px' }}>{l.subtitle}</p>
-
+          <p style={{ color: t.textDim, fontSize: '14px', margin: 0 }}>
+            Lo que la empresa le muestra al auditor externo para la certificación ISO 27001{datos?.empresa ? ` · ${datos.empresa}` : ''}.
+          </p>
         </div>
+        {!esAuditor && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', ...card, borderRadius: '12px', cursor: 'pointer', flexShrink: 0 }}>
+            <span style={{ fontSize: '13px', fontWeight: 500 }}>Ver como auditor</span>
+            <input type="checkbox" checked={vistaAuditor} onChange={(e) => setVistaAuditor(e.target.checked)}
+              style={{ width: '18px', height: '18px', accentColor: MORADO }} />
+          </label>
+        )}
+      </div>
 
-        <div className="audit-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div className="audit-mode-control" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: t.inputBg, borderRadius: '10px', border: `1px solid ${t.border}` }}>
+      <div style={{ padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', lineHeight: 1.5,
+        background: enVistaAuditor ? 'rgba(124,58,237,0.08)' : 'rgba(37,99,235,0.08)', color: enVistaAuditor ? MORADO : '#1d4ed8' }}>
+        {enVistaAuditor
+          ? <>Solo se muestran los documentos <b>publicados</b> por la dirección. Las evidencias se muestran todas: son registros de la empresa y no pasan por aprobación.{esAuditor && ' Con tu rol esta es la única vista disponible.'}</>
+          : <>Vista completa: incluye borradores y documentos en revisión. El auditor no los ve.</>}
+      </div>
 
-            <span style={{ fontSize: '12px', fontWeight: 500, color: t.textMuted }}>{l.auditorModeLabel}</span>
+      <BuscarConIA t={t} card={card} />
 
-            <button onClick={() => setAuditorMode(!auditorMode)} style={{ width: '44px', height: '24px', borderRadius: '12px', background: auditorMode ? '#a855f7' : t.hoverBg, border: `1px solid ${auditorMode ? '#a855f7' : t.border}`, cursor: 'pointer', position: 'relative' }}>
-
-              <div style={{ width: '18px', height: '18px', borderRadius: '50%', background: 'white', position: 'absolute', top: '2px', left: auditorMode ? '22px' : '2px', transition: 'all 0.2s ease' }} />
-
-            </button>
-
-          </div>
-
-          <button className="audit-binder-button" onClick={handleExport} style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-
-            <Download size={18} /> {l.auditorsBinder}
-
+      {/* Pestañas */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto' }}>
+        {[['carpetas', 'Carpetas', Folder], ['registro', 'Registro de actividad', History], ['paquete', 'Paquete para el auditor', Package]].map(([id, nombre, Icono]) => (
+          <button key={id} type="button" onClick={() => setPestana(id)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '10px', cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 600, fontSize: '14px',
+              background: pestana === id ? 'rgba(124,58,237,0.12)' : 'transparent', border: `1px solid ${pestana === id ? MORADO : t.border}`, color: pestana === id ? MORADO : t.textMuted }}>
+            <Icono size={16} /> {nombre}
           </button>
-
-        </div>
-
+        ))}
       </div>
 
+      {error && <div role="alert" style={{ color: '#dc2626', fontSize: '14px', marginBottom: '16px' }}>{error}</div>}
 
-
-      {/* Auditor Mode Banner */}
-
-      {auditorMode && (
-
-        <div className="audit-banner" style={{ padding: '12px 20px', background: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)', borderRadius: '12px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-          <div className="audit-banner-message" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><Eye size={18} color="#a855f7" /><span style={{ fontSize: '13px', color: '#a855f7', fontWeight: 500 }}>{l.approvedOnly}</span></div>
-
-          <button className="audit-banner-button" onClick={() => setAuditorMode(false)} style={{ padding: '6px 12px', background: 'rgba(168, 85, 247, 0.2)', border: 'none', borderRadius: '6px', color: '#a855f7', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{l.switchToFull}</button>
-
-        </div>
-
-      )}
-
-
-
-      {/* Search Bar */}
-
-      <div className="audit-search-card" style={{ background: t.cardBg, borderRadius: '16px', padding: '18px 22px', border: `1px solid ${t.border}`, marginBottom: '24px' }}>
-
-        <div className="audit-search-row" style={{ display: 'flex', gap: '12px' }}>
-          <div className="audit-search-field" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', background: t.inputBg, borderRadius: '10px', padding: '10px 14px', border: `1px solid ${t.border}` }}>
-
-            <Search size={18} color={t.textDim} />
-
-            <input className="audit-search-input" type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={l.semanticSearch} style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} />
-
-          </div>
-
-          <button className="audit-search-button" onClick={handleAISearch} style={{ padding: '10px 20px', background: '#004ac6', border: 'none', borderRadius: '10px', color: 'white', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}><Sparkles size={14} /> {l.aiSearch}</button>
-
-        </div>
-
-      </div>
-
-
-
-      {/* Tabs */}
-
-      <div className="audit-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-
-        {[{ id: 'folders', label: l.folders, icon: Folder }, { id: 'trail', label: l.auditLog, icon: History }, { id: 'export', label: l.export, icon: Download }].map((tab) => {
-
-          const Icon = tab.icon; const isActive = activeTab === tab.id;
-
-          return (
-
-            <button className="audit-tab-button" key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ padding: '10px 20px', background: isActive ? '#a855f720' : 'transparent', border: `1px solid ${isActive ? '#a855f7' : t.border}`, borderRadius: '10px', color: isActive ? '#a855f7' : t.textMuted, cursor: 'pointer', fontSize: '13px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
-
-              <Icon size={16} /> {tab.label}
-
-            </button>
-
-          );
-
-        })}
-
-      </div>
-
-
-
-      {/* Folders Tab */}
-
-      {activeTab === 'folders' && (
-
-        loadingData ? (
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px', color: t.textDim, gap: '12px' }}>
-
-            <RefreshCw size={20} style={{ animation: 'spin 1s linear infinite' }} />
-
-            <span style={{ fontSize: '14px' }}>{language === 'es' ? 'Cargando datos reales...' : 'Loading real data...'}</span>
-
-          </div>
-
-        ) : (
-
-          <div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-
-              <span style={{ fontSize: '13px', color: t.textDim }}>{selectedClauses.length} / {folders.length} {language === 'es' ? 'carpetas seleccionadas' : 'folders selected'}</span>
-
-              <button onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))} style={{ background: 'none', border: 'none', color: '#a855f7', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
-
-                {selectedClauses.length === folders.length ? l.deselectAll : l.selectAll}
-
-              </button>
-
+      {pestana === 'carpetas' && (
+        !datos ? <Cargando t={t} texto="Cargando carpetas…" /> : (
+          <>
+            <p style={{ fontSize: '13px', color: t.textDim, margin: '0 0 12px' }}>
+              El puntaje de cada cláusula sale del Análisis de Brechas (Sí vale 1, Parcial 0,5, No 0). La meta de la empresa es {datos.meta} %.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 230px), 1fr))', gap: '14px' }}>
+              {datos.carpetas.map((c) => <TarjetaCarpeta key={c.id} c={c} t={t} card={card} onClick={() => setAbierta(c)} />)}
             </div>
-
-            <div className="audit-folders-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px' }}>
-
-              {folders.map((folder) => {
-
-                const isSelected = selectedClauses.includes(folder.id);
-
-                return (
-
-                  <div className="audit-folder-card" key={folder.id} onClick={() => setSelectedClauses(prev => prev.includes(folder.id) ? prev.filter(id => id !== folder.id) : [...prev, folder.id])}
-
-                    style={{ background: t.cardBg, borderRadius: '16px', padding: '20px', border: `2px solid ${isSelected ? '#a855f7' : t.border}`, cursor: 'pointer', transition: 'border-color 0.15s', position: 'relative' }}>
-
-                    <div style={{ position: 'absolute', top: '12px', right: '12px', width: '20px', height: '20px', borderRadius: '6px', border: `2px solid ${isSelected ? '#a855f7' : t.border}`, background: isSelected ? '#a855f7' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-
-                      {isSelected && <Check size={12} color="white" />}
-
-                    </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-
-                      <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: isSelected ? 'rgba(168, 85, 247, 0.2)' : 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Folder size={24} color="#a855f7" /></div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 10px', borderRadius: '20px', background: folder.status === 'complete' ? '#004ac615' : '#f59e0b15', fontSize: '11px', fontWeight: 600, color: folder.status === 'complete' ? '#004ac6' : '#f59e0b', marginRight: '28px' }}>
-
-                        {folder.status === 'complete' ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-
-                        {folder.status === 'complete' ? l.complete : l.partial}
-
-                      </div>
-
-                    </div>
-
-                    <h4 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px', lineHeight: '1.4', color: t.text }}>{folder.name}</h4>
-
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-                      <span style={{ fontSize: '12px', color: t.textDim }}>{folder.items} {l.items}</span>
-
-                      {folder.score != null && (
-
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: folder.score >= 75 ? '#004ac6' : '#f59e0b' }}>{folder.score}%</span>
-
-                      )}
-
-                    </div>
-
-                  </div>
-
-                );
-
-              })}
-
-            </div>
-
-          </div>
-
+          </>
         )
-
       )}
 
+      {pestana === 'registro' && <RegistroActividad t={t} card={card} />}
 
+      {pestana === 'paquete' && (datos ? <PaqueteAuditor t={t} card={card} datos={datos} /> : <Cargando t={t} texto="Cargando…" />)}
 
-      {/* Audit Trail Tab */}
-
-      {activeTab === 'trail' && (
-
-        <div style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
-
-          <div className="audit-trail-header" style={{ padding: '20px', borderBottom: `1px solid ${t.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-
-              <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><History size={20} color="white" /></div>
-
-              <div><h3 style={{ fontSize: '16px', fontWeight: 600, color: t.text }}>{l.integrityLog}</h3></div>
-
-            </div>
-
-            <div className="audit-trail-controls" style={{ display: 'flex', gap: '10px' }}>
-
-              <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)} style={{ padding: '8px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', outline: 'none' }}>
-
-                <option value="24h">{l.last24h}</option><option value="7d">{l.last7d}</option><option value="30d">{l.last30d}</option><option value="all">{l.allTime}</option>
-
-              </select>
-
-              <select value={trailFilter} onChange={(e) => setTrailFilter(e.target.value)} style={{ padding: '8px 12px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', outline: 'none' }}>
-
-                <option value="all">{l.allActions}</option><option value="created">{l.created}</option><option value="modified">{l.modified}</option><option value="approved">{l.approved}</option><option value="deleted">{l.deleted}</option><option value="exported">{l.exported}</option>
-
-              </select>
-
-              <button style={{ padding: '8px 16px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.text, fontSize: '12px', fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><Download size={14} /> {l.exportTrail}</button>
-
-            </div>
-
-          </div>
-
-          <div style={{ overflowX: 'auto' }}>
-
-            <table className="audit-trail-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-
-              <thead>
-
-                <tr style={{ background: darkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)' }}>
-
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.timestamp}</th>
-
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.user}</th>
-
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.action}</th>
-
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.resource}</th>
-
-                  <th style={{ padding: '14px 20px', textAlign: 'left', fontSize: '11px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>{l.details}</th>
-
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                {filteredTrail.length === 0 && (
-
-                  <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: t.textDim, fontSize: '13px' }}>
-
-                    {language === 'es' ? 'Sin actividad registrada en este período.' : 'No activity recorded in this period.'}
-
-                  </td></tr>
-
-                )}
-
-                {filteredTrail.map((entry) => {
-
-                  const ActionIcon = getActionIcon(entry.action);
-
-                  const actionColor = getActionColor(entry.action);
-
-                  return (
-
-                    <tr key={entry.id} style={{ borderBottom: `1px solid ${t.border}` }}>
-
-                      <td style={{ padding: '14px 20px' }}><span style={{ fontSize: '12px', color: t.textMuted, fontFamily: 'monospace' }}>{entry.timestamp}</span></td>
-
-                      <td style={{ padding: '14px 20px' }}><div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{entry.user}</div><div style={{ fontSize: '11px', color: t.textDim }}>{entry.role}</div></td>
-
-                      <td style={{ padding: '14px 20px' }}>
-
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '4px 10px', background: `${actionColor}15`, borderRadius: '6px', fontSize: '11px', fontWeight: 600, color: actionColor }}>
-
-                          <ActionIcon size={12} /> {l[entry.action] || entry.action}
-
-                        </span>
-
-                      </td>
-
-                      <td style={{ padding: '14px 20px' }}><span style={{ fontSize: '13px', color: t.text }}>{entry.resource}</span></td>
-
-                      <td style={{ padding: '14px 20px' }}><span style={{ fontSize: '12px', color: t.textDim }}>{entry.details}</span></td>
-
-                    </tr>
-
-                  );
-
-                })}
-
-              </tbody>
-
-            </table>
-
-          </div>
-
-        </div>
-
-      )}
-
-
-
-      {/* Export Tab */}
-
-      {activeTab === 'export' && (
-
-        <div className="audit-export-card" style={{ background: t.cardBg, borderRadius: '20px', border: `1px solid ${t.border}`, padding: '24px' }}>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Download size={24} color="white" /></div>
-
-            <div><h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text }}>{l.exportTitle}</h3></div>
-
-          </div>
-
-          <div className="audit-export-columns" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '24px' }}>
-
-            <div>
-
-              <h4 style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase', marginBottom: '12px' }}>{l.exportFormat}</h4>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-
-                {[{ id: 'pdf', label: l.pdfFormat, desc: l.pdfDesc, icon: FileText }, { id: 'zip', label: l.zipFormat, desc: l.zipDesc, icon: Folder }].map((format) => {
-
-                  const Icon = format.icon; const isSelected = selectedExportFormat === format.id;
-
-                  return (
-
-                    <button key={format.id} onClick={() => setSelectedExportFormat(format.id)} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px', background: isSelected ? '#004ac615' : t.inputBg, border: `2px solid ${isSelected ? '#004ac6' : t.border}`, borderRadius: '12px', cursor: 'pointer', textAlign: 'left' }}>
-
-                      <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: isSelected ? '#004ac620' : t.hoverBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} color={isSelected ? '#004ac6' : t.textDim} /></div>
-
-                      <div style={{ flex: 1 }}><div style={{ fontSize: '14px', fontWeight: 600, color: isSelected ? '#004ac6' : t.text }}>{format.label}</div><div style={{ fontSize: '12px', color: t.textDim }}>{format.desc}</div></div>
-
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isSelected ? '#004ac6' : t.border}`, background: isSelected ? '#004ac6' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{isSelected && <Check size={12} color="white" />}</div>
-
-                    </button>
-
-                  );
-
-                })}
-
-              </div>
-
-              <div style={{ marginTop: '20px' }}>
-
-                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: t.inputBg, borderRadius: '10px', cursor: 'pointer' }}>
-
-                  <input type="checkbox" checked={includeAnnexes} onChange={(e) => setIncludeAnnexes(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: '#004ac6' }} />
-
-                  <span style={{ fontSize: '13px', color: t.text }}>{l.includeAnnexes}</span>
-
-                </label>
-
-              </div>
-
-            </div>
-
-            <div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-
-                <h4 style={{ fontSize: '12px', fontWeight: 600, color: t.textMuted, textTransform: 'uppercase' }}>{l.selectClauses}</h4>
-
-                <button onClick={() => setSelectedClauses(selectedClauses.length === folders.length ? [] : folders.map(f => f.id))} style={{ background: 'none', border: 'none', color: '#004ac6', fontSize: '12px', fontWeight: 500, cursor: 'pointer' }}>{selectedClauses.length === folders.length ? l.deselectAll : l.selectAll}</button>
-
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto' }}>
-
-                {folders.map((folder) => (
-
-                  <label key={folder.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: selectedClauses.includes(folder.id) ? '#004ac610' : t.inputBg, borderRadius: '10px', cursor: 'pointer', border: `1px solid ${selectedClauses.includes(folder.id) ? '#004ac640' : 'transparent'}` }}>
-
-                    <input type="checkbox" checked={selectedClauses.includes(folder.id)} onChange={() => setSelectedClauses(prev => prev.includes(folder.id) ? prev.filter(id => id !== folder.id) : [...prev, folder.id])} style={{ width: '16px', height: '16px', accentColor: '#004ac6' }} />
-
-                    <div style={{ flex: 1 }}><div style={{ fontSize: '13px', fontWeight: 500, color: t.text }}>{folder.name}</div><div style={{ fontSize: '11px', color: t.textDim }}>{folder.items} {l.items}</div></div>
-
-                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: folder.status === 'complete' ? '#004ac6' : '#f59e0b' }} />
-
-                  </label>
-
-                ))}
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div className="audit-export-summary" style={{ marginTop: '24px', padding: '16px 20px', background: t.inputBg, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-
-            <div className="audit-export-stats" style={{ display: 'flex', gap: '32px' }}>
-
-              <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.evidenceCount}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{folders.filter(f => selectedClauses.includes(f.id)).reduce((sum, f) => sum + f.items, 0)}</div></div>
-
-              <div><div style={{ fontSize: '11px', color: t.textDim }}>{l.estimatedSize}</div><div style={{ fontSize: '20px', fontWeight: 700, color: t.text }}>{`\~${selectedClauses.length * 12} MB`}</div></div>
-
-            </div>
-
-            <button className="audit-export-button" onClick={handleExport} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}><Download size={20} /> {l.generatePackage}</button>
-
-          </div>
-
-        </div>
-
-      )}
-
-
-
-      {/* Export Modal */}
-
-      {showExportModal && (
-
-        <div className="audit-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-
-          <div className="audit-modal-content audit-export-modal" style={{ width: 'min(480px, 100%)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px', textAlign: 'center' }}>
-
-            {exportProgress < 100 ? (
-
-              <>
-
-                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-
-                  <RefreshCw size={36} color="white" style={{ animation: 'spin 1s linear infinite' }} />
-
-                </div>
-
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: t.text, marginBottom: '8px' }}>{l.generating}</h3>
-
-                <div style={{ height: '8px', background: t.inputBg, borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
-
-                  <div style={{ width: `${Math.min(exportProgress, 100)}%`, height: '100%', background: 'linear-gradient(90deg, #004ac6, #3b82f6)', borderRadius: '4px' }} />
-
-                </div>
-
-                <span style={{ fontSize: '13px', color: t.textMuted }}>{Math.round(exportProgress)}%</span>
-
-                <div style={{ marginTop: '16px' }}>
-
-                  <button onClick={() => { setShowExportModal(false); setExportProgress(0); }} style={{ padding: '10px 20px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '8px', color: t.textMuted, fontSize: '13px', fontWeight: 500, cursor: 'pointer' }}>Cancel</button>
-
-                </div>
-
-              </>
-
-            ) : (
-
-              <>
-
-                <div style={{ width: '80px', height: '80px', borderRadius: '20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-
-                  <CheckCircle2 size={40} color="white" />
-
-                </div>
-
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#004ac6', marginBottom: '8px' }}>{l.exportReady}</h3>
-
-                <p style={{ fontSize: '14px', color: t.textDim, marginBottom: '24px' }}>ISO27001_Audit_Package_2024.{selectedExportFormat}</p>
-
-                <button onClick={() => { 
-
-                  if (downloadUrl) {
-
-                    const a = document.createElement('a');
-
-                    a.href = downloadUrl;
-
-                    a.download = `ISO27001_Audit_Package.${selectedExportFormat}`;
-
-                    document.body.appendChild(a);
-
-                    a.click();
-
-                    document.body.removeChild(a);
-
-                  }
-
-                  setShowExportModal(false); 
-
-                  setExportProgress(0); 
-
-                }} style={{ padding: '14px 32px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '12px', color: 'white', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', margin: '0 auto' }}>
-
-                  <Download size={20} /> {l.downloadNow}
-
-                </button>
-
-              </>
-
-            )}
-
-          </div>
-
-        </div>
-
-      )}
-
-
-
-      {/* AI Search Modal */}
-
-      {(isAiSearching || aiResponse) && (
-
-        <div className="audit-modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 }}>
-
-          <div className="audit-modal-content" style={{ width: 'min(600px, 100%)', maxHeight: '80vh', background: darkMode ? '#1e293b' : '#ffffff', borderRadius: '20px', border: `1px solid ${t.border}`, overflow: 'hidden', boxShadow: '0 25px 50px rgba(0,0,0,0.3)', padding: '24px', display: 'flex', flexDirection: 'column' }}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: `1px solid ${t.border}`, paddingBottom: '12px' }}>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#004ac6' }}>
-
-                <Sparkles size={20} />
-
-                <h3 style={{ fontSize: '18px', fontWeight: 600 }}>{language === 'es' ? 'Asistente de Auditoría IA' : 'AI Audit Assistant'}</h3>
-
-              </div>
-
-              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ background: 'none', border: 'none', color: t.textMuted, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={20} /></button>
-
-            </div>
-
-
-
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '4px', textAlign: 'left' }}>
-
-              {isAiSearching ? (
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '16px' }}>
-
-                  <RefreshCw size={36} color="#004ac6" style={{ animation: 'spin 1s linear infinite' }} />
-
-                  <p style={{ fontSize: '14px', color: t.textDim, fontWeight: 500 }}>
-
-                    {language === 'es' ? 'Consultando RAG de evidencias y base de conocimiento...' : 'Consulting evidence RAG and knowledge base...'}
-
-                  </p>
-
-                </div>
-
-              ) : aiResponse.error ? (
-
-                <div style={{ color: '#ef4444', padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '10px', fontSize: '14px' }}>
-
-                  <strong>Error:</strong> {aiResponse.message}
-
-                </div>
-
-              ) : (
-
-                <div style={{ fontSize: '14px', lineHeight: '1.6', color: t.text, whiteSpace: 'pre-line' }}>
-
-                  <p style={{ fontWeight: 600, color: '#004ac6', marginBottom: '12px', fontSize: '15px' }}>
-
-                    {language === 'es' ? `Respuesta para: "${searchQuery}"` : `Answer for: "${searchQuery}"`}
-
-                  </p>
-
-                  <div style={{ padding: '16px', background: t.inputBg, borderRadius: '12px', border: `1px solid ${t.border}` }}>
-
-                    {aiResponse.text}
-
-                  </div>
-
-                </div>
-
-              )}
-
-            </div>
-
-
-
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-
-              <button onClick={() => { setIsAiSearching(false); setAiResponse(null); }} style={{ padding: '10px 20px', background: 'linear-gradient(135deg, #004ac6 0%, #003ea8 100%)', border: 'none', borderRadius: '10px', color: 'white', fontWeight: 600, cursor: 'pointer', fontSize: '13px' }}>
-
-                {language === 'es' ? 'Entendido' : 'Got it'}
-
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
-
+      {abierta && <DetalleCarpeta c={abierta} t={t} meta={datos?.meta} vistaAuditor={enVistaAuditor} onClose={() => setAbierta(null)} />}
     </div>
-
   );
-
 }
 
+function Cargando({ t, texto }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '48px', color: t.textDim, fontSize: '14px' }}>
+      <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} /> {texto}
+    </div>
+  );
+}
 
+function TarjetaCarpeta({ c, t, card, onClick }) {
+  const esEvidencias = c.tipo === 'evidencias';
+  const est = ESTADO_CARPETA[c.estado] || ESTADO_CARPETA.sin_evaluar;
+  return (
+    <button type="button" onClick={onClick}
+      style={{ ...card, padding: '18px', textAlign: 'left', cursor: 'pointer', color: t.text, display: 'flex', flexDirection: 'column', gap: '10px', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+        <span style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {esEvidencias ? <Database size={20} color={MORADO} /> : <Folder size={20} color={MORADO} />}
+        </span>
+        {!esEvidencias && (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: est.color, background: `${est.color}15`, padding: '3px 9px', borderRadius: '20px' }}>
+            <est.Icono size={12} /> {est.texto}
+          </span>
+        )}
+      </div>
+      <div style={{ fontSize: '14px', fontWeight: 600, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{c.nombre}</div>
+      {esEvidencias ? (
+        <div style={{ fontSize: '12px', color: t.textDim }}>{c.evidencias.length} evidencias · {tamano(c.evidencias.reduce((s, e) => s + (e.tamano || 0), 0))}</div>
+      ) : (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '8px' }}>
+          <div style={{ fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>
+            {c.evaluadas} de {c.total_preguntas} preguntas evaluadas<br />
+            {c.documentos.length} {c.documentos.length === 1 ? 'documento' : 'documentos'}
+          </div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: est.color }}>{c.puntaje == null ? '—' : `${c.puntaje} %`}</div>
+        </div>
+      )}
+    </button>
+  );
+}
+
+function DetalleCarpeta({ c, t, meta, vistaAuditor, onClose }) {
+  const esEvidencias = c.tipo === 'evidencias';
+  return (
+    <Modal t={t} titulo={c.nombre} onClose={onClose}
+      subtitulo={esEvidencias ? `${c.evidencias.length} evidencias` : (c.puntaje == null ? 'Sin evaluar en el Análisis de Brechas' : `${c.puntaje} % · meta ${meta} % · ${c.cumplen} de ${c.evaluadas} preguntas cumplen`)}>
+      {esEvidencias ? (
+        c.evidencias.length === 0 ? <p style={{ color: t.textDim }}>La empresa aún no sube evidencias.</p> : (
+          <div className="sa-scroll">
+            <table className="sa-tabla">
+              <thead><tr><th>Evidencia</th><th>Subida</th><th>Por</th><th>Tamaño</th></tr></thead>
+              <tbody>{c.evidencias.map((e) => (
+                <tr key={e.id}>
+                  <td style={{ overflowWrap: 'anywhere' }}>{e.nombre}{!e.archivo_guardado && <span style={{ display: 'block', fontSize: '11px', color: '#b45309' }}>Solo texto: el archivo original no quedó guardado</span>}</td>
+                  <td>{e.fecha}</td><td>{e.subido_por || '—'}</td><td>{tamano(e.tamano)}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        <>
+          <h3 style={{ fontSize: '14px', margin: '0 0 8px' }}>Documentos de esta cláusula</h3>
+          {c.documentos.length === 0 ? (
+            <p style={{ color: t.textDim, fontSize: '13px', margin: 0 }}>
+              {c.id === 'A' ? 'Los controles del Anexo A se demuestran con evidencias, no con documentos del Generador.'
+                : vistaAuditor ? 'No hay documentos publicados de esta cláusula. Los borradores no se muestran al auditor.'
+                : 'No hay documentos de esta cláusula. Se crean en el Generador de Documentos.'}
+            </p>
+          ) : (
+            <div className="sa-scroll">
+              <table className="sa-tabla">
+                <thead><tr><th>Documento</th><th>Versión</th><th>Estado</th><th>Aprobado por</th></tr></thead>
+                <tbody>{c.documentos.map((d) => (
+                  <tr key={d.id}>
+                    <td style={{ fontWeight: 600 }}>{d.titulo}</td><td>{d.version}</td>
+                    <td>{d.estado_nombre}{d.publicado_en && <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>Publicado el {d.publicado_en}</span>}</td>
+                    <td>{d.aprobado_por ? <>{d.aprobado_por}<span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{d.aprobado_en}</span></> : '—'}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          )}
+          {c.id === '6' && <p style={{ fontSize: '12px', color: t.textDim, marginTop: '12px' }}>El paquete para el auditor agrega el registro de riesgos en esta carpeta.</p>}
+          {c.id === '7' && <p style={{ fontSize: '12px', color: t.textDim, marginTop: '12px' }}>El paquete para el auditor agrega cuántos trabajadores aceptaron cada política (concientización, 7.3).</p>}
+        </>
+      )}
+    </Modal>
+  );
+}
+
+function BuscarConIA({ t, card }) {
+  const [pregunta, setPregunta] = useState('');
+  const [buscando, setBuscando] = useState(false);
+  const [respuesta, setRespuesta] = useState(null);
+
+  const buscar = async () => {
+    if (!pregunta.trim() || buscando) return;
+    setBuscando(true); setRespuesta(null);
+    const r = await chatAPI.sendMessage(pregunta);
+    setBuscando(false);
+    setRespuesta(r.error ? { error: r.error } : { texto: r.reply, fuentes: r.fuentes || [] });
+  };
+
+  return (
+    <div style={{ ...card, padding: '16px 18px', marginBottom: '20px' }}>
+      <div className="sa-busqueda" style={{ display: 'flex', gap: '10px' }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', background: t.inputBg, borderRadius: '10px', padding: '10px 14px', border: `1px solid ${t.border}` }}>
+          <Search size={18} color={t.textDim} />
+          <input value={pregunta} onChange={(e) => setPregunta(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()}
+            placeholder="Pregunta sobre las evidencias de la empresa, por ejemplo: ¿qué evidencia tengo de control de accesos?"
+            aria-label="Pregunta para la búsqueda con IA"
+            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} />
+        </div>
+        <button type="button" onClick={buscar} disabled={buscando}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 18px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: buscando ? 'wait' : 'pointer' }}>
+          {buscando ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />} Buscar con IA
+        </button>
+      </div>
+      {respuesta && (
+        <div style={{ marginTop: '14px', padding: '14px', borderRadius: '10px', background: t.inputBg, fontSize: '13px', lineHeight: 1.6, position: 'relative' }}>
+          <button type="button" onClick={() => setRespuesta(null)} aria-label="Cerrar respuesta" style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: t.textDim, cursor: 'pointer' }}><X size={16} /></button>
+          {respuesta.error ? <span style={{ color: '#dc2626' }}>{respuesta.error}</span> : (
+            <>
+              <div className="sa-respuesta" style={{ paddingRight: '20px' }}><ReactMarkdown remarkPlugins={[remarkGfm]}>{respuesta.texto || ''}</ReactMarkdown></div>
+              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${t.border}`, fontSize: '12px', color: t.textDim }}>
+                {respuesta.fuentes.length
+                  ? <><b>Basado en:</b> {respuesta.fuentes.join(' · ')}</>
+                  : 'No encontró evidencias de la empresa relacionadas con la pregunta: la respuesta se apoya solo en la norma.'}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RegistroActividad({ t, card }) {
+  const [accion, setAccion] = useState('');
+  const [dias, setDias] = useState('30');
+  const [datos, setDatos] = useState(null);
+  const [error, setError] = useState(null);
+  const [bajando, setBajando] = useState(false);
+
+  useEffect(() => {
+    let vigente = true;
+    setDatos(null); setError(null);
+    salaAuditoriaAPI.registro({ accion, dias }).then((d) => vigente && setDatos(d)).catch((e) => vigente && setError(e.message));
+    return () => { vigente = false; };
+  }, [accion, dias]);
+
+  const bajarCsv = async () => {
+    setBajando(true);
+    try { descargar(await salaAuditoriaAPI.registroCsv()); } catch (e) { setError(e.message); }
+    setBajando(false);
+  };
+
+  const sel = { padding: '8px 10px', borderRadius: '8px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '13px' };
+  const integ = datos?.integridad;
+
+  return (
+    <div style={{ ...card, overflow: 'hidden' }}>
+      <div style={{ padding: '16px 18px', borderBottom: `1px solid ${t.border}`, display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ minWidth: 0 }}>
+          {integ && (integ.total === 0 ? null : integ.integra ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 600, fontSize: '14px' }}><ShieldCheck size={18} /> Registro íntegro: {integ.verificadas} acciones verificadas</div>
+          ) : (
+            <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 600, fontSize: '14px' }}><ShieldAlert size={18} /> El registro fue alterado: la cadena no calza desde la acción del {integ.primera_alterada?.fecha}</div>
+          ))}
+          <div style={{ fontSize: '12px', color: t.textDim, marginTop: '4px' }}>
+            {datos?.desde ? `Registro activo desde el ${datos.desde}. Cada acción guarda un sello de la anterior: si alguien modifica una fila, la verificación lo detecta.` : 'Aún no hay acciones registradas.'}
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          <select value={accion} onChange={(e) => setAccion(e.target.value)} aria-label="Filtrar por acción" style={sel}>
+            {ACCIONES.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+          </select>
+          <select value={dias} onChange={(e) => setDias(e.target.value)} aria-label="Filtrar por período" style={sel}>
+            {PERIODOS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}
+          </select>
+          <button type="button" onClick={bajarCsv} disabled={bajando || !datos?.desde}
+            style={{ ...sel, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600 }}>
+            <Download size={14} /> Descargar CSV
+          </button>
+        </div>
+      </div>
+      {error && <div role="alert" style={{ color: '#dc2626', fontSize: '13px', padding: '12px 18px' }}>{error}</div>}
+      {!datos && !error ? <Cargando t={t} texto="Cargando registro…" /> : datos && (
+        datos.filas.length === 0 ? <p style={{ padding: '32px 18px', textAlign: 'center', color: t.textDim, fontSize: '14px', margin: 0 }}>No hay acciones con estos filtros.</p> : (
+          <div className="sa-scroll">
+            <table className="sa-tabla" style={{ minWidth: '760px' }}>
+              <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Recurso</th><th>Detalle</th><th>IP</th></tr></thead>
+              <tbody>{datos.filas.map((f) => (
+                <tr key={f.id}>
+                  <td style={{ whiteSpace: 'nowrap', fontFamily: 'monospace', fontSize: '12px' }}>{f.fecha}</td>
+                  <td>{f.usuario}<span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{ROLES[f.rol] || f.rol}{f.email && f.email !== f.usuario ? ` · ${f.email}` : ''}</span></td>
+                  <td><span style={{ fontSize: '12px', fontWeight: 600, color: COLOR_ACCION[f.accion] || t.text, background: `${COLOR_ACCION[f.accion] || '#64748b'}15`, padding: '3px 9px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{f.accion_nombre}</span></td>
+                  <td style={{ overflowWrap: 'anywhere' }}><span style={{ display: 'block', fontSize: '11px', color: t.textDim, textTransform: 'capitalize' }}>{f.tipo_recurso}</span>{f.recurso}</td>
+                  <td style={{ color: t.textDim, overflowWrap: 'anywhere' }}>{f.detalle || '—'}</td>
+                  <td style={{ fontFamily: 'monospace', fontSize: '12px', whiteSpace: 'nowrap' }}>{f.ip || '—'}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        )
+      )}
+    </div>
+  );
+}
+
+function PaqueteAuditor({ t, card, datos }) {
+  const todas = datos.carpetas.map((c) => c.id);
+  const [elegidas, setElegidas] = useState(todas);
+  const [conRegistro, setConRegistro] = useState(true);
+  const [generando, setGenerando] = useState(false);
+  const [error, setError] = useState(null);
+  const [listo, setListo] = useState(null);
+
+  // El paquete siempre lleva solo documentos publicados, aunque la pantalla esté en vista completa.
+  const publicados = (c) => (c.documentos || []).filter((d) => d.estado === 'published').length;
+  const cambiar = (id) => setElegidas((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const elegidasObj = datos.carpetas.filter((c) => elegidas.includes(c.id));
+  const nDocs = elegidasObj.reduce((s, c) => s + publicados(c), 0);
+  const evid = elegidasObj.find((c) => c.tipo === 'evidencias');
+  const peso = evid ? evid.evidencias.filter((e) => e.archivo_guardado).reduce((s, e) => s + (e.tamano || 0), 0) : 0;
+
+  const generar = async () => {
+    setGenerando(true); setError(null); setListo(null);
+    try {
+      const archivo = await salaAuditoriaAPI.paquete(elegidas, conRegistro);
+      descargar(archivo);
+      setListo(archivo.nombre);
+    } catch (e) { setError(e.message); }
+    setGenerando(false);
+  };
+
+  const detalle = (c) => {
+    if (c.tipo === 'evidencias') return `${c.evidencias.length} evidencias con su índice`;
+    const extra = c.id === '6' ? ' + registro de riesgos' : c.id === '7' ? ' + aceptación de políticas' : '';
+    return `${publicados(c)} ${publicados(c) === 1 ? 'documento publicado' : 'documentos publicados'}${extra}`;
+  };
+
+  return (
+    <div style={{ ...card, padding: '20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
+        <Package size={22} color={MORADO} />
+        <h2 style={{ fontSize: '18px', margin: 0 }}>Paquete para el auditor (ZIP)</h2>
+      </div>
+      <p style={{ fontSize: '13px', color: t.textDim, margin: '0 0 16px' }}>
+        Una carpeta por cláusula con los documentos <b>publicados</b> en PDF, las evidencias y un resumen con el puntaje de cada cláusula. Los borradores nunca se incluyen.
+      </p>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: t.textDim, textTransform: 'uppercase' }}>Carpetas</span>
+        <button type="button" onClick={() => setElegidas(elegidas.length === todas.length ? [] : todas)}
+          style={{ background: 'none', border: 'none', color: MORADO, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+          {elegidas.length === todas.length ? 'Quitar todas' : 'Elegir todas'}
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '8px', marginBottom: '14px' }}>
+        {datos.carpetas.map((c) => (
+          <label key={c.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', borderRadius: '10px', cursor: 'pointer',
+            background: elegidas.includes(c.id) ? 'rgba(124,58,237,0.08)' : t.inputBg, border: `1px solid ${elegidas.includes(c.id) ? MORADO : t.border}` }}>
+            <input type="checkbox" checked={elegidas.includes(c.id)} onChange={() => cambiar(c.id)} style={{ marginTop: '2px', accentColor: MORADO }} />
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: '13px', fontWeight: 600 }}>{c.nombre}</span>
+              <span style={{ fontSize: '12px', color: t.textDim }}>{detalle(c)}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', marginBottom: '18px', cursor: 'pointer' }}>
+        <input type="checkbox" checked={conRegistro} onChange={(e) => setConRegistro(e.target.checked)} style={{ accentColor: MORADO }} />
+        Incluir el registro de actividad (CSV) y el resultado de su verificación
+      </label>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '14px', padding: '14px 16px', borderRadius: '12px', background: t.inputBg }}>
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          <Dato t={t} etiqueta="Documentos publicados" valor={nDocs} />
+          <Dato t={t} etiqueta="Evidencias" valor={evid ? evid.evidencias.length : 0} />
+          <Dato t={t} etiqueta="Peso aproximado" valor={tamano(peso + nDocs * 60 * 1024)} />
+        </div>
+        <button type="button" onClick={generar} disabled={generando || elegidas.length === 0}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 22px', borderRadius: '10px', border: 'none', fontWeight: 700, fontSize: '14px', color: 'white',
+            background: elegidas.length === 0 ? '#94a3b8' : MORADO, cursor: generando ? 'wait' : elegidas.length === 0 ? 'not-allowed' : 'pointer' }}>
+          {generando ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
+          {generando ? 'Generando…' : 'Descargar paquete'}
+        </button>
+      </div>
+      {listo && <p style={{ fontSize: '13px', color: '#15803d', margin: '12px 0 0', display: 'flex', alignItems: 'center', gap: '6px' }}><FileText size={14} /> Se descargó {listo}. La descarga quedó en el registro de actividad.</p>}
+      {error && <p role="alert" style={{ fontSize: '13px', color: '#dc2626', margin: '12px 0 0' }}>{error}</p>}
+    </div>
+  );
+}
+
+function Dato({ t, etiqueta, valor }) {
+  return (
+    <div>
+      <div style={{ fontSize: '11px', color: t.textDim }}>{etiqueta}</div>
+      <div style={{ fontSize: '20px', fontWeight: 700 }}>{valor}</div>
+    </div>
+  );
+}
+
+function Modal({ t, titulo, subtitulo, onClose, children }) {
+  return createPortal(
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10050, padding: '16px' }}>
+      <div role="dialog" aria-modal="true" aria-label={titulo} onClick={(e) => e.stopPropagation()}
+        className="sala-auditoria"
+        style={{ width: 'min(820px, 100%)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', background: t.cardBg, borderRadius: '16px', border: `1px solid ${t.border}`, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 20px', borderBottom: `1px solid ${t.border}` }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: '16px', fontWeight: 700, color: t.text }}>{titulo}</div>
+            {subtitulo && <div style={{ fontSize: '12px', color: t.textDim }}>{subtitulo}</div>}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: t.textDim, cursor: 'pointer', display: 'flex' }}><X size={20} /></button>
+        </div>
+        <div style={{ padding: '20px', overflowY: 'auto', color: t.text, fontSize: '14px' }}>{children}</div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export default AuditRoomScreen;

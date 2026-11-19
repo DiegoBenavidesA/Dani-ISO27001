@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.dependencies.database import get_db
 from app.models.risk import Risk, RiskLevel, RiskStatus, RiskCategory
 from app.dependencies.auth import get_current_user, get_current_org
+from app.services.registro import registrar
 from app.dependencies.tenant import scope_to_org, get_scoped_or_404
 
 # Corregido a AIService
@@ -217,6 +218,8 @@ async def create_risk(
     db.add(risk)
     await db.commit()
     await db.refresh(risk)
+    await registrar(db, org_id, current_user, "creo", "riesgo", risk.title,
+                    f"Probabilidad {risk.likelihood} × impacto {risk.impact} · responsable {risk.owner or 'sin asignar'}")
     if responsable and responsable.email != current_user.get("sub"):
         await _avisar_responsable(responsable, risk)
     return (await _responder(db, [risk], org_id))[0]
@@ -265,11 +268,13 @@ async def update_risk_status(
     risk_id: str,
     status: RiskStatus,
     org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     risk = await get_scoped_or_404(db, Risk, risk_id, org_id)
     risk.status = status
     await db.commit()
+    await registrar(db, org_id, current_user, "modifico", "riesgo", risk.title, f"Estado: {_valor(status)}")
     await db.refresh(risk)
     return {"message": "Risk status updated", "risk": risk}
 
@@ -297,6 +302,13 @@ async def analyze_risk_with_ai(
     if not controles:
         raise HTTPException(status_code=502, detail="La IA no propuso controles válidos del Anexo A. Intenta de nuevo.")
     return {"controls": controles}
+
+
+CAMPOS_RIESGO = {
+    "title": "título", "description": "descripción", "category": "categoría", "likelihood": "probabilidad",
+    "impact": "impacto", "owner": "responsable", "due_date": "plazo", "controls": "plan de controles",
+    "mitigation_plan": "plan de tratamiento", "revision_fecha": "fecha de revisión", "status": "estado",
+}
 
 
 @router.put("/{risk_id}", response_model=RiskResponse)
@@ -349,6 +361,11 @@ async def update_risk(
 
     await db.commit()
     await db.refresh(risk)
+    if cambios:
+        detalle = "Aceptó el riesgo residual" if _valor(risk.status) == "accepted" and "status" in cambios \
+            else "Cambió: " + ", ".join(CAMPOS_RIESGO.get(c, c) for c in cambios)
+        await registrar(db, org_id, current_user, "aprobo" if detalle.startswith("Aceptó") else "modifico",
+                        "riesgo", risk.title, detalle)
     if nuevo_responsable and nuevo_responsable.email != current_user.get("sub"):
         await _avisar_responsable(nuevo_responsable, risk)
     return (await _responder(db, [risk], org_id))[0]
@@ -358,9 +375,12 @@ async def update_risk(
 async def delete_risk(
     risk_id: str,
     org_id: str = Depends(get_current_org),
+    current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     risk = await get_scoped_or_404(db, Risk, risk_id, org_id)
+    titulo = risk.title
     await db.delete(risk)
     await db.commit()
+    await registrar(db, org_id, current_user, "elimino", "riesgo", titulo)
     return {"message": "Risk deleted successfully"}

@@ -43,7 +43,8 @@ async def chat_endpoint(
     """
     context = ""
     context_blocks = []
-    
+    fuentes = []  # documentos de la empresa en que se apoyó la respuesta
+
     # ========================================================
     # 1. INYECCIÓN DE CONTEXTO EN VIVO (Base de Datos Real)
     # ========================================================
@@ -78,13 +79,21 @@ async def chat_endpoint(
         # Evidencias internas
         try:
             from app.models.evidence import Evidence
-            ev_stmt = select(EvidenceChunk).join(EvidenceChunk.evidence).options(selectinload(EvidenceChunk.evidence))
+            # Solo las evidencias de ESTA empresa: sin este filtro la búsqueda
+            # traía párrafos de los documentos de otras empresas.
+            ev_stmt = (select(EvidenceChunk).join(EvidenceChunk.evidence)
+                       .options(selectinload(EvidenceChunk.evidence))
+                       .where(Evidence.organization_id == org_id))
             if current_user.get("role") == "employee":
                 ev_stmt = ev_stmt.where(Evidence.uploaded_by == current_user["user_id"])
-            ev_stmt = ev_stmt.order_by(EvidenceChunk.embedding.cosine_distance(query_vector)).limit(2)
+            ev_stmt = ev_stmt.order_by(EvidenceChunk.embedding.cosine_distance(query_vector)).limit(3)
             for chunk in (await db.execute(ev_stmt)).scalars().all():
-                context_blocks.append(f"--- EVIDENCIA INTERNA ---\nDoc: {chunk.evidence.title if chunk.evidence else 'N/A'}\nTexto: {chunk.content}")
-        except: pass
+                titulo = chunk.evidence.title if chunk.evidence else 'N/A'
+                context_blocks.append(f"--- EVIDENCIA INTERNA ---\nDoc: {titulo}\nTexto: {chunk.content}")
+                if titulo not in fuentes:
+                    fuentes.append(titulo)
+        except Exception as e:
+            print(f"Error buscando evidencias: {e}")
 
         # Normativa Oficial
         try:
@@ -123,4 +132,4 @@ async def chat_endpoint(
         history=conversation_history,
     )
     
-    return {"reply": reply}
+    return {"reply": reply, "fuentes": fuentes}
