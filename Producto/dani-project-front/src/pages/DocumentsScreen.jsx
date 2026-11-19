@@ -33,7 +33,7 @@ function DocumentsScreen({ setActiveScreen }) {
       await documentsAPI.updateStatus(docId, newStatus);
       setDocuments(prev => prev.map(d => d.chapter_id === docId ? { ...d, status: newStatus } : d));
     } catch (err) {
-      alert("Error actualizando estado. Recuerda que necesitas ser Administrador.");
+      alert("No se pudo cambiar el estado. Aprobar y publicar es tarea de la dirección (dueño o administrador).");
     }
   };
 

@@ -7,14 +7,24 @@ logger = logging.getLogger(__name__)
 
 def proteger_datos_personales(cliente):
     """Toda llamada a la IA pasa primero por el ocultamiento de datos personales
-    (RUT, correos, teléfonos y tarjetas), sin importar qué función la haga."""
-    from app.services.datos_personales import ocultar_mensajes
+    (RUT, correos, teléfonos y tarjetas), sin importar qué función la haga. Los
+    datos se cambian por marcas numeradas y se restauran en la respuesta."""
+    from app.services.datos_personales import seudonimizar_mensajes, restaurar
     original = cliente.chat.completions.create
 
     async def create_sin_datos_personales(*args, **kwargs):
+        mapa = {}
         if "messages" in kwargs:
-            kwargs["messages"] = ocultar_mensajes(kwargs["messages"])
-        return await original(*args, **kwargs)
+            kwargs["messages"] = seudonimizar_mensajes(kwargs["messages"], mapa)
+        respuesta = await original(*args, **kwargs)
+        if mapa:
+            try:
+                for eleccion in respuesta.choices:
+                    if isinstance(eleccion.message.content, str):
+                        eleccion.message.content = restaurar(eleccion.message.content, mapa)
+            except AttributeError:
+                pass
+        return respuesta
 
     cliente.chat.completions.create = create_sin_datos_personales
     return cliente

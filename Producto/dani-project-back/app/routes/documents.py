@@ -131,7 +131,7 @@ async def get_published_policies(
         ack_result = await db.execute(select(DocumentAcknowledgement).filter(DocumentAcknowledgement.user_id == user_id))
         ack_doc_ids = {ack.document_id for ack in ack_result.scalars().all()}
 
-    policies = [{"id": d.id, "chapter_id": d.chapter_id, "title": d.title, "content": d.content, "is_acknowledged": d.id in ack_doc_ids} for d in documents]
+    policies = [{"id": d.id, "chapter_id": d.chapter_id, "title": d.title, "content": d.content, "version": d.version, "is_acknowledged": d.id in ack_doc_ids} for d in documents]
     return {"policies": policies}
 
 @router.post("/{document_id}/acknowledge")
@@ -180,6 +180,9 @@ async def get_document(
 
 
 
+ROLES_APRUEBAN = ["superadmin", "owner", "admin"]
+
+
 @router.put("/{chapter_id}/status")
 async def update_document_status(
     chapter_id: str,
@@ -200,9 +203,12 @@ async def update_document_status(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid status")
         
+    # Aprobar y publicar es tarea de la alta dirección (ISO 27001, 5.1 y 5.2).
+    # El auditor no aprueba lo que después audita (9.2) y el jefe de área propone,
+    # pero no aprueba.
     if new_status in [DocumentStatus.APPROVED, DocumentStatus.PUBLISHED]:
-        if current_user.get("role", "") not in ["superadmin", "owner", "admin", "auditor", "manager"]:
-            raise HTTPException(status_code=403, detail="Sin permisos")
+        if current_user.get("role", "") not in ROLES_APRUEBAN:
+            raise HTTPException(status_code=403, detail="Solo la dirección (dueño o administrador) puede aprobar o publicar documentos.")
             
     document.status = new_status
     if new_status == DocumentStatus.PUBLISHED:

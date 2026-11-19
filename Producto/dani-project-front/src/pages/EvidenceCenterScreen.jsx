@@ -116,6 +116,7 @@ function MenuAcciones({ opciones, t, darkMode, etiqueta }) {
 function VistaPrevia({ evidencia, onCerrar, t, darkMode }) {
   const [archivoUrl, setArchivoUrl] = useState(null);
   const [texto, setTexto] = useState(null);
+  const [datosOcultos, setDatosOcultos] = useState('');
   const [sinArchivo, setSinArchivo] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState(null);
@@ -142,6 +143,7 @@ function VistaPrevia({ evidencia, onCerrar, t, darkMode }) {
       const datos = await tareaTexto;
       if (vigente) {
         setTexto(datos?.texto ?? '');
+        setDatosOcultos(datos?.datos_ocultos || '');
         if (!datos && !mostrable) setError('No se pudo leer el contenido de la evidencia.');
         setCargando(false);
       }
@@ -194,7 +196,14 @@ function VistaPrevia({ evidencia, onCerrar, t, darkMode }) {
               ? <div style={{ height: '100%', overflow: 'auto', display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}><img src={archivoUrl} alt={nombre} style={{ maxWidth: '100%' }} /></div>
               : <iframe src={archivoUrl} title={nombre} style={{ width: '100%', height: '100%', border: `1px solid ${t.border}`, borderRadius: '8px' }} />
           ) : texto ? (
-            <pre style={{ height: '100%', overflow: 'auto', margin: 0, padding: '14px', background: t.inputBg, borderRadius: '8px', color: t.text, fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit' }}>{texto}</pre>
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {datosOcultos && (
+                <div role="note" style={{ padding: '8px 12px', borderRadius: '8px', background: 'rgba(124,58,237,0.08)', color: '#6d28d9', fontSize: '12px' }}>
+                  Así recibe la IA este texto: {datosOcultos} se reemplazaron por marcas como [RUT_1]. Los datos originales siguen en el documento y en lo que la IA redacta para la empresa.
+                </div>
+              )}
+              <pre style={{ flex: 1, overflow: 'auto', margin: 0, padding: '14px', background: t.inputBg, borderRadius: '8px', color: t.text, fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'inherit' }}>{texto}</pre>
+            </div>
           ) : (
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '8px', color: t.textDim, fontSize: '14px', textAlign: 'center', padding: '0 20px' }}>
               <ImageIcon size={32} />

@@ -104,3 +104,63 @@ def describir(conteo: dict) -> str:
     if not partes:
         return ""
     return partes[0] if len(partes) == 1 else ", ".join(partes[:-1]) + " y " + partes[-1]
+
+
+# ---- Seudónimos reversibles -------------------------------------------------
+# Para lo que se envía a la IA se usan marcas numeradas ([CORREO_1], [RUT_2]...)
+# en vez de "[correo oculto]": la IA trabaja con la marca y, al recibir su
+# respuesta, la plataforma vuelve a poner el dato original. Así la IA nunca ve
+# los datos y un documento generado (por ejemplo, una política con el contacto
+# del delegado) queda completo.
+
+_ETIQUETA = {"rut": "RUT", "correo": "CORREO", "telefono": "TELEFONO", "tarjeta": "TARJETA"}
+_MARCA_NUMERADA = re.compile(r"\[(RUT|CORREO|TEL[EÉ]FONO|TARJETA)[ _](\d+)\]", re.IGNORECASE)
+
+
+def seudonimizar(texto: str, mapa: dict) -> str:
+    """Reemplaza los datos por marcas numeradas. mapa: {marca: original},
+    compartido entre los mensajes de una misma llamada (el mismo dato recibe
+    siempre la misma marca)."""
+    if not texto:
+        return texto
+    inverso = {v: k for k, v in mapa.items()}
+
+    def reemplazo(tipo, valido=None):
+        def _r(m):
+            original = m.group(0)
+            if valido and not valido(m):
+                return original
+            if original in inverso:
+                return inverso[original]
+            n = sum(1 for k in mapa if k.startswith(f"[{_ETIQUETA[tipo]}_")) + 1
+            marca = f"[{_ETIQUETA[tipo]}_{n}]"
+            mapa[marca] = original
+            inverso[original] = marca
+            return marca
+        return _r
+
+    texto = _CORREO.sub(reemplazo("correo"), texto)
+    texto = _RUT.sub(reemplazo("rut", lambda m: rut_valido(m.group(1), m.group(2))), texto)
+    texto = _TARJETA.sub(reemplazo("tarjeta", lambda m: _luhn(m.group(0))), texto)
+    texto = _TELEFONO.sub(reemplazo("telefono"), texto)
+    return texto
+
+
+def restaurar(texto: str, mapa: dict) -> str:
+    """Vuelve a poner los datos originales en la respuesta de la IA."""
+    if not texto or not mapa:
+        return texto
+
+    def _r(m):
+        tipo = m.group(1).upper().replace("É", "E")
+        return mapa.get(f"[{tipo}_{m.group(2)}]", m.group(0))
+    return _MARCA_NUMERADA.sub(_r, texto)
+
+
+def seudonimizar_mensajes(mensajes, mapa: dict):
+    salida = []
+    for m in mensajes or []:
+        if isinstance(m, dict) and isinstance(m.get("content"), str):
+            m = {**m, "content": seudonimizar(m["content"], mapa)}
+        salida.append(m)
+    return salida

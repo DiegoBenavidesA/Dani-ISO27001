@@ -41,14 +41,16 @@ def test_ocultar_mensajes_no_modifica_lo_que_no_es_texto():
     assert mensajes[0]["content"] == "RUT 11.111.111-1"  # el original no se toca
 
 
-def test_la_ia_recibe_el_texto_sin_datos_personales():
+def test_la_ia_recibe_marcas_y_la_respuesta_recupera_los_datos():
+    from types import SimpleNamespace
     from app.services.ai_service import proteger_datos_personales
     recibido = {}
 
     class _Completions:
         async def create(self, **kwargs):
             recibido["messages"] = kwargs["messages"]
-            return "respuesta"
+            contenido = "Contacto del delegado: [CORREO_1]. Ficha de [RUT_1]. Otro: [CORREO 9]"
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=contenido))])
 
     class _Cliente:
         def __init__(self):
@@ -57,9 +59,20 @@ def test_la_ia_recibe_el_texto_sin_datos_personales():
 
     cliente = proteger_datos_personales(_Cliente())
     r = asyncio.run(cliente.chat.completions.create(
-        model="x", messages=[{"role": "user", "content": "Ficha de 12.345.678-5, contacto ana@clinica.cl"}]))
-    assert r == "respuesta"
-    assert recibido["messages"][0]["content"] == "Ficha de [RUT oculto], contacto [correo oculto]"
+        model="x", messages=[{"role": "user", "content": "Ficha de 12.345.678-5, contacto ana@clinica.cl y de nuevo ana@clinica.cl"}]))
+    enviado = recibido["messages"][0]["content"]
+    assert "12.345.678-5" not in enviado and "ana@clinica.cl" not in enviado
+    assert enviado == "Ficha de [RUT_1], contacto [CORREO_1] y de nuevo [CORREO_1]"
+    # La respuesta vuelve con los datos reales; una marca desconocida se deja tal cual.
+    assert r.choices[0].message.content == "Contacto del delegado: ana@clinica.cl. Ficha de 12.345.678-5. Otro: [CORREO 9]"
+
+
+def test_seudonimos_entre_mensajes_y_restauracion_tolerante():
+    from app.services.datos_personales import seudonimizar_mensajes, restaurar
+    mapa = {}
+    msgs = seudonimizar_mensajes([{"role": "system", "content": "a@x.cl"}, {"role": "user", "content": "a@x.cl y b@x.cl, +56 9 8765 4321"}], mapa)
+    assert msgs[1]["content"] == "[CORREO_1] y [CORREO_2], [TELEFONO_1]"
+    assert restaurar("[correo_2] / [Teléfono 1]", mapa) == "b@x.cl / +56 9 8765 4321"
 
 
 def test_contar_texto_vacio():

@@ -1,5 +1,7 @@
 /* eslint-disable */
 import React, { useContext, useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Shield, Clock, CheckCircle2, FileText, X, Check } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { documentsAPI } from '../services/api';
@@ -109,7 +111,7 @@ const EmployeePortalScreen = () => {
                     </div>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: t.text, margin: 0, lineHeight: 1.3 }}>Cap. {policy.chapter_id}: {policy.title}</h3>
+                        <h3 style={{ fontSize: '14px', fontWeight: 700, color: t.text, margin: 0, lineHeight: 1.3 }}>{policy.title}</h3>
                         {!policy.is_acknowledged && <span style={{ fontSize: '9px', padding: '3px 6px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '6px', color: '#d97706', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pendiente</span>}
                       </div>
                       <span style={{ fontSize: '11px', color: t.textDim, fontWeight: 600 }}>Versión {policy.version}</span>
@@ -152,14 +154,16 @@ const EmployeePortalScreen = () => {
             
             <div style={{ padding: '20px', borderBottom: `1px solid ${t.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
               <div style={{ minWidth: 0 }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 800, color: t.text, margin: '0 0 4px', lineHeight: 1.2 }}>Capítulo {selectedPolicy.chapter_id}: {selectedPolicy.title}</h2>
+                <h2 style={{ fontSize: '16px', fontWeight: 800, color: t.text, margin: '0 0 4px', lineHeight: 1.2 }}>{selectedPolicy.title}</h2>
                 <p style={{ fontSize: '11px', color: t.textDim, margin: 0, fontWeight: 600 }}>Versión {selectedPolicy.version}</p>
               </div>
               <button onClick={() => setSelectedPolicy(null)} style={{ background: t.inputBg, border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, cursor: 'pointer', flexShrink: 0 }}><X size={18} /></button>
             </div>
 
-            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, fontSize: '13px', lineHeight: '1.6', color: t.text, background: t.inputBg, whiteSpace: 'pre-wrap' }}>
-              {selectedPolicy.content || 'Sin contenido disponible.'}
+            <div className="politica-markdown" style={{ padding: '24px', overflowY: 'auto', flex: 1, fontSize: '13px', lineHeight: '1.6', color: t.text, background: t.inputBg }}>
+              {selectedPolicy.content
+                ? <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedPolicy.content}</ReactMarkdown>
+                : 'Sin contenido disponible.'}
             </div>
 
             <div className="modal-actions" style={{ padding: '16px 20px', borderTop: `1px solid ${t.border}`, display: 'flex', justifyContent: 'flex-end', gap: '12px', background: t.cardBg }}>
@@ -187,6 +191,14 @@ const EmployeePortalScreen = () => {
         .btn-mobile-only { display: block; }
         
         .modal-actions { flex-direction: column-reverse; }
+        .politica-markdown h1 { font-size: 18px; margin: 0 0 12px; }
+        .politica-markdown h2 { font-size: 15px; margin: 18px 0 8px; }
+        .politica-markdown h3 { font-size: 14px; margin: 14px 0 6px; }
+        .politica-markdown p, .politica-markdown li { margin: 0 0 8px; }
+        .politica-markdown table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; font-size: 12px; }
+        .politica-markdown th, .politica-markdown td { border: 1px solid rgba(100,116,139,0.35); padding: 6px 8px; text-align: left; vertical-align: top; }
+        .politica-markdown th { background: rgba(37,99,235,0.08); }
+        .politica-markdown hr { border: none; border-top: 1px solid rgba(100,116,139,0.3); margin: 16px 0; }
         .btn-cancel, .btn-accept { width: 100%; justify-content: center; }
 
         @media (min-width: 768px) {

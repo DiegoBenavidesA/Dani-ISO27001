@@ -323,14 +323,18 @@ async def evidence_text(
     org_id: str = Depends(get_current_org),
     db: AsyncSession = Depends(get_db)
 ):
-    """Texto que se extrajo al subir la evidencia: es lo que lee la IA."""
+    """Texto que se extrajo al subir la evidencia, tal como lo recibe la IA:
+    los datos personales van reemplazados por marcas ([RUT_1], [CORREO_1]...)."""
     evidence = await get_scoped_or_404(db, Evidence, evidence_id, org_id)
     from app.services.text_extraction import texto_guardado_valido
-    texto = texto_guardado_valido(evidence.extracted_text, evidence.file_name or evidence.title or "")
+    from app.services.datos_personales import seudonimizar, contar, describir
+    original = texto_guardado_valido(evidence.extracted_text, evidence.file_name or evidence.title or "")
+    texto = seudonimizar(original, {})
     return {
         "id": evidence.id,
         "nombre": evidence.title,
         "texto": texto[:200_000],
+        "datos_ocultos": describir(contar(original)),
         "recortado": len(texto) > 200_000,
         "es_imagen": es_imagen(evidence.file_name or evidence.title),
     }

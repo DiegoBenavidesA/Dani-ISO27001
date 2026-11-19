@@ -16,7 +16,8 @@ const DocGeneratorScreen = ({ navParams }) => {
   const { theme: t, darkMode } = useContext(ThemeContext);
   const { user } = useAuth();
   
-  const canApprove = user && ['superadmin', 'owner', 'admin', 'manager', 'auditor'].includes(user?.role);
+  // Aprobar y publicar es de la dirección (ISO 27001, 5.1 y 5.2); el auditor no aprueba lo que audita.
+  const canApprove = user && ['superadmin', 'owner', 'admin'].includes(user?.role);
 
   // 1. DOCUMENTOS. ISO 27001 pide información documentada concreta (no un
   // documento por cláusula); la ley pide la política de tratamiento y el
