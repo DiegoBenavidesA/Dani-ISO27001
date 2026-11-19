@@ -66,7 +66,7 @@ export const chatAPI = {
       if (!effectiveSignal) {
         const controller = new AbortController();
         effectiveSignal = controller.signal;
-        timeoutId = setTimeout(() => controller.abort(), 30000); 
+        timeoutId = setTimeout(() => controller.abort(), 30000);
       }
       const response = await fetch(`${API_URL}/api/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body: JSON.stringify({ message, language, history }), signal: effectiveSignal });
       if (timeoutId) clearTimeout(timeoutId);
@@ -111,8 +111,19 @@ export const documentsAPI = {
   updateStatus: async (chapterId, status, token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
     const response = await fetch(`${API_URL}/api/documents/${chapterId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) }, body: JSON.stringify({ status }) });
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new Error(typeof body.detail === 'string' ? body.detail : `Error ${response.status}`);
+    }
     return response.json();
+  },
+  // Quién aceptó la versión vigente y quién falta (solo dirección y delegado).
+  firmas: async (chapterId) => {
+    const resolvedToken = localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/documents/${chapterId}/firmas`, { headers: { ...(resolvedToken && { 'Authorization': `Bearer ${resolvedToken}` }) } });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(typeof body.detail === 'string' ? body.detail : `Error ${response.status}`);
+    return body;
   },
   getPublishedPolicies: async (token = null) => {
     const resolvedToken = token || localStorage.getItem('token');
@@ -136,7 +147,7 @@ export const documentsAPI = {
 
 export const complianceAPI = {
   getControls: async (token, category = null) => {
-    const resolvedToken = token || localStorage.getItem('token'); 
+    const resolvedToken = token || localStorage.getItem('token');
     const url = category ? `${API_URL}/api/compliance/controls?category=${category}` : `${API_URL}/api/compliance/controls`;
     const response = await fetch(url, { headers: { 'Authorization': `Bearer ${resolvedToken}`, 'Content-Type': 'application/json' } });
     return response.json();

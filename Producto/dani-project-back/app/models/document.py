@@ -30,6 +30,10 @@ class Document(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    # Control de la información documentada (ISO 27001, 7.5): quién aprobó y cuándo se publicó.
+    aprobado_por = Column(String(255), nullable=True)
+    aprobado_en = Column(DateTime(timezone=True), nullable=True)
+    publicado_en = Column(DateTime(timezone=True), nullable=True)
 
     # Relaciones
     creator = relationship("User", foreign_keys=[user_id])
@@ -41,3 +45,5 @@ class DocumentAcknowledgement(Base):
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     document_id = Column(String(36), ForeignKey("documents.id"), nullable=False, index=True)
     acknowledged_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    # Versión que el trabajador aceptó: al publicar una nueva, debe aceptarla de nuevo.
+    version = Column(String(20), nullable=True)

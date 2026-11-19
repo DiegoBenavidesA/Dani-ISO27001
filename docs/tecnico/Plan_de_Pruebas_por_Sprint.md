@@ -17,7 +17,7 @@ Este documento detalla qué se probó en cada sprint, cómo se probó, qué defe
 | 2 | Consentimientos | 8 a 10 | Manual | 6 | 5 | Retirado |
 | 3 | Solicitudes de titulares | 10 a 12 | Manual | 4 | 2 | Retirado |
 | 4 | Brechas, luego Vulneraciones de seguridad | 12 a 14 | Manual y automatizada | 9 | 2 | 17 pruebas automatizadas aprobadas |
-| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 152 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 8 | Todas aprobadas |
+| Cierre | Evaluación Ley 21.719, seguridad, rendimiento y despliegue | 14 a 16 | Automatizada | 159 en pytest, 21 de seguridad y 10 de rendimiento contra el sistema | 8 | Todas aprobadas |
 
 ## Sprint 1: Registro de actividades de tratamiento (RoPA)
 
@@ -148,7 +148,7 @@ Defectos encontrados y corregidos:
 
 Resultados (15-11-2026):
 
-- `pytest tests --ignore=tests/test_api.py`: 169 de 169 pruebas aprobadas, de las cuales 152 corresponden a este sprint (25 de seguridad, 12 del generador de documentos, 5 del ajuste de plazos de la Ley 21.719, 4 de la evaluación cuando se agota la cuota de la IA, 7 del consumo de la IA frente a los límites de Groq, 8 del ocultamiento de datos personales antes de enviarlos a la IA, 8 de la aprobación de documentos y del texto que lee la IA, 6 de la clasificación de incidentes entre ISO 27001 y la Ley 21.719, 1 del paquete de auditoría, 8 del tratamiento de riesgos y del panel de la plataforma, 33 de lectura de evidencias, solicitudes de evidencia y diagnóstico del almacenamiento, 9 del diagnóstico de correo, 7 de los controles sugeridos por la IA para cada riesgo, 5 del reenvío de invitaciones, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
+- `pytest tests --ignore=tests/test_api.py`: 176 de 176 pruebas aprobadas, de las cuales 159 corresponden a este sprint (25 de seguridad, 12 del generador de documentos, 5 del ajuste de plazos de la Ley 21.719, 4 de la evaluación cuando se agota la cuota de la IA, 7 del consumo de la IA frente a los límites de Groq, 8 del ocultamiento de datos personales antes de enviarlos a la IA, 15 del control de documentos (aprobación, estados, versiones y aceptación por versión) y del texto que lee la IA, 6 de la clasificación de incidentes entre ISO 27001 y la Ley 21.719, 1 del paquete de auditoría, 8 del tratamiento de riesgos y del panel de la plataforma, 33 de lectura de evidencias, solicitudes de evidencia y diagnóstico del almacenamiento, 9 del diagnóstico de correo, 7 de los controles sugeridos por la IA para cada riesgo, 5 del reenvío de invitaciones, 7 de la meta interna de cumplimiento, 4 generales y 3 de autenticación).
 - `security/prueba_seguridad.py` contra el sistema en Docker: 21 de 21 aprobadas.
 - `performance/prueba_rendimiento.py` contra el sistema en Docker: 10 de 10 mediciones dentro de los límites. El detalle está en las secciones 5.1 y 5.2 del [Plan de Pruebas](Plan_de_Pruebas.md).
 

@@ -76,6 +76,11 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE data_breaches ADD COLUMN IF NOT EXISTS afecta_datos_personales BOOLEAN;"))
         await conn.execute(text("ALTER TABLE data_breaches ADD COLUMN IF NOT EXISTS riesgo_id VARCHAR(36);"))
 
+        # Documentos: quién aprobó, cuándo se publicó y qué versión aceptó cada trabajador.
+        for _col in ("aprobado_por VARCHAR(255)", "aprobado_en TIMESTAMPTZ", "publicado_en TIMESTAMPTZ"):
+            await conn.execute(text(f"ALTER TABLE documents ADD COLUMN IF NOT EXISTS {_col};"))
+        await conn.execute(text("ALTER TABLE document_acknowledgements ADD COLUMN IF NOT EXISTS version VARCHAR(20);"))
+
         # Riesgos: plan de tratamiento, aceptación del riesgo residual y revisión.
         for _col in ("residual_likelihood INTEGER", "residual_impact INTEGER", "aceptado_por VARCHAR(255)",
                      "aceptado_en TIMESTAMP", "revision_fecha TIMESTAMP"):
