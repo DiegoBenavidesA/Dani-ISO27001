@@ -201,13 +201,17 @@ def _parsear_objeto(respuesta: str) -> dict:
         raise ValueError("La IA no devolvió un objeto")
     lista = lambda v: [str(x) for x in v][:8] if isinstance(v, list) else []
     gravedad = str(data.get("gravedad", "")).lower().replace("í", "i")
+    afecta = data.get("afecta_datos_personales") if isinstance(data.get("afecta_datos_personales"), bool) else None
+    # Sin datos personales no hay nada que reportar a la Agencia ni a los titulares,
+    # aunque el modelo se contradiga en el resto del JSON.
+    sin_datos = afecta is False
     return {
-        "afecta_datos_personales": data.get("afecta_datos_personales") if isinstance(data.get("afecta_datos_personales"), bool) else None,
+        "afecta_datos_personales": afecta,
         "gravedad": gravedad if gravedad in GRAVEDADES else "media",
         "justificacion": str(data.get("justificacion") or "")[:1500],
-        "datos_posibles": lista(data.get("datos_posibles")),
-        "notificar_agencia": bool(data.get("notificar_agencia", True)),
-        "notificar_titulares": bool(data.get("notificar_titulares", False)),
+        "datos_posibles": [] if sin_datos else lista(data.get("datos_posibles")),
+        "notificar_agencia": False if sin_datos else bool(data.get("notificar_agencia", True)),
+        "notificar_titulares": False if sin_datos else bool(data.get("notificar_titulares", False)),
         "motivo_notificacion": str(data.get("motivo_notificacion") or "")[:500],
         "acciones_inmediatas": lista(data.get("acciones_inmediatas")),
         "preguntas": lista(data.get("preguntas")),
@@ -435,6 +439,10 @@ async def notify_breach(
 
     breach.estado = "notificada"
     breach.notificacion_requerida = True
+    # Reportarla a la Agencia es reconocer que afecta datos personales: si quedó
+    # "por determinar", se registra como vulneración de la Ley 21.719.
+    if breach.afecta_datos_personales is None:
+        breach.afecta_datos_personales = True
     breach.fecha_notificacion = datetime.utcnow()
     breach.updated_at = datetime.utcnow()
 

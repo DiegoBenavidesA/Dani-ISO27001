@@ -82,3 +82,17 @@ def test_asociar_y_quitar_el_riesgo_materializado():
 def test_la_ia_propone_si_afecta_datos_personales():
     assert _parsear_objeto('{"afecta_datos_personales": false, "gravedad": "media"}')["afecta_datos_personales"] is False
     assert _parsear_objeto('{"gravedad": "media"}')["afecta_datos_personales"] is None
+
+
+def test_si_la_ia_dice_que_no_hay_datos_personales_no_sugiere_reportar():
+    data = _parsear_objeto('{"afecta_datos_personales": false, "gravedad": "baja", '
+                           '"notificar_agencia": true, "notificar_titulares": true, "datos_posibles": ["correos"]}')
+    assert data["notificar_agencia"] is False and data["notificar_titulares"] is False and data["datos_posibles"] == []
+
+
+def test_reportar_un_incidente_por_determinar_lo_marca_como_vulneracion():
+    breach = _breach(afecta_datos_personales=None, fecha_notificacion=None, updated_at=None, descripcion="Robo de portátil")
+    with patch.object(breaches, "get_scoped_or_404", AsyncMock(return_value=breach)), \
+         patch.object(breaches, "registrar", AsyncMock()):
+        r = run(notify_breach("b", "org", {"email": "a@x.cl"}, AsyncMock()))
+    assert r.estado == "notificada" and r.afecta_datos_personales is True

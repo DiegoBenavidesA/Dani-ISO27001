@@ -3,15 +3,13 @@
 // registro de actividad y paquete. La pantalla no inventa números.
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import {
-  Search, Download, Folder, Eye, Lock, History, Sparkles, CheckCircle2, Clock,
+  Download, Folder, Eye, Lock, History, CheckCircle2, Clock,
   X, RefreshCw, ShieldCheck, ShieldAlert, FileText, Database, Package
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
-import { chatAPI, salaAuditoriaAPI } from '../services/api';
+import { salaAuditoriaAPI } from '../services/api';
 
 const MORADO = '#7c3aed';
 const ACCIONES = [
@@ -73,11 +71,8 @@ function AuditRoomScreen() {
         .sala-auditoria .sa-tabla th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: ${t.textDim}; padding: 10px 12px; }
         .sala-auditoria .sa-tabla td { padding: 10px 12px; border-top: 1px solid ${t.border}; vertical-align: top; }
         .sala-auditoria .sa-scroll { overflow-x: auto; max-width: 100%; }
-        .sala-auditoria .sa-respuesta p { margin: 0 0 8px; }
-        .sala-auditoria .sa-respuesta ul { margin: 0 0 8px; padding-left: 20px; }
         @media (max-width: 640px) {
           .sala-auditoria .sa-cabecera { flex-direction: column; align-items: stretch !important; }
-          .sala-auditoria .sa-busqueda { flex-direction: column; }
         }
       `}</style>
 
@@ -111,8 +106,6 @@ function AuditRoomScreen() {
           ? <>Solo se muestran los documentos <b>publicados</b> por la dirección. Las evidencias se muestran todas: son registros de la empresa y no pasan por aprobación.{esAuditor && ' Con tu rol esta es la única vista disponible.'}</>
           : <>Vista completa: incluye borradores y documentos en revisión. El auditor no los ve.</>}
       </div>
-
-      <BuscarConIA t={t} card={card} />
 
       {/* Pestañas */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', overflowX: 'auto' }}>
@@ -236,53 +229,6 @@ function DetalleCarpeta({ c, t, meta, vistaAuditor, onClose }) {
         </>
       )}
     </Modal>
-  );
-}
-
-function BuscarConIA({ t, card }) {
-  const [pregunta, setPregunta] = useState('');
-  const [buscando, setBuscando] = useState(false);
-  const [respuesta, setRespuesta] = useState(null);
-
-  const buscar = async () => {
-    if (!pregunta.trim() || buscando) return;
-    setBuscando(true); setRespuesta(null);
-    const r = await chatAPI.sendMessage(pregunta);
-    setBuscando(false);
-    setRespuesta(r.error ? { error: r.error } : { texto: r.reply, fuentes: r.fuentes || [] });
-  };
-
-  return (
-    <div style={{ ...card, padding: '16px 18px', marginBottom: '20px' }}>
-      <div className="sa-busqueda" style={{ display: 'flex', gap: '10px' }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '10px', background: t.inputBg, borderRadius: '10px', padding: '10px 14px', border: `1px solid ${t.border}` }}>
-          <Search size={18} color={t.textDim} />
-          <input value={pregunta} onChange={(e) => setPregunta(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()}
-            placeholder="Pregunta sobre las evidencias de la empresa, por ejemplo: ¿qué evidencia tengo de control de accesos?"
-            aria-label="Pregunta para la búsqueda con IA"
-            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: t.text, fontSize: '14px' }} />
-        </div>
-        <button type="button" onClick={buscar} disabled={buscando}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '10px 18px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: buscando ? 'wait' : 'pointer' }}>
-          {buscando ? <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Sparkles size={16} />} Buscar con IA
-        </button>
-      </div>
-      {respuesta && (
-        <div style={{ marginTop: '14px', padding: '14px', borderRadius: '10px', background: t.inputBg, fontSize: '13px', lineHeight: 1.6, position: 'relative' }}>
-          <button type="button" onClick={() => setRespuesta(null)} aria-label="Cerrar respuesta" style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: t.textDim, cursor: 'pointer' }}><X size={16} /></button>
-          {respuesta.error ? <span style={{ color: '#dc2626' }}>{respuesta.error}</span> : (
-            <>
-              <div className="sa-respuesta" style={{ paddingRight: '20px' }}><ReactMarkdown remarkPlugins={[remarkGfm]}>{respuesta.texto || ''}</ReactMarkdown></div>
-              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${t.border}`, fontSize: '12px', color: t.textDim }}>
-                {respuesta.fuentes.length
-                  ? <><b>Basado en:</b> {respuesta.fuentes.join(' · ')}</>
-                  : 'No encontró evidencias de la empresa relacionadas con la pregunta: la respuesta se apoya solo en la norma.'}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-    </div>
   );
 }
 

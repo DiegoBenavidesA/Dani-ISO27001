@@ -421,7 +421,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
               <Lista t={t} titulo="Datos que podrían estar afectados" items={ia.datos_posibles} />
               <div>
                 <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '11px', color: t.textMuted, textTransform: 'uppercase' }}>Notificación</p>
-                <p style={{ margin: 0 }}>Agencia: <strong>{ia.notificar_agencia ? 'sí corresponde' : 'no parece necesaria'}</strong><br />Titulares: <strong>{ia.notificar_titulares ? 'sí corresponde' : 'no parece necesaria'}</strong></p>
+                <p style={{ margin: 0 }}>Agencia: <strong>{ia.afecta_datos_personales === false ? 'no corresponde' : ia.notificar_agencia ? 'sí corresponde' : 'no parece necesaria'}</strong><br />Titulares: <strong>{ia.afecta_datos_personales === false ? 'no corresponde' : ia.notificar_titulares ? 'sí corresponde' : 'no parece necesaria'}</strong></p>
                 {ia.motivo_notificacion && <p style={{ margin: '4px 0 0', color: t.textDim }}>{ia.motivo_notificacion}</p>}
               </div>
               <Lista t={t} titulo="Acciones inmediatas sugeridas" items={ia.acciones_inmediatas} />
@@ -491,7 +491,12 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
       {/* 4. Notificación a la Agencia */}
       <Seccion t={t} paso="4" titulo="Reporte a la Agencia (Ley 21.719)" icono={<Send size={14} color="#2563eb" />} apagada={!b.gravedad_confirmada || sinDatosPersonales}>
         {notificada ? (
-          <p style={{ margin: 0, fontSize: '12px' }}>Notificada el {formatFecha(b.fecha_notificacion)} · <strong style={{ color: plazo.color }}>{plazo.text}</strong></p>
+          <>
+            <p style={{ margin: 0, fontSize: '12px' }}>Notificada el {formatFecha(b.fecha_notificacion)} · <strong style={{ color: plazo.color }}>{plazo.text}</strong></p>
+            {ia?.afecta_datos_personales === false && (
+              <p style={{ margin: '6px 0 0', fontSize: '11px', color: t.textDim }}>La IA sugirió que no afectaba datos personales, pero la empresa decidió reportarlo a la Agencia. La decisión final es de la persona responsable.</p>
+            )}
+          </>
         ) : sinDatosPersonales ? (
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim }}>No aplica: el incidente no afecta datos personales. Se gestiona como incidente de seguridad de ISO 27001.</p>
         ) : b.notificacion_requerida === false ? (
