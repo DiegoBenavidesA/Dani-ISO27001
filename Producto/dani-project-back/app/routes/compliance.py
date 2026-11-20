@@ -528,12 +528,12 @@ async def export_soa_pdf(
     def new_page():
         p = doc.new_page(width=W, height=H)
         p.draw_rect(fitz.Rect(0, 0, W, 56), color=None, fill=C_DARK)
-        p.insert_text((24, 22), "DANI ISO 27001", fontsize=12, color=C_WHITE, fontname="helv")
+        p.insert_text((24, 22), "NormIA ISO 27001", fontsize=12, color=C_WHITE, fontname="helv")
         p.insert_text((24, 40), "Declaracion de Aplicabilidad (SOA) - ISO/IEC 27001:2022 Anexo A", fontsize=8, color=(0.6, 0.7, 0.6), fontname="helv")
         fecha = datetime.utcnow().strftime("%d/%m/%Y")
         p.insert_text((W - 80, 36), fecha, fontsize=8, color=C_GRAY, fontname="helv")
         p.draw_rect(fitz.Rect(0, H - 22, W, H), color=None, fill=C_DARK)
-        p.insert_text((24, H - 7), "Documento Confidencial - Generado automaticamente por DANI GRC Platform", fontsize=7, color=(0.5, 0.5, 0.5), fontname="helv")
+        p.insert_text((24, H - 7), "Documento Confidencial - Generado automaticamente por NormIA", fontsize=7, color=(0.5, 0.5, 0.5), fontname="helv")
         p.insert_text((W - 60, H - 7), f"Pag. {doc.page_count}", fontsize=7, color=(0.5, 0.5, 0.5), fontname="helv")
         return p
 
@@ -641,5 +641,5 @@ async def export_soa_pdf(
     return StreamingResponse(
         buf,
         media_type="application/pdf",
-        headers={"Content-Disposition": "attachment; filename=SOA_ISO27001_DANI.pdf"}
+        headers={"Content-Disposition": "attachment; filename=SOA_ISO27001_NormIA.pdf"}
     )

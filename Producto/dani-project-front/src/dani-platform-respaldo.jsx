@@ -18,7 +18,6 @@ import DocumentsScreen from './pages/DocumentsScreen';
 import AuditRoomScreen from './pages/AuditRoomScreen';
 import UserManagementScreen from './pages/UserManagementScreen';
 import SettingsModal from './pages/SettingsModal';
-import ChatDANI from './pages/ChatDANI';
 import EmployeePortalScreen from './pages/EmployeePortal';
 import OrganizationsScreen from './pages/OrganizationsScreen';
 import PlatformDashboard from './pages/PlatformDashboard';
@@ -242,7 +241,6 @@ export default function DaniPlatform() {
         </div>
       </main>
 
-      <ChatDANI activeScreen={activeScreen} />
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} />}
     </div>
   );

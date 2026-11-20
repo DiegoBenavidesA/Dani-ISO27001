@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
-    SMTP_FROM_NAME: str = "DANI GRC"
+    SMTP_FROM_NAME: str = "NormIA"
     EMAIL_FROM: str = ""
     # Envío por API HTTPS (Brevo) — necesario donde el SMTP saliente está
     # bloqueado (ej. Render free). Si BREVO_API_KEY existe se usa Brevo; si no,

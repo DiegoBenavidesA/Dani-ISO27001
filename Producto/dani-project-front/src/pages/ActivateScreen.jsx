@@ -95,7 +95,7 @@ export default function ActivateScreen() {
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: '18px' }}>Activar cuenta</div>
-            <div style={{ fontSize: '12px', color: '#565e74' }}>DANI GRC</div>
+            <div style={{ fontSize: '12px', color: '#565e74' }}>NormIA</div>
           </div>
         </div>
 

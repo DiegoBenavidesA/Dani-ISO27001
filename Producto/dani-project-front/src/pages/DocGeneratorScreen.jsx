@@ -160,7 +160,7 @@ const DocGeneratorScreen = ({ navParams }) => {
     let htmlContent = `
       <div style="font-family: Helvetica, Arial, sans-serif; padding: 40px; color: #333; background-color: #ffffff;">
         <div style="border-bottom: 2px solid #004ac6; padding-bottom: 10px; margin-bottom: 30px; display: flex; justify-content: space-between;">
-          <strong style="font-size: 24px; color: #004ac6;">DANI GR&C</strong>
+          <strong style="font-size: 24px; color: #004ac6;">NormIA</strong>
           <span style="color: #666;">${etiqueta(selectedChapter)} - ${today}</span>
         </div>
     `;

@@ -112,9 +112,9 @@ async def chat_endpoint(
     # 3. LLAMADA A LA IA
     # ========================================================
     
-    # Instrucciones base para que DANI asuma su rol
+    # Instrucciones base del asistente
     system_prompt = (
-        "Eres DANI, un asistente experto en ciberseguridad, ISO 27001 y Ley 21.719 de Chile. "
+        "Eres el asistente de NormIA, experto en ciberseguridad, ISO 27001 y Ley 21.719 de Chile. "
         "Utiliza el CONTEXTO EN VIVO proporcionado para responder a preguntas sobre el estado de la empresa del usuario. "
         "Sé directo, profesional, claro y no inventes datos que no estén en el contexto."
     )

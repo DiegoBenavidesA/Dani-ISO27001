@@ -65,7 +65,7 @@ class AIService:
         lang_name, no_evidence_phrase = lang_map.get(language, lang_map["es"])
 
         system_content = (
-            "You are DANI, an ISO 27001 and information security expert. You respond professionally and with structure.\n\n"
+            "You are the NormIA assistant, an ISO 27001 and information security expert. You respond professionally and with structure.\n\n"
             "FORMATTING RULES — STRICTLY ENFORCED:\n"
             "• NEVER use markdown syntax. Forbidden characters: ** * # ## ### _ __ ` ``` > ~~\n"
             "• Section titles: write in UPPERCASE followed by a colon (e.g. 'ANALYSIS:')\n"
@@ -130,7 +130,7 @@ class AIService:
                 context_note = f"\n\n*(RAG Vector Search completed: found relevant fragments — \"{context[:150]}...\")*"
 
             fallback_response = (
-                f"🤖 **[DANI OFFLINE - DEMO MODE RAG]**{context_note}\n\n"
+                f"🤖 **[NormIA SIN CONEXIÓN - MODO DEMO]**{context_note}\n\n"
                 f"Analyzing your query: *\"{message}\"*\n\n"
                 f"From the **ISO 27001:2022** perspective, this query is addressed by reviewing the corresponding normative guidelines in your evidence. "
                 f"I suggest reviewing your policies on **Awareness and Training (Clause 7.3)** and "

@@ -224,7 +224,7 @@ def build_invitation_email(
     html = f"""\
 <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1e293b;">
   <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 24px; border-radius: 12px 12px 0 0;">
-    <h1 style="color: white; margin: 0; font-size: 22px;">DANI GRC</h1>
+    <h1 style="color: white; margin: 0; font-size: 22px;">NormIA</h1>
   </div>
 
   <div style="border: 1px solid #e2e8f0; border-top: none; padding: 28px; border-radius: 0 0 12px 12px;">
@@ -274,7 +274,7 @@ def build_invitation_email(
     text = (
         f"Hola {owner_name},\n\n"
         f"Fuiste invitado a la organización {org_name} "
-        f"con el rol de {role_label} en la plataforma DANI GRC.\n\n"
+        f"con el rol de {role_label} en la plataforma NormIA.\n\n"
         f"Activa tu cuenta y define tu contraseña aquí:\n"
         f"{activation_url}\n\n"
         f"Este enlace caduca en 7 días."
@@ -298,7 +298,7 @@ def send_consent_email(
     Envía al titular el enlace público para revisar y aceptar una solicitud de
     consentimiento. Usa el mismo núcleo (Brevo/SMTP). Devuelve True si se envió.
     """
-    sender_name = settings.SMTP_FROM_NAME or "DANI GRC"
+    sender_name = settings.SMTP_FROM_NAME or "NormIA"
 
     bloque_derechos_txt = ""
     bloque_derechos_html = ""
@@ -340,7 +340,7 @@ def send_consent_email(
 
     return _send_email_sync(
         recipient_email,
-        "Solicitud de consentimiento - DANI",
+        "Solicitud de consentimiento - NormIA",
         html_body,
         text_body,
     )

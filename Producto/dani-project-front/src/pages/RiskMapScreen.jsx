@@ -637,7 +637,7 @@ const RiskMapScreen = ({ navParams } = {}) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {isAnalyzing && (
                 <div style={{ textAlign: 'center', padding: '20px', color: '#8b5cf6', fontSize: '13px', fontWeight: 600 }}>
-                  Consultando a DANI...
+                  Consultando a la IA...
                 </div>
               )}
               {!isAnalyzing && analisisError && (

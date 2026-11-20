@@ -54,14 +54,14 @@ class DeepSeekService:
             
             # Devolvemos una simulación de respuesta experta de primer nivel basada en el prompt enviado
             return {
-                "analysis": f"🤖 **[MODO DEMO - DANI COMPLIANCE]**\n\nHe recibido tu requerimiento técnico relacionado con la normativa: *\"{risk.get('title', 'Evaluación de Riesgo')}\"*.\n\nAl analizar el vector bajo los estándares de la **ISO 27001:2022**, se determina la necesidad de aplicar de forma prioritaria las directrices del **Anexo A (Controles de Seguridad)**, enfocándose en la segregación de funciones, endurecimiento perimetral (Hardening) y cifrado de datos en tránsito utilizando protocolos criptográficos TLS 1.3. \n\n*Nota: El motor principal de IA (Groq/Llama) no está configurado correctamente o requiere una nueva API Key.*",
+                "analysis": f"🤖 **[MODO DEMO - NormIA]**\n\nHe recibido tu requerimiento técnico relacionado con la normativa: *\"{risk.get('title', 'Evaluación de Riesgo')}\"*.\n\nAl analizar el vector bajo los estándares de la **ISO 27001:2022**, se determina la necesidad de aplicar de forma prioritaria las directrices del **Anexo A (Controles de Seguridad)**, enfocándose en la segregación de funciones, endurecimiento perimetral (Hardening) y cifrado de datos en tránsito utilizando protocolos criptográficos TLS 1.3. \n\n*Nota: El motor principal de IA (Groq/Llama) no está configurado correctamente o requiere una nueva API Key.*",
                 "model_used": "simulated-fallback",
                 "prompt_used": prompt_name
             }
 
     async def chat_with_dani(self, message: str) -> dict:
         prompt_data = await self.get_prompt_from_db("chat_general_iso27001")
-        sys_prompt = prompt_data.system_prompt if prompt_data else "Eres DANI, experto en ISO 27001. Responde en español."
+        sys_prompt = prompt_data.system_prompt if prompt_data else "Eres el asistente de NormIA, experto en ISO 27001. Responde en español."
         
         try:
             response = await self.client.chat.completions.create(
@@ -77,7 +77,7 @@ class DeepSeekService:
             print(f"⚠️ Groq Chat API error: {str(e)}")
             # Fallback brillante para la demostración
             fallback_response = (
-                f"🤖 **[DANI OFFLINE - MODO DEMO]**\n\n"
+                f"🤖 **[NormIA SIN CONEXIÓN - MODO DEMO]**\n\n"
                 f"Analizando tu mensaje: *\"{message}\"*\n\n"
                 f"Te comento que desde la perspectiva de la **ISO 27001:2022**, esta consulta requeriría revisar los controles del **Anexo A**. "
                 f"Te recomiendo específicamente revisar los lineamientos sobre **Concientización y Capacitación (Cláusula 7.3)** y "

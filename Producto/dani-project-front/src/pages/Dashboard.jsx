@@ -129,7 +129,7 @@ const DashboardScreen = ({ onNavigate }) => {
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'italic');
         setColor(100, 100, 100);
-        doc.text('DANI ISO 27001 — Informe de Auditoría Interna · Confidencial', M, 290);
+        doc.text('NormIA ISO 27001 — Informe de Auditoría Interna · Confidencial', M, 290);
         doc.text(`Pág. ${pageNum}`, W - M - 10, 290);
         doc.text(`Generado: ${new Date().toLocaleString('es')}`, W / 2 - 18, 290);
       };
@@ -151,7 +151,7 @@ const DashboardScreen = ({ onNavigate }) => {
       doc.setFontSize(32);
       doc.setFont('helvetica', 'bold');
       setColor(255, 255, 255);
-      doc.text('DANI', M, 28);
+      doc.text('NormIA', M, 28);
       doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.text('Plataforma de Gestión ISO 27001', M, 37);
@@ -448,7 +448,7 @@ const DashboardScreen = ({ onNavigate }) => {
       lb(8);
       hr([0, 74, 198], 0.5);
       addWrappedText(
-        'Este informe ha sido generado automáticamente por el sistema DANI (Plataforma de Gestión ISO 27001) '
+        'Este informe ha sido generado automáticamente por NormIA (Plataforma de Gestión ISO 27001) '
         + `combinando datos reales del SGSI con análisis narrativo del modelo ${report.ai_model}. `
         + 'El contenido refleja el estado del sistema a la fecha de generación y debe ser validado por el '
         + 'responsable del SGSI antes de su uso en procesos formales de auditoría.',
@@ -456,7 +456,7 @@ const DashboardScreen = ({ onNavigate }) => {
       );
 
       footer();
-      doc.save(`DANI_Informe_ISO27001_${new Date().toISOString().slice(0, 10)}.pdf`);
+      doc.save(`NormIA_Informe_ISO27001_${new Date().toISOString().slice(0, 10)}.pdf`);
     } catch (err) {
       console.error('Error generando PDF:', err);
       alert('No se pudo generar el informe: ' + err.message);
