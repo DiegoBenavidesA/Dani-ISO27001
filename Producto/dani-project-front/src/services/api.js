@@ -672,7 +672,7 @@ export const usoIAAPI = {
   },
 };
 
-// Sala de Auditoría: carpetas, registro de actividad y paquete para el auditor.
+// Auditoría externa: carpetas, registro de actividad y paquete para el auditor.
 const _salaHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};

@@ -39,7 +39,7 @@ export const translations = {
   en: {
     dashboard: 'Dashboard', gapAnalysis: 'Gap Analysis', docGenerator: 'Doc Generator', 
     riskMap: 'Risk Map', evidenceCenter: 'Evidence Center', documents: 'Documents', 
-    auditRoom: 'Audit Room', settings: 'Settings', userManagement: 'User Management',
+    auditRoom: 'External Audit', settings: 'Settings', userManagement: 'User Management',
     commandCenter: 'Command Center', realtimeOverview: 'Real-time ISO 27001 compliance overview',
     synced: 'Synced', minAgo: 'min ago', exportReport: 'Export Report', healthScore: 'Health Score',
     ready: 'Ready', controlsImplemented: 'Controls Implemented', pendingActions: 'Pending Actions',
@@ -53,7 +53,7 @@ export const translations = {
   es: {
     dashboard: 'Panel', gapAnalysis: 'Análisis de Brechas', docGenerator: 'Generador de Docs', 
     riskMap: 'Mapa de Riesgos', evidenceCenter: 'Centro de Evidencias', documents: 'Documentos', 
-    auditRoom: 'Sala de Auditoría', settings: 'Configuración', userManagement: 'Gestión de Usuarios',
+    auditRoom: 'Auditoría externa', settings: 'Configuración', userManagement: 'Gestión de Usuarios',
     commandCenter: 'Centro de Mando', realtimeOverview: 'Visión general de cumplimiento ISO 27001',
     synced: 'Sincronizado hace', minAgo: 'min', exportReport: 'Exportar Informe', healthScore: 'Puntuación de Salud',
     ready: 'Listo', controlsImplemented: 'Controles Implementados', pendingActions: 'Acciones Pendientes',
@@ -66,7 +66,7 @@ export const translations = {
   pt: {
     dashboard: 'Painel', gapAnalysis: 'Análise de Lacunas', docGenerator: 'Gerador de Docs', 
     riskMap: 'Mapa de Riscos', evidenceCenter: 'Centro de Evidências', documents: 'Documentos', 
-    auditRoom: 'Sala de Auditoria', settings: 'Configurações', userManagement: 'Gestão de Usuários',
+    auditRoom: 'Auditoria externa', settings: 'Configurações', userManagement: 'Gestão de Usuários',
     commandCenter: 'Centro de Comando', realtimeOverview: 'Visão geral ISO 27001 em tempo real',
     synced: 'Sincronizado há', minAgo: 'min', exportReport: 'Exportar Relatório', healthScore: 'Pontuação de Saúde',
     ready: 'Pronto', controlsImplemented: 'Controles Implementados', pendingActions: 'Ações Pendentes',

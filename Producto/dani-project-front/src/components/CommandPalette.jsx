@@ -37,7 +37,7 @@ const commands = [
   { id: 'doc-generator', type: 'nav', name: { en: 'Document Generator', es: 'Generador de Docs', pt: 'Gerador de Docs' }, icon: FilePlus2, shortcut: 'G O' },
   { id: 'risk-map', type: 'nav', name: { en: 'Risk Map', es: 'Mapa de Riesgos', pt: 'Mapa de Riscos' }, icon: AlertTriangle, shortcut: 'G R' },
   { id: 'evidence', type: 'nav', name: { en: 'Evidence Center', es: 'Centro de Evidencias', pt: 'Centro de Evidências' }, icon: Database, shortcut: 'G E' },
-  { id: 'audit-room', type: 'nav', name: { en: 'Audit Room', es: 'Sala de Auditoría', pt: 'Sala de Auditoria' }, icon: Eye, shortcut: 'G A' },
+  { id: 'audit-room', type: 'nav', name: { en: 'External Audit', es: 'Auditoría externa', pt: 'Auditoria externa' }, icon: Eye, shortcut: 'G A' },
   { id: 'employee-portal', type: 'nav', name: { en: 'Employee Portal', es: 'Portal de Empleados', pt: 'Portal de Funcionários' }, icon: UserCircle, shortcut: 'G P' },
   { id: 'upload-evidence', type: 'action', name: { en: 'Upload Evidence', es: 'Subir Evidencia', pt: 'Upload de Evidência' }, icon: Upload, shortcut: 'U' },
   { id: 'new-risk', type: 'action', name: { en: 'Add New Risk', es: 'Agregar Riesgo', pt: 'Adicionar Risco' }, icon: Plus, shortcut: 'N R' },

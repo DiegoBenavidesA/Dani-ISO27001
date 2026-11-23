@@ -184,7 +184,7 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Generación de embeddings automática al subir documentos
 - Exportación de evidencias en ZIP con PDFs profesionales por cláusula ISO, registro de riesgos y resumen ejecutivo (generados con PyMuPDF)
 
-### Sala de Auditoría
+### Auditoría externa
 - Carpetas seleccionables por cláusula ISO con indicador visual (borde + checkmark)
 - Contador de carpetas seleccionadas y opción de seleccionar/deseleccionar todo
 - Exportación de paquete ZIP con PDFs organizados por cláusula listos para el auditor

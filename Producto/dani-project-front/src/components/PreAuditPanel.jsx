@@ -57,7 +57,7 @@ export default function PreAuditPanel({ onNavigate, darkMode }) {
           onClick={() => onNavigate?.('audit-room')}
           style={{ fontSize: '12px', color: '#a855f7', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
         >
-          Sala de Auditoría →
+          Auditoría externa →
         </button>
       </div>
 

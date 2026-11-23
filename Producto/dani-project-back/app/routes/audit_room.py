@@ -1,4 +1,4 @@
-"""Sala de Auditoría: lo que la empresa le muestra al auditor externo.
+"""Auditoría externa: lo que la empresa le muestra al auditor externo.
 
 - Carpetas por cláusula ISO 27001 (4 a 10 y Anexo A) con el puntaje del
   Análisis de Brechas, los documentos de esa cláusula y las evidencias.
@@ -32,7 +32,7 @@ from app.models.user import User
 from app.services.document_catalog import DOCUMENTOS
 from app.services.registro import NOMBRE_ACCION, registrar, verificar_cadena
 
-router = APIRouter(prefix="/api/sala-auditoria", tags=["Sala de Auditoría"])
+router = APIRouter(prefix="/api/sala-auditoria", tags=["Auditoría externa"])
 
 # Dueño, administrador, encargado y auditor (superadmin y owner pasan siempre).
 PUEDEN_VER = RequireRole(["admin", "manager", "auditor"])

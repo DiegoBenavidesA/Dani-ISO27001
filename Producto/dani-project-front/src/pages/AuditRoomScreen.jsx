@@ -1,4 +1,4 @@
-// Sala de Auditoría: lo que la empresa le muestra al auditor externo (ISO 27001).
+// Auditoría externa: lo que la empresa le muestra al auditor externo (ISO 27001).
 // Todo lo que se ve aquí lo calcula el servidor: carpetas, vista del auditor,
 // registro de actividad y paquete. La pantalla no inventa números.
 import React, { useCallback, useContext, useEffect, useState } from 'react';
@@ -80,7 +80,7 @@ function AuditRoomScreen() {
       <div className="sa-cabecera" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '6px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0 }}>Sala de Auditoría</h1>
+            <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0 }}>Auditoría externa</h1>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
               color: enVistaAuditor ? MORADO : '#2563eb', background: enVistaAuditor ? 'rgba(124,58,237,0.12)' : 'rgba(37,99,235,0.12)' }}>
               {enVistaAuditor ? <Eye size={14} /> : <Lock size={14} />}
