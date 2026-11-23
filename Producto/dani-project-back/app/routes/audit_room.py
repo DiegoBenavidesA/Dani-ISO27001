@@ -55,12 +55,25 @@ def clausula_de_codigo(codigo: str) -> str | None:
     return m.group(1) if m and m.group(1) in {c for c, _ in CLAUSULAS} else None
 
 
-def clausula_de_documento(chapter_id: str) -> str | None:
-    """Los documentos del generador se guardan como 'chapter_<clave del catálogo>'."""
+def clausulas_de_documento(chapter_id: str) -> list[str]:
+    """Cláusulas a las que responde un documento del generador (se guardan como
+    'chapter_<clave del catálogo>'). Un documento puede servir a más de una:
+    el Plan de Tratamiento cumple 6.1.3 y también 8.3."""
     doc = DOCUMENTOS.get((chapter_id or "").removeprefix("chapter_"))
     if not doc or doc["marco"] != "iso27001":
-        return None
-    return clausula_de_codigo(doc["clausula"])
+        return []
+    salida = []
+    for codigo in re.findall(r"\d+(?:\.\d+)*", doc["clausula"]):
+        c = clausula_de_codigo(codigo)
+        if c and c not in salida:
+            salida.append(c)
+    return salida
+
+
+def clausula_de_documento(chapter_id: str) -> str | None:
+    """Cláusula principal del documento (la primera que cita)."""
+    clausulas = clausulas_de_documento(chapter_id)
+    return clausulas[0] if clausulas else None
 
 
 def puntajes_por_clausula(preguntas: list, respuestas: dict) -> dict:
@@ -112,9 +125,8 @@ async def _datos(db: AsyncSession, org_id: str, vista_auditor: bool) -> dict:
         docs = [d for d in docs if d.status == DocumentStatus.PUBLISHED]
     docs_por_clausula = {}
     for d in docs:
-        c = clausula_de_documento(d.chapter_id)
-        if c:
-            estado = d.status.value if hasattr(d.status, "value") else d.status
+        estado = d.status.value if hasattr(d.status, "value") else d.status
+        for c in clausulas_de_documento(d.chapter_id):
             docs_por_clausula.setdefault(c, []).append({
                 "id": d.id, "chapter_id": d.chapter_id, "titulo": d.title, "version": d.version,
                 "estado": estado, "estado_nombre": NOMBRE_ESTADO.get(estado, estado),
@@ -177,6 +189,16 @@ async def _filas_registro(db, org_id: str):
     )).scalars().all()
 
 
+def _de_la_empresa(filas, current_user: dict | None = None):
+    """Las acciones del superadmin (soporte de la plataforma) no son de la
+    empresa: no las ve el auditor ni la empresa, y no van en el CSV ni en el
+    paquete. Solo el propio superadmin las ve en pantalla. La verificación de
+    la cadena se hace siempre sobre todas las filas."""
+    if current_user and current_user.get("role") == "superadmin":
+        return list(filas)
+    return [f for f in filas if f.rol != "superadmin"]
+
+
 def _fila_json(f: RegistroActividad) -> dict:
     return {
         "id": f.id, "fecha": f.fecha.strftime("%d-%m-%Y %H:%M") + " UTC", "fecha_iso": f.fecha.isoformat() + "Z",
@@ -197,11 +219,12 @@ async def registro(
     filas = await _filas_registro(db, org_id)
     integridad = verificar_cadena(filas)
     desde = datetime.utcnow() - timedelta(days=dias) if dias else None
-    visibles = [f for f in filas if (not accion or f.accion == accion) and (not desde or f.fecha >= desde)]
+    visibles = [f for f in _de_la_empresa(filas, current_user) if (not accion or f.accion == accion) and (not desde or f.fecha >= desde)]
     visibles.reverse()  # lo más reciente primero
     return {
         "filas": [_fila_json(f) for f in visibles[:500]], "total": len(visibles),
         "desde": filas[0].fecha.strftime("%d-%m-%Y") if filas else None,
+        "incluye_soporte": current_user.get("role") == "superadmin",
         "integridad": integridad,
     }
 
@@ -222,7 +245,7 @@ async def registro_csv(
     current_user: dict = Depends(PUEDEN_VER),
     db: AsyncSession = Depends(get_db),
 ):
-    filas = await _filas_registro(db, org_id)
+    filas = _de_la_empresa(await _filas_registro(db, org_id))
     await registrar(db, org_id, current_user, "exporto", "registro", "Registro de actividad", f"{len(filas)} filas en CSV")
     return StreamingResponse(io.BytesIO(_csv_registro(filas)), media_type="text/csv; charset=utf-8",
                              headers={"Content-Disposition": "attachment; filename=Registro_de_actividad.csv"})
@@ -364,7 +387,7 @@ async def paquete(
                     + _tabla_html(["Riesgo", "Prob.", "Impacto", "Nivel", "Estado", "Responsable", "Plazo"], filas)))
                 contenido.append((ruta, f"{len(riesgos)} riesgos"))
             if c == "7":
-                publicados = [d["_doc"] for cc in datos["carpetas"] for d in cc.get("documentos", [])]
+                publicados = list({d["_doc"].id: d["_doc"] for cc in datos["carpetas"] for d in cc.get("documentos", [])}.values())
                 firmas = await _firmas_por_documento(db, publicados, org_id)
                 filas = [(d.title, d.version, f"{firmas.get(d.id, {}).get('aceptaron', 0)} de {firmas.get(d.id, {}).get('total', 0)}")
                          for d in publicados]
@@ -399,8 +422,9 @@ async def paquete(
 
         integridad = None
         if incluir_registro:
-            filas = await _filas_registro(db, org_id)
-            integridad = verificar_cadena(filas)
+            todas = await _filas_registro(db, org_id)
+            integridad = verificar_cadena(todas)
+            filas = _de_la_empresa(todas)
             zf.writestr("Registro_de_actividad.csv", _csv_registro(filas))
             contenido.append(("Registro_de_actividad.csv", f"{len(filas)} acciones"))
 
@@ -408,14 +432,15 @@ async def paquete(
                      f"{c['cumplen']} de {c['total_preguntas']}", len(c["documentos"]))
                     for c in datos["carpetas"] if c["tipo"] == "clausula" and c["id"] in elegidas]
         resumen = (f"<h1>Paquete de auditoría ISO 27001</h1><p class='meta'>{html.escape(datos['empresa'])} · "
-                   f"generado el {ahora.strftime('%d-%m-%Y %H:%M')} UTC por {html.escape(current_user.get('sub') or '')}</p>"
+                   f"generado el {ahora.strftime('%d-%m-%Y %H:%M')} UTC"
+                   + ("" if current_user.get("role") == "superadmin" else f" por {html.escape(current_user.get('sub') or '')}") + "</p>"
                    "<h2>Cumplimiento por cláusula</h2>"
                    + _tabla_html(["Cláusula", "Puntaje", "Preguntas que cumplen", "Documentos publicados"], puntajes)
                    + f"<p class='meta'>Meta de la empresa: {datos['meta']} %. Solo se incluyen documentos publicados.</p>"
                    + "<h2>Contenido</h2>" + _tabla_html(["Archivo", "Detalle"], contenido))
         if integridad:
             resumen += ("<h2>Registro de actividad</h2><p>" + (
-                f"Cadena íntegra: {integridad['verificadas']} acciones verificadas." if integridad["integra"] else
+                "Cadena íntegra: ninguna acción fue modificada ni borrada." if integridad["integra"] else
                 f"Atención: la cadena no calza desde la acción del {integridad['primera_alterada']['fecha']}.") + "</p>")
         zf.writestr("00_Resumen.pdf", pdf_desde_html(resumen))
 

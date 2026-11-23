@@ -12,6 +12,12 @@ import { documentsAPI } from '../services/api';
 import html2pdf from 'html2pdf.js';
 import { useAuth } from '../contexts/AuthContext';
 
+// Nombre de cada cláusula de ISO 27001: el mismo que usan las carpetas de Auditoría externa.
+const NOMBRE_CLAUSULA = {
+  4: '4. Contexto de la organización', 5: '5. Liderazgo', 6: '6. Planificación', 7: '7. Apoyo',
+  8: '8. Operación', 9: '9. Evaluación del desempeño', 10: '10. Mejora',
+};
+
 const DocGeneratorScreen = ({ navParams }) => {
   const { theme: t, darkMode } = useContext(ThemeContext);
   const { user } = useAuth();
@@ -332,7 +338,7 @@ const DocGeneratorScreen = ({ navParams }) => {
                       {chapter.title}
                     </div>
                     <div style={{ fontSize: '11px', color: t.textDim, marginTop: '2px' }}>
-                      {chapter.marco === 'iso' ? `Cláusula ${chapter.number}` : 'Obligación legal'}
+                      {chapter.marco === 'iso' ? `${NOMBRE_CLAUSULA[parseInt(chapter.number, 10)] || 'Cláusula'} · ${chapter.number}` : 'Obligación legal'}
                       {estado && <span style={{ marginLeft: '6px', fontWeight: 700, color: estado === 'published' ? '#15803d' : '#b45309' }}>· {{ draft: 'Borrador', review: 'En revisión', approved: 'Aprobado', published: 'Publicado' }[estado] || estado}</span>}
                     </div>
                   </div>

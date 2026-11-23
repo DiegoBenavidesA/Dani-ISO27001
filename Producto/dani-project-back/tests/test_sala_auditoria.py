@@ -1,4 +1,4 @@
-"""Sala de Auditoría: carpetas por cláusula, vista del auditor, registro de
+"""Auditoría externa: carpetas por cláusula, vista del auditor, registro de
 actividad con cadena de hashes y búsqueda con IA limitada a la empresa."""
 import asyncio
 import os
@@ -27,6 +27,20 @@ def test_clausula_de_cada_documento_del_generador():
     assert sala.clausula_de_documento("chapter_iso_tratamiento_riesgos") in (None, "6")
     assert sala.clausula_de_documento("chapter_iso_alcance") == "4"
     assert sala.clausula_de_documento("chapter_no_existe") is None
+
+
+def test_un_documento_aparece_en_todas_las_clausulas_que_cumple():
+    assert sala.clausulas_de_documento("chapter_iso_plan_tratamiento") == ["6", "8"]
+    assert sala.clausulas_de_documento("chapter_iso_mejora") == ["10"]
+    assert sala.clausulas_de_documento("chapter_ley_pol") == []
+
+
+def test_las_acciones_del_superadmin_no_las_ve_la_empresa_ni_el_auditor():
+    filas = [SimpleNamespace(rol="superadmin"), SimpleNamespace(rol="admin"), SimpleNamespace(rol="auditor")]
+    assert [f.rol for f in sala._de_la_empresa(filas, {"role": "auditor"})] == ["admin", "auditor"]
+    assert [f.rol for f in sala._de_la_empresa(filas, {"role": "owner"})] == ["admin", "auditor"]
+    assert [f.rol for f in sala._de_la_empresa(filas)] == ["admin", "auditor"]  # CSV y paquete
+    assert len(sala._de_la_empresa(filas, {"role": "superadmin"})) == 3
 
 
 def test_puntaje_por_clausula_igual_que_el_analisis_de_brechas():

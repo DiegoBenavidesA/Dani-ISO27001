@@ -46,7 +46,6 @@ function AuditRoomScreen() {
   const { user } = useAuth();
   const esAuditor = user?.role === 'auditor';
 
-  const [vistaAuditor, setVistaAuditor] = useState(true);
   const [pestana, setPestana] = useState('carpetas');
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState(null);
@@ -54,14 +53,15 @@ function AuditRoomScreen() {
 
   const cargar = useCallback(async () => {
     setError(null);
-    try { setDatos(await salaAuditoriaAPI.carpetas(esAuditor || vistaAuditor)); }
+    // La empresa ve todos sus documentos (los no publicados van marcados);
+    // el auditor solo recibe los publicados: el servidor lo fuerza por su rol.
+    try { setDatos(await salaAuditoriaAPI.carpetas(esAuditor)); }
     catch (e) { setError(e.message); }
-  }, [esAuditor, vistaAuditor]);
+  }, [esAuditor]);
 
   useEffect(() => { cargar(); }, [cargar]);
 
   const card = { background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '16px' };
-  const enVistaAuditor = esAuditor || vistaAuditor;
 
   return (
     <div className="sala-auditoria" style={{ animation: 'fadeIn 0.4s ease', minWidth: 0, maxWidth: '100%' }}>
@@ -81,30 +81,23 @@ function AuditRoomScreen() {
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '6px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: 700, margin: 0 }}>Auditoría externa</h1>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600,
-              color: enVistaAuditor ? MORADO : '#2563eb', background: enVistaAuditor ? 'rgba(124,58,237,0.12)' : 'rgba(37,99,235,0.12)' }}>
-              {enVistaAuditor ? <Eye size={14} /> : <Lock size={14} />}
-              {enVistaAuditor ? 'Vista del auditor' : 'Vista completa'}
-            </span>
+            {esAuditor && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '5px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, color: MORADO, background: 'rgba(124,58,237,0.12)' }}>
+                <Eye size={14} /> Vista del auditor
+              </span>
+            )}
           </div>
           <p style={{ color: t.textDim, fontSize: '14px', margin: 0 }}>
             Lo que la empresa le muestra al auditor externo para la certificación ISO 27001{datos?.empresa ? ` · ${datos.empresa}` : ''}.
           </p>
         </div>
-        {!esAuditor && (
-          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', ...card, borderRadius: '12px', cursor: 'pointer', flexShrink: 0 }}>
-            <span style={{ fontSize: '13px', fontWeight: 500 }}>Ver como auditor</span>
-            <input type="checkbox" checked={vistaAuditor} onChange={(e) => setVistaAuditor(e.target.checked)}
-              style={{ width: '18px', height: '18px', accentColor: MORADO }} />
-          </label>
-        )}
       </div>
 
       <div style={{ padding: '12px 16px', borderRadius: '12px', marginBottom: '20px', fontSize: '13px', lineHeight: 1.5,
-        background: enVistaAuditor ? 'rgba(124,58,237,0.08)' : 'rgba(37,99,235,0.08)', color: enVistaAuditor ? MORADO : '#1d4ed8' }}>
-        {enVistaAuditor
-          ? <>Solo se muestran los documentos <b>publicados</b> por la dirección. Las evidencias se muestran todas: son registros de la empresa y no pasan por aprobación.{esAuditor && ' Con tu rol esta es la única vista disponible.'}</>
-          : <>Vista completa: incluye borradores y documentos en revisión. El auditor no los ve.</>}
+        background: 'rgba(124,58,237,0.08)', color: MORADO }}>
+        {esAuditor
+          ? <>Ves los documentos <b>publicados</b> por la dirección y todas las evidencias de la empresa.</>
+          : <>El auditor solo ve los documentos <b>publicados</b>. Los que siguen en borrador, revisión o aprobados sin publicar aparecen marcados y no van en el paquete. Las evidencias las ve todas.</>}
       </div>
 
       {/* Pestañas */}
@@ -137,7 +130,7 @@ function AuditRoomScreen() {
 
       {pestana === 'paquete' && (datos ? <PaqueteAuditor t={t} card={card} datos={datos} /> : <Cargando t={t} texto="Cargando…" />)}
 
-      {abierta && <DetalleCarpeta c={abierta} t={t} meta={datos?.meta} vistaAuditor={enVistaAuditor} onClose={() => setAbierta(null)} />}
+      {abierta && <DetalleCarpeta c={abierta} t={t} meta={datos?.meta} vistaAuditor={esAuditor} onClose={() => setAbierta(null)} />}
     </div>
   );
 }
@@ -217,8 +210,10 @@ function DetalleCarpeta({ c, t, meta, vistaAuditor, onClose }) {
                 <tbody>{c.documentos.map((d) => (
                   <tr key={d.id}>
                     <td style={{ fontWeight: 600 }}>{d.titulo}</td><td>{d.version}</td>
-                    <td>{d.estado_nombre}{d.publicado_en && <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>Publicado el {d.publicado_en}</span>}</td>
-                    <td>{d.aprobado_por ? <>{d.aprobado_por}<span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{d.aprobado_en}</span></> : '—'}</td>
+                    <td>{d.estado_nombre}{d.estado === 'published'
+                      ? d.publicado_en && <span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>Publicado el {d.publicado_en}</span>
+                      : <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#b45309' }}><Lock size={11} /> El auditor no lo ve</span>}</td>
+                    <td>{d.aprobado_por ? <>{d.aprobado_por}<span style={{ display: 'block', fontSize: '11px', color: t.textDim }}>{d.aprobado_en}</span></> : d.estado === 'published' ? <span style={{ color: t.textDim }} title="Se publicó antes de que la plataforma guardara quién aprueba">Sin registro</span> : '—'}</td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -260,12 +255,13 @@ function RegistroActividad({ t, card }) {
       <div style={{ padding: '16px 18px', borderBottom: `1px solid ${t.border}`, display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ minWidth: 0 }}>
           {integ && (integ.total === 0 ? null : integ.integra ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 600, fontSize: '14px' }}><ShieldCheck size={18} /> Registro íntegro: {integ.verificadas} acciones verificadas</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#15803d', fontWeight: 600, fontSize: '14px' }}><ShieldCheck size={18} /> Registro íntegro: ninguna acción fue modificada ni borrada</div>
           ) : (
             <div role="alert" style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626', fontWeight: 600, fontSize: '14px' }}><ShieldAlert size={18} /> El registro fue alterado: la cadena no calza desde la acción del {integ.primera_alterada?.fecha}</div>
           ))}
           <div style={{ fontSize: '12px', color: t.textDim, marginTop: '4px' }}>
             {datos?.desde ? `Registro activo desde el ${datos.desde}. Cada acción guarda un sello de la anterior: si alguien modifica una fila, la verificación lo detecta.` : 'Aún no hay acciones registradas.'}
+            {datos?.incluye_soporte ? ' Como superadmin también ves las acciones de soporte; la empresa y el auditor no las ven ni van en el CSV.' : ''}
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -314,10 +310,12 @@ function PaqueteAuditor({ t, card, datos }) {
   const [listo, setListo] = useState(null);
 
   // El paquete siempre lleva solo documentos publicados, aunque la pantalla esté en vista completa.
-  const publicados = (c) => (c.documentos || []).filter((d) => d.estado === 'published').length;
+  const publicadosDe = (c) => (c.documentos || []).filter((d) => d.estado === 'published');
+  const publicados = (c) => publicadosDe(c).length;
   const cambiar = (id) => setElegidas((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
   const elegidasObj = datos.carpetas.filter((c) => elegidas.includes(c.id));
-  const nDocs = elegidasObj.reduce((s, c) => s + publicados(c), 0);
+  // Un documento puede ir en dos cláusulas (el plan de tratamiento en la 6 y la 8): se cuenta una vez.
+  const nDocs = new Set(elegidasObj.flatMap((c) => publicadosDe(c).map((d) => d.id))).size;
   const evid = elegidasObj.find((c) => c.tipo === 'evidencias');
   const peso = evid ? evid.evidencias.filter((e) => e.archivo_guardado).reduce((s, e) => s + (e.tamano || 0), 0) : 0;
 
