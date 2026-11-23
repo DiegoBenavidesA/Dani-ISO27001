@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import {
-  ShieldAlert, Plus, Clock, AlertTriangle, CheckCircle, Send, X, RefreshCw, Trash2, Sparkles, Loader2, ChevronRight, ClipboardCheck, Lock
+  ShieldAlert, Plus, Clock, AlertTriangle, CheckCircle, Send, X, RefreshCw, Trash2, Sparkles, Loader2, ChevronRight, ClipboardCheck, Lock, ArrowLeft
 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -47,6 +47,8 @@ const BreachesScreen = () => {
   const [reportOk, setReportOk] = useState(null);
 
   const [selectedId, setSelectedId] = useState(null);
+  const [actualizando, setActualizando] = useState(false);
+  const [ultimaCarga, setUltimaCarga] = useState(null);
   const selected = breaches.find(b => b.id === selectedId) || null;
 
   useEffect(() => { fetchBreaches(); }, []);
@@ -66,6 +68,7 @@ const BreachesScreen = () => {
     setError(null);
     try {
       setBreaches(await breachesAPI.getAll());
+      setUltimaCarga(new Date());
     } catch (err) {
       console.error('Error al cargar incidentes.', err);
       setError('No se pudieron cargar los incidentes: ' + err.message);
@@ -90,6 +93,14 @@ const BreachesScreen = () => {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Vuelve a pedir la lista al servidor: trae el análisis de la IA cuando termina
+  // y los cambios que otra persona haya hecho. La lista no se vacía mientras carga.
+  const actualizar = async () => {
+    setActualizando(true);
+    await fetchBreaches(true);
+    setActualizando(false);
   };
 
   const reemplazar = (b) => setBreaches(prev => prev.map(x => x.id === b.id ? b : x));
@@ -126,6 +137,19 @@ const BreachesScreen = () => {
 
   return (
     <div className="breaches-container" style={{ padding: '0 8px', color: t.text, minHeight: '100%', boxSizing: 'border-box' }}>
+      {selected ? (
+        <BreachDetail
+          key={selected.id}
+          t={t}
+          b={selected}
+          gestiona={gestiona}
+          puedeEliminar={puedeEliminar}
+          plazo={plazoBadge(selected)}
+          onClose={() => setSelectedId(null)}
+          onChange={reemplazar}
+          onDeleted={() => { setSelectedId(null); fetchBreaches(true); }}
+        />
+      ) : (<>
 
       <section className="breaches-header" style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
@@ -141,13 +165,14 @@ const BreachesScreen = () => {
         </div>
 
         <div className="breaches-actions" style={{ display: 'flex', gap: '8px', width: '100%' }}>
-          <button className="btn-refresh" onClick={() => fetchBreaches()} style={{ padding: '10px 12px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 1 }}>
-            <RefreshCw size={14} color={t.textDim} /> Actualizar
+          <button className="btn-refresh" onClick={actualizar} disabled={actualizando} title="Vuelve a cargar los incidentes: trae el análisis de la IA cuando termina y los cambios de otras personas" style={{ padding: '10px 12px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', color: t.text, fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 1 }}>
+            <RefreshCw size={14} color={t.textDim} className={actualizando ? 'spin' : ''} /> {actualizando ? 'Actualizando…' : 'Actualizar'}
           </button>
           <button className="btn-new" onClick={() => { setReporte({ descripcion: '', fecha: ahoraLocal(), afecta: null }); setReportError(null); setShowReport(true); }} style={{ padding: '10px 12px', background: '#2563eb', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 600, fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', flex: 2, boxShadow: '0 1px 3px rgba(37, 99, 235, 0.2)' }}>
             <Plus size={16} strokeWidth={2.5} /> Reportar incidente
           </button>
         </div>
+        {ultimaCarga && <p style={{ margin: 0, width: '100%', textAlign: 'right', fontSize: '11px', color: t.textDim }}>Actualizado a las {ultimaCarga.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</p>}
       </section>
 
       {error && (
@@ -211,6 +236,7 @@ const BreachesScreen = () => {
           </div>
         )}
       </section>
+      </>)}
 
       {showReport && (
         <Modal t={t} titulo="Reportar incidente" onClose={() => setShowReport(false)} maxWidth="520px">
@@ -252,20 +278,6 @@ const BreachesScreen = () => {
         </Modal>
       )}
 
-      {selected && (
-        <BreachDetail
-          key={selected.id}
-          t={t}
-          b={selected}
-          gestiona={gestiona}
-          puedeEliminar={puedeEliminar}
-          plazo={plazoBadge(selected)}
-          onClose={() => setSelectedId(null)}
-          onChange={reemplazar}
-          onDeleted={() => { setSelectedId(null); fetchBreaches(true); }}
-        />
-      )}
-
       <style dangerouslySetInnerHTML={{__html: `
         .breach-row:hover { border-color: #93c5fd !important; }
         .spin { animation: br-spin 1s linear infinite; }
@@ -280,6 +292,8 @@ const BreachesScreen = () => {
           .btn-cancel, .btn-save { width: 100% !important; justify-content: center; }
           .detail-grid { grid-template-columns: 1fr !important; }
         }
+        .detalle-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+        @media (max-width: 1100px) { .detalle-cols { grid-template-columns: minmax(0, 1fr); } }
         @media (min-width: 768px) {
           .breaches-container { padding: 32px 16px !important; }
           .breaches-header { align-items: flex-end !important; }
@@ -380,7 +394,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
   const puedeCerrar = gestiona && b.gravedad_confirmada && !cerrada && (notificada || b.notificacion_requerida === false);
 
   return (
-    <Modal t={t} titulo="Detalle del incidente" onClose={onClose} maxWidth="760px">
+    <Pagina t={t} onClose={onClose}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
         <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '10px', fontWeight: 700, color: est.color, background: est.bg, textTransform: 'uppercase' }}>{est.label}</span>
         <GravedadPill b={b} />
@@ -390,6 +404,8 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         </span>
       </div>
 
+      <div className="detalle-cols">
+      <div>
       {/* 1. Lo reportado */}
       <Seccion t={t} paso="1" titulo="Lo reportado">
         <p style={{ margin: '0 0 8px', fontSize: '13px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{b.descripcion}</p>
@@ -432,6 +448,8 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         )}
       </Seccion>
 
+      </div>
+      <div>
       {/* 3. Revisión */}
       <Seccion t={t} paso="3" titulo={b.gravedad_confirmada ? 'Revisión confirmada' : 'Revisión del responsable'} icono={<ClipboardCheck size={14} color="#0d9488" />}>
         {!gestiona ? (
@@ -517,7 +535,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
 
       {/* Riesgo que se materializó (ISO 27001, 8.2) */}
       {gestiona && riesgos && (
-        <Seccion t={t} paso="·" titulo="Riesgo relacionado" icono={<AlertTriangle size={14} color="#d97706" />}>
+        <Seccion t={t} paso="5" titulo="Riesgo relacionado" icono={<AlertTriangle size={14} color="#d97706" />}>
           <p style={{ margin: '0 0 8px', fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>Si este incidente es un riesgo del Mapa de Riesgos que se materializó, asócialo: ISO 27001 pide reevaluar los riesgos después de un incidente.</p>
           <select value={b.riesgo_id || ''} disabled={!!busy}
             onChange={(e) => accion('riesgo', () => breachesAPI.vincularRiesgo(b.id, e.target.value))} style={inputStyle(t)}>
@@ -528,8 +546,8 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         </Seccion>
       )}
 
-      {/* 5. Cierre */}
-      <Seccion t={t} paso="5" titulo={cerrada ? 'Resuelta' : 'Resolver y cerrar'} icono={<CheckCircle size={14} color="#059669" />} apagada={!puedeCerrar && !cerrada}>
+      {/* 6. Cierre */}
+      <Seccion t={t} paso="6" titulo={cerrada ? 'Resuelta' : 'Resolver y cerrar'} icono={<CheckCircle size={14} color="#059669" />} apagada={!puedeCerrar && !cerrada}>
         {cerrada ? (
           <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
             <p style={{ margin: '0 0 6px' }}><strong>Causa raíz:</strong> {b.causa_raiz}</p>
@@ -555,14 +573,16 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         )}
       </Seccion>
 
-      {msg && <p style={{ margin: '12px 0 0', fontSize: '12px', fontWeight: 600, color: msg.tipo === 'error' ? '#e11d48' : '#059669' }}>{msg.texto}</p>}
+      {msg && <p role={msg.tipo === 'error' ? 'alert' : 'status'} style={{ margin: '12px 0 0', fontSize: '12px', fontWeight: 600, color: msg.tipo === 'error' ? '#e11d48' : '#059669' }}>{msg.texto}</p>}
+      </div>
+      </div>
 
       {puedeEliminar && (
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginTop: '16px', paddingTop: '12px', borderTop: `1px solid ${t.border}` }}>
           <button onClick={eliminar} disabled={!!busy} style={{ ...secondaryBtn(t), color: '#e11d48' }}><Trash2 size={14} /> Eliminar</button>
         </div>
       )}
-    </Modal>
+    </Pagina>
   );
 };
 
@@ -582,6 +602,29 @@ const Modal = ({ t, titulo, onClose, maxWidth, children }) => (
     </div>
   </div>
 );
+
+// El detalle ocupa la pantalla completa: tiene demasiado contenido para un modal.
+const Pagina = ({ t, onClose, children }) => {
+  const ref = useRef(null);
+  // Al abrir, se sube al inicio del área con scroll (la barra superior es fija
+  // y taparía el título si se usara scrollIntoView).
+  useEffect(() => {
+    let el = ref.current?.parentElement;
+    const conScroll = (x) => /(auto|scroll)/.test(getComputedStyle(x).overflowY) && x.scrollHeight > x.clientHeight;
+    while (el && el !== document.body && !conScroll(el)) el = el.parentElement;
+    if (el && el !== document.body) el.scrollTop = 0;
+    window.scrollTo(0, 0);
+  }, []);
+  return (
+    <div ref={ref} style={{ animation: 'fadeIn 0.3s ease' }}>
+      <button type="button" onClick={onClose} style={{ ...secondaryBtn(t), marginBottom: '16px' }}>
+        <ArrowLeft size={14} /> Volver a incidentes
+      </button>
+      <h1 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 12px', color: t.text }}>Detalle del incidente</h1>
+      {children}
+    </div>
+  );
+};
 
 const Seccion = ({ t, paso, titulo, icono, apagada, children }) => (
   <section style={{ border: `1px solid ${t.border}`, borderRadius: '14px', padding: '14px 16px', marginBottom: '12px', opacity: apagada ? 0.6 : 1 }}>
