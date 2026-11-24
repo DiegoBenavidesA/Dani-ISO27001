@@ -672,7 +672,7 @@ export const usoIAAPI = {
   },
 };
 
-// Auditoría externa: carpetas, registro de actividad y paquete para el auditor.
+// Auditoría externa: documentos y evidencias, registro de actividad y paquete para el auditor.
 const _salaHeaders = () => {
   const token = localStorage.getItem('token');
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -687,9 +687,9 @@ const _salaArchivo = async (response, nombrePorDefecto) => {
   return { url: URL.createObjectURL(await response.blob()), nombre: m ? m[1].replace(/"/g, '').trim() : nombrePorDefecto };
 };
 export const salaAuditoriaAPI = {
-  carpetas: async (vistaAuditor = true) => {
-    const response = await fetch(`${API_URL}/api/sala-auditoria/carpetas?vista_auditor=${vistaAuditor}`, { headers: _salaHeaders() });
-    if (!response.ok) throw await _salaError(response, 'No se pudieron cargar las carpetas');
+  contenido: async () => {
+    const response = await fetch(`${API_URL}/api/sala-auditoria/contenido`, { headers: _salaHeaders() });
+    if (!response.ok) throw await _salaError(response, 'No se pudieron cargar los documentos');
     return response.json();
   },
   registro: async ({ accion, dias } = {}) => {
@@ -705,8 +705,9 @@ export const salaAuditoriaAPI = {
     if (!response.ok) throw await _salaError(response, 'No se pudo descargar el registro');
     return _salaArchivo(response, 'Registro_de_actividad.csv');
   },
-  paquete: async (carpetas, incluirRegistro) => {
-    const q = new URLSearchParams({ carpetas: carpetas.join(','), incluir_registro: incluirRegistro });
+  // partes: documentos, riesgos, aceptacion, evidencias, registro
+  paquete: async (partes) => {
+    const q = new URLSearchParams({ incluir: partes.join(',') });
     const response = await fetch(`${API_URL}/api/sala-auditoria/paquete?${q}`, { headers: _salaHeaders() });
     if (!response.ok) throw await _salaError(response, 'No se pudo generar el paquete');
     return _salaArchivo(response, 'Paquete_Auditoria.zip');

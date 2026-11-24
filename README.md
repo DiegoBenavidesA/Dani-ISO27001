@@ -185,9 +185,9 @@ El detalle de cada componente, la comunicación entre servicios y las decisiones
 - Exportación de evidencias en ZIP con PDFs profesionales por cláusula ISO, registro de riesgos y resumen ejecutivo (generados con PyMuPDF)
 
 ### Auditoría externa
-- Carpetas seleccionables por cláusula ISO con indicador visual (borde + checkmark)
-- Contador de carpetas seleccionadas y opción de seleccionar/deseleccionar todo
-- Exportación de paquete ZIP con PDFs organizados por cláusula listos para el auditor
+- Documentos del Generador con su referencia a la norma; el auditor solo ve los publicados
+- Evidencias de la empresa y registro de actividad con verificación de integridad
+- Paquete ZIP con una carpeta de documentos en PDF y otra de evidencias, más un índice
 
 ### Gestión de Usuarios
 - CRUD completo (crear, editar, desactivar, eliminar)

@@ -1,4 +1,4 @@
-"""Auditoría externa: carpetas por cláusula, vista del auditor, registro de
+"""Auditoría externa: documentos con su referencia, vista del auditor, registro de
 actividad con cadena de hashes y búsqueda con IA limitada a la empresa."""
 import asyncio
 import os
@@ -15,24 +15,17 @@ from app.models.registro_actividad import RegistroActividad
 from app.services import registro
 
 
-def test_clausula_de_cada_pregunta():
-    assert sala.clausula_de_codigo("4.1") == "4"
-    assert sala.clausula_de_codigo("10.2") == "10"
-    assert sala.clausula_de_codigo("A.5.15") == "A"
-    assert sala.clausula_de_codigo("Ley 21.719") is None
+def test_referencia_de_cada_documento_del_generador():
+    assert sala.referencia_de_documento("chapter_iso_alcance") == "ISO 27001, 4.3"
+    assert sala.referencia_de_documento("chapter_iso_plan_tratamiento") == "ISO 27001, 6.1.3 e) y 8.3"
+    assert sala.referencia_de_documento("chapter_ley_pol") == "Ley 21.719"
+    assert sala.referencia_de_documento("chapter_no_existe") == ""
 
 
-def test_clausula_de_cada_documento_del_generador():
-    assert sala.clausula_de_documento("chapter_iso_politica") == "5"
-    assert sala.clausula_de_documento("chapter_iso_tratamiento_riesgos") in (None, "6")
-    assert sala.clausula_de_documento("chapter_iso_alcance") == "4"
-    assert sala.clausula_de_documento("chapter_no_existe") is None
-
-
-def test_un_documento_aparece_en_todas_las_clausulas_que_cumple():
-    assert sala.clausulas_de_documento("chapter_iso_plan_tratamiento") == ["6", "8"]
-    assert sala.clausulas_de_documento("chapter_iso_mejora") == ["10"]
-    assert sala.clausulas_de_documento("chapter_ley_pol") == []
+def test_el_rol_auditor_solo_recibe_documentos_publicados():
+    assert sala._solo_publicados({"role": "auditor"}) is True
+    assert sala._solo_publicados({"role": "admin"}) is False
+    assert sala._solo_publicados({"role": "owner"}) is False
 
 
 def test_las_acciones_del_superadmin_no_las_ve_la_empresa_ni_el_auditor():
@@ -42,19 +35,6 @@ def test_las_acciones_del_superadmin_no_las_ve_la_empresa_ni_el_auditor():
     assert [f.rol for f in sala._de_la_empresa(filas)] == ["admin", "auditor"]  # CSV y paquete
     assert len(sala._de_la_empresa(filas, {"role": "superadmin"})) == 3
 
-
-def test_puntaje_por_clausula_igual_que_el_analisis_de_brechas():
-    preguntas = [("q1", "4.1"), ("q2", "4.2"), ("q3", "4.3"), ("q4", "5.1"), ("q5", "A.5.1")]
-    respuestas = {"q1": "cumple", "q2": "parcial", "q3": "no_aplica", "q5": "no_cumple"}
-    p = sala.puntajes_por_clausula(preguntas, respuestas)
-    assert p["4"] == {"total_preguntas": 2, "evaluadas": 2, "cumplen": 1, "puntaje": 75}
-    assert p["5"]["puntaje"] is None and p["5"]["evaluadas"] == 0  # sin evaluar, no 0 %
-    assert p["A"]["puntaje"] == 0
-
-
-def test_el_rol_auditor_siempre_ve_la_vista_del_auditor():
-    assert sala._vista_auditor({"role": "auditor"}, False) is True
-    assert sala._vista_auditor({"role": "admin"}, False) is False
 
 
 def _fila(i, anterior):
