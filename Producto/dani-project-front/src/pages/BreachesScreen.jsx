@@ -433,25 +433,27 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
             {typeof ia.afecta_datos_personales === 'boolean' && (
               <p style={{ margin: '0 0 10px' }}><strong>¿Afecta datos personales?</strong> {ia.afecta_datos_personales ? 'Sí: es una vulneración de la Ley 21.719.' : 'No: es un incidente de seguridad (ISO 27001), sin reporte a la Agencia.'}</p>
             )}
-            <div className="detail-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <Lista t={t} titulo="Datos que podrían estar afectados" items={ia.datos_posibles} />
-              <div>
-                <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '11px', color: t.textMuted, textTransform: 'uppercase' }}>Notificación</p>
-                <p style={{ margin: 0 }}>Agencia: <strong>{ia.afecta_datos_personales === false ? 'no corresponde' : ia.notificar_agencia ? 'sí corresponde' : 'no parece necesaria'}</strong><br />Titulares: <strong>{ia.afecta_datos_personales === false ? 'no corresponde' : ia.notificar_titulares ? 'sí corresponde' : 'no parece necesaria'}</strong></p>
-                {ia.motivo_notificacion && <p style={{ margin: '4px 0 0', color: t.textDim }}>{ia.motivo_notificacion}</p>}
-              </div>
-              <Lista t={t} titulo="Acciones inmediatas sugeridas" items={ia.acciones_inmediatas} />
-              <Lista t={t} titulo="Qué falta averiguar" items={ia.preguntas} />
-            </div>
-            <p style={{ margin: '10px 0 0', fontSize: '11px', color: t.textDim }}>Es una sugerencia: la gravedad final la confirma una persona responsable.</p>
+            <p style={{ margin: '10px 0 0', fontSize: '11px', color: t.textDim }}>Es una sugerencia: la gravedad final la confirma una persona responsable. Los datos que podrían estar afectados quedan precargados en la revisión.</p>
           </div>
         )}
       </Seccion>
 
+      {/* 3. ¿Estaba previsto? (ISO 27001, 8.2: reevaluar riesgos tras un incidente) */}
+      {gestiona && riesgos && (
+        <Seccion t={t} paso="3" titulo="¿Estaba previsto en el Mapa de Riesgos?" icono={<AlertTriangle size={14} color="#d97706" />}>
+          <p style={{ margin: '0 0 8px', fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>Si este incidente es un riesgo del mapa que se materializó, asócialo para ver qué plan tenía y si se había aplicado.</p>
+          <select value={b.riesgo_id || ''} disabled={!!busy || cerrada}
+            onChange={(e) => accion('riesgo', () => breachesAPI.vincularRiesgo(b.id, e.target.value))} style={inputStyle(t)}>
+            <option value="">No estaba previsto en el mapa</option>
+            {riesgos.map((r) => <option key={r.id} value={r.id}>{r.title} (P{r.likelihood} × I{r.impact})</option>)}
+          </select>
+          <PlanDelRiesgo t={t} riesgo={riesgos.find((r) => r.id === b.riesgo_id)} />
+        </Seccion>
+      )}
       </div>
       <div>
-      {/* 3. Revisión */}
-      <Seccion t={t} paso="3" titulo={b.gravedad_confirmada ? 'Revisión confirmada' : 'Revisión del responsable'} icono={<ClipboardCheck size={14} color="#0d9488" />}>
+      {/* 4. Revisión */}
+      <Seccion t={t} paso="4" titulo={b.gravedad_confirmada ? 'Revisión y contención confirmadas' : 'Revisión y contención'} icono={<ClipboardCheck size={14} color="#0d9488" />}>
         {!gestiona ? (
           <p style={{ margin: 0, fontSize: '12px', color: t.textDim, display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Lock size={13} /> {b.gravedad_confirmada ? `Revisada por ${b.confirmada_por || 'un responsable'}.` : 'Pendiente: la revisará el owner, un admin o el DPO de la empresa.'}
@@ -488,8 +490,9 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
               <option value="false">No: incidente de seguridad ISO 27001, sin reporte a la Agencia</option>
             </select>
             <label style={{ ...labelStyle(t), marginTop: '12px' }}>Datos personales afectados</label>
-            <input value={rev.datos_afectados} disabled={cerrada} onChange={(e) => setRev({ ...rev, datos_afectados: e.target.value })} placeholder="Ej: nombres, RUT, correos" style={inputStyle(t)} />
-            <label style={{ ...labelStyle(t), marginTop: '12px' }}>Medidas de contención tomadas</label>
+            <textarea value={rev.datos_afectados} disabled={cerrada} onChange={(e) => setRev({ ...rev, datos_afectados: e.target.value })} placeholder="Ej: nombres, RUT, correos" style={{ ...inputStyle(t), minHeight: '64px', resize: 'vertical' }} />
+            <label style={{ ...labelStyle(t), marginTop: '12px', marginBottom: '2px' }}>Medidas de contención tomadas</label>
+            <p style={{ margin: '0 0 6px', fontSize: '11px', color: t.textDim, lineHeight: 1.4 }}>Lo que ya se hizo para frenar el daño ahora. La solución de fondo se registra al cerrar.</p>
             <textarea value={rev.medidas_tomadas} disabled={cerrada} onChange={(e) => setRev({ ...rev, medidas_tomadas: e.target.value })} placeholder="Ej: se bloquearon las cuentas de los equipos robados y se cambiaron contraseñas" style={{ ...inputStyle(t), minHeight: '64px', resize: 'vertical' }} />
             {rev.afecta_datos_personales !== false && <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginTop: '12px', fontSize: '12px', cursor: cerrada || notificada ? 'default' : 'pointer' }}>
               <input type="checkbox" checked={rev.notificacion_requerida} disabled={cerrada || notificada} onChange={(e) => setRev({ ...rev, notificacion_requerida: e.target.checked })} style={{ marginTop: '2px' }} />
@@ -506,8 +509,8 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         )}
       </Seccion>
 
-      {/* 4. Notificación a la Agencia */}
-      <Seccion t={t} paso="4" titulo="Reporte a la Agencia (Ley 21.719)" icono={<Send size={14} color="#2563eb" />} apagada={!b.gravedad_confirmada || sinDatosPersonales}>
+      {/* 5. Notificación a la Agencia */}
+      <Seccion t={t} paso="5" titulo="Reporte a la Agencia (Ley 21.719)" icono={<Send size={14} color="#2563eb" />} apagada={!b.gravedad_confirmada || sinDatosPersonales}>
         {notificada ? (
           <>
             <p style={{ margin: 0, fontSize: '12px' }}>Notificada el {formatFecha(b.fecha_notificacion)} · <strong style={{ color: plazo.color }}>{plazo.text}</strong></p>
@@ -533,32 +536,20 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
         )}
       </Seccion>
 
-      {/* Riesgo que se materializó (ISO 27001, 8.2) */}
-      {gestiona && riesgos && (
-        <Seccion t={t} paso="5" titulo="Riesgo relacionado" icono={<AlertTriangle size={14} color="#d97706" />}>
-          <p style={{ margin: '0 0 8px', fontSize: '12px', color: t.textDim, lineHeight: 1.5 }}>Si este incidente es un riesgo del Mapa de Riesgos que se materializó, asócialo: ISO 27001 pide reevaluar los riesgos después de un incidente.</p>
-          <select value={b.riesgo_id || ''} disabled={!!busy}
-            onChange={(e) => accion('riesgo', () => breachesAPI.vincularRiesgo(b.id, e.target.value))} style={inputStyle(t)}>
-            <option value="">Sin riesgo asociado</option>
-            {riesgos.map((r) => <option key={r.id} value={r.id}>{r.title} (P{r.likelihood} × I{r.impact})</option>)}
-          </select>
-          {b.riesgo_id && <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#d97706' }}>Se materializó: revisa su probabilidad e impacto en el Mapa de Riesgos.</p>}
-        </Seccion>
-      )}
-
       {/* 6. Cierre */}
       <Seccion t={t} paso="6" titulo={cerrada ? 'Resuelta' : 'Resolver y cerrar'} icono={<CheckCircle size={14} color="#059669" />} apagada={!puedeCerrar && !cerrada}>
         {cerrada ? (
           <div style={{ fontSize: '12px', lineHeight: 1.5 }}>
             <p style={{ margin: '0 0 6px' }}><strong>Causa raíz:</strong> {b.causa_raiz}</p>
-            <p style={{ margin: '0 0 6px' }}><strong>Cómo se resolvió:</strong> {b.resolucion}</p>
+            <p style={{ margin: '0 0 6px' }}><strong>Acción correctiva:</strong> {b.resolucion}</p>
             <p style={{ margin: 0, fontSize: '11px', color: t.textDim }}>Cerrada por {b.resuelta_por || '—'} el {formatFecha(b.fecha_resolucion)}.</p>
           </div>
         ) : puedeCerrar ? (
           <>
+            <p style={{ margin: '0 0 10px', fontSize: '11px', color: t.textDim, lineHeight: 1.4 }}>Se completa cuando ya se investigó: por qué pasó y qué se cambió para que no vuelva a pasar (ISO 27001, 10.2).</p>
             <label style={labelStyle(t)}>Causa raíz</label>
-            <textarea value={cierre.causa_raiz} onChange={(e) => setCierre({ ...cierre, causa_raiz: e.target.value })} placeholder="¿Por qué ocurrió? Ej: los equipos no tenían cifrado de disco" style={{ ...inputStyle(t), minHeight: '60px', resize: 'vertical' }} />
-            <label style={{ ...labelStyle(t), marginTop: '12px' }}>¿Cómo se resolvió?</label>
+            <textarea value={cierre.causa_raiz} onChange={(e) => setCierre({ ...cierre, causa_raiz: e.target.value })} placeholder={b.riesgo_id ? '¿Por qué ocurrió si estaba previsto? Ej: el cifrado de disco estaba en el plan pero no se había aplicado' : '¿Por qué ocurrió? Ej: los equipos no tenían cifrado de disco'} style={{ ...inputStyle(t), minHeight: '60px', resize: 'vertical' }} />
+            <label style={{ ...labelStyle(t), marginTop: '12px' }}>Acción correctiva: ¿qué se cambió para que no se repita?</label>
             <textarea value={cierre.resolucion} onChange={(e) => setCierre({ ...cierre, resolucion: e.target.value })} placeholder="Ej: se activó el cifrado en todos los equipos y se reforzó el control de acceso a la oficina" style={{ ...inputStyle(t), minHeight: '60px', resize: 'vertical' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
               <button onClick={cerrar} disabled={!!busy} style={{ ...primaryBtn, background: '#059669' }}>
@@ -626,6 +617,36 @@ const Pagina = ({ t, onClose, children }) => {
   );
 };
 
+// Plan que tenía el riesgo asociado: sirve para ver si estaba aplicado cuando ocurrió el incidente.
+const PlanDelRiesgo = ({ t, riesgo }) => {
+  if (!riesgo) return null;
+  const controles = riesgo.controls || [];
+  const estado = riesgo.status;
+  const aviso = estado === 'open'
+    ? 'Este riesgo no tenía plan de tratamiento: el incidente confirma que hay que definirlo.'
+    : estado === 'accepted'
+      ? 'La empresa había aceptado lo que quedaba del riesgo con este plan: el incidente indica que no bastó.'
+      : estado === 'closed'
+        ? 'Este riesgo estaba cerrado: si ocurrió, hay que reabrirlo y reevaluarlo.'
+        : 'El plan estaba en curso: revisa si estos controles ya estaban aplicados cuando ocurrió.';
+  return (
+    <div style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: t.inputBg, fontSize: '12px', lineHeight: 1.5 }}>
+      <p style={{ margin: '0 0 6px', color: '#b45309', fontWeight: 600 }}>{aviso}</p>
+      {controles.length > 0 ? (
+        <>
+          <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '11px', color: t.textMuted, textTransform: 'uppercase' }}>Plan de tratamiento</p>
+          <ul style={{ margin: 0, paddingLeft: '18px' }}>
+            {controles.map((c, i) => <li key={c.id || i}><strong>{c.codigo} {c.nombre}</strong>{c.accion ? `: ${c.accion}` : ''}</li>)}
+          </ul>
+        </>
+      ) : riesgo.mitigation_plan ? <p style={{ margin: 0 }}>{riesgo.mitigation_plan}</p> : null}
+      <p style={{ margin: '6px 0 0', color: t.textDim }}>
+        Responsable: {riesgo.owner_nombre || riesgo.owner || '—'}{riesgo.due_date ? ` · Plazo: ${formatFecha(riesgo.due_date).slice(0, 10)}` : ''}. Al cerrar el incidente, reevalúa su probabilidad e impacto en el Mapa de Riesgos.
+      </p>
+    </div>
+  );
+};
+
 const Seccion = ({ t, paso, titulo, icono, apagada, children }) => (
   <section style={{ border: `1px solid ${t.border}`, borderRadius: '14px', padding: '14px 16px', marginBottom: '12px', opacity: apagada ? 0.6 : 1 }}>
     <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -634,15 +655,6 @@ const Seccion = ({ t, paso, titulo, icono, apagada, children }) => (
     </h4>
     {children}
   </section>
-);
-
-const Lista = ({ t, titulo, items }) => (
-  <div>
-    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '11px', color: t.textMuted, textTransform: 'uppercase' }}>{titulo}</p>
-    {items && items.length ? (
-      <ul style={{ margin: 0, paddingLeft: '18px' }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
-    ) : <p style={{ margin: 0, color: t.textDim }}>—</p>}
-  </div>
 );
 
 // Qué norma regula el incidente: todos son de ISO 27001; los que afectan
