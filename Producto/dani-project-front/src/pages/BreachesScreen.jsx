@@ -312,6 +312,12 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
   const cerrada = b.estado === 'cerrada';
   const notificada = b.estado === 'notificada' || !!b.fecha_notificacion;
 
+  // Antes de la revisión manda lo que concluyó la IA al leer el relato, aunque
+  // quien reportó haya marcado otra cosa; después, lo que confirmó el responsable.
+  const iaAfecta = typeof ia?.afecta_datos_personales === 'boolean' ? ia.afecta_datos_personales : null;
+  const afectaPropuesto = (!b.gravedad_confirmada && iaAfecta !== null) ? iaAfecta : (b.afecta_datos_personales ?? iaAfecta);
+  const reporteDistinto = !b.gravedad_confirmada && iaAfecta !== null && typeof b.afecta_datos_personales === 'boolean' && b.afecta_datos_personales !== iaAfecta;
+
   const [rev, setRev] = useState(() => ({
     gravedad: b.gravedad || ia?.gravedad || 'media',
     datos_afectados: b.datos_afectados ?? (ia?.datos_posibles || []).join(', '),
@@ -319,7 +325,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
     cantidad_afectados: b.cantidad_afectados ?? '',
     medidas_tomadas: b.medidas_tomadas || '',
     notificacion_requerida: b.notificacion_requerida ?? (ia ? ia.notificar_agencia !== false : true),
-    afecta_datos_personales: b.afecta_datos_personales ?? (typeof ia?.afecta_datos_personales === 'boolean' ? ia.afecta_datos_personales : null),
+    afecta_datos_personales: afectaPropuesto,
   }));
   // Riesgos de la empresa, para asociar el que se materializó (ISO 27001, 8.2).
   const [riesgos, setRiesgos] = useState(null);
@@ -336,7 +342,7 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
       gravedad: ia.gravedad || r.gravedad,
       datos_afectados: r.datos_afectados || (ia.datos_posibles || []).join(', '),
       notificacion_requerida: ia.notificar_agencia !== false,
-      afecta_datos_personales: r.afecta_datos_personales ?? (typeof ia.afecta_datos_personales === 'boolean' ? ia.afecta_datos_personales : null),
+      afecta_datos_personales: afectaPropuesto,
     }));
   }, [b.analisis_estado]);
 
@@ -489,6 +495,11 @@ const BreachDetail = ({ t, b, gestiona, puedeEliminar, plazo, onClose, onChange,
               <option value="true">Sí: vulneración de la Ley 21.719 (y también incidente ISO 27001)</option>
               <option value="false">No: incidente de seguridad ISO 27001, sin reporte a la Agencia</option>
             </select>
+            {reporteDistinto && (
+              <p style={{ margin: '6px 0 0', fontSize: '11px', color: '#b45309', lineHeight: 1.4 }}>
+                Quien lo reportó marcó "{b.afecta_datos_personales ? 'Sí' : 'No'}", pero la IA concluyó que {iaAfecta ? 'sí' : 'no'} afecta datos personales. Se propone lo de la IA: confírmalo o cámbialo.
+              </p>
+            )}
             <label style={{ ...labelStyle(t), marginTop: '12px' }}>Datos personales afectados</label>
             <textarea value={rev.datos_afectados} disabled={cerrada} onChange={(e) => setRev({ ...rev, datos_afectados: e.target.value })} placeholder="Ej: nombres, RUT, correos" style={{ ...inputStyle(t), minHeight: '64px', resize: 'vertical' }} />
             <label style={{ ...labelStyle(t), marginTop: '12px', marginBottom: '2px' }}>Medidas de contención tomadas</label>
