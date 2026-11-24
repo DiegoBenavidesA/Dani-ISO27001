@@ -6,7 +6,7 @@ Este documento explica qué problema resuelve NormIA, en qué se diferencia de o
 
 ## 1. Problema que resuelve
 
-La entrada en vigencia general de la Ley N.º 21.719 de protección de datos personales está prevista para el 1 de diciembre de 2026. Las organizaciones a las que se aplique la ley deberán cumplir las obligaciones correspondientes; entre ellas, reportar a la Agencia de Protección de Datos Personales, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales (artículo 14 sexies). NormIA busca ayudar a organizar y documentar parte de esa gestión. Muchas organizaciones también trabajan, o quieren trabajar, con ISO/IEC 27001:2022 para la seguridad de la información.
+La entrada en vigencia general de la Ley N.º 21.719 de protección de datos personales estaba prevista para el 1 de diciembre de 2026. En noviembre de 2026 el Congreso despachó un proyecto que la posterga hasta el 15 de octubre de 2027. Las organizaciones a las que se aplique la ley deberán cumplir las obligaciones correspondientes; entre ellas, reportar a la Agencia de Protección de Datos Personales, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales (artículo 14 sexies). NormIA busca ayudar a organizar y documentar parte de esa gestión. Muchas organizaciones también trabajan, o quieren trabajar, con ISO/IEC 27001:2022 para la seguridad de la información.
 
 Hoy esto se resuelve de tres maneras:
 

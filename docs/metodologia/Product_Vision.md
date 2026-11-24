@@ -4,7 +4,7 @@ Equipo: Celine Alcaíno, Raúl Barrera y Justo Cano. Metodología: Scrum. Proyec
 
 ## 1. Problema
 
-La Ley N.º 21.719 de protección de datos personales entra en vigencia general el 1 de diciembre de 2026. Desde esa fecha, las organizaciones que tratan datos personales en Chile deben demostrar su cumplimiento ante la Agencia de Protección de Datos Personales y reportarle, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales. Muchas de ellas también trabajan con ISO/IEC 27001:2022 para la seguridad de la información.
+La Ley N.º 21.719 de protección de datos personales iba a entrar en vigencia general el 1 de diciembre de 2026; en noviembre de 2026 el Congreso despachó un proyecto que la posterga hasta el 15 de octubre de 2027. Desde que rija, las organizaciones que tratan datos personales en Chile deben demostrar su cumplimiento ante la Agencia de Protección de Datos Personales y reportarle, sin dilaciones indebidas, las vulneraciones de seguridad que afecten datos personales. Muchas de ellas también trabajan con ISO/IEC 27001:2022 para la seguridad de la información.
 
 Hoy esa gestión suele hacerse con planillas y documentos sueltos que no muestran el estado real de cumplimiento, o con consultorías puntuales. Una pyme no sabe con claridad cuánto le falta para cumplir ni tiene un procedimiento definido cuando ocurre un incidente.
 
