@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Building2, Search, Activity, PauseCircle, Plus, X, UserPlus, MoreVertical } from 'lucide-react';
+import { Building2, Search, Activity, PauseCircle, Plus, X, UserPlus, MoreVertical, Trash2 } from 'lucide-react';
 import { ThemeContext } from '../contexts/ThemeContext';
 import { organizationsAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -26,6 +26,13 @@ export default function OrganizationsScreen() {
   const [inviteError, setInviteError] = useState(null);
   const [inviteSuccess, setInviteSuccess] = useState(null);
 
+  // Modal: eliminar empresa (solo suspendidas y escribiendo su nombre)
+  const [borrarOrg, setBorrarOrg] = useState(null);
+  const [confirmacion, setConfirmacion] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  const [borrarError, setBorrarError] = useState(null);
+  const [aviso, setAviso] = useState(null);
+
   useEffect(() => { loadOrgs(); }, []);
 
   const loadOrgs = async () => {
@@ -40,6 +47,20 @@ export default function OrganizationsScreen() {
       await organizationsAPI.update(org.id, { activo: !org.activo });
       loadOrgs();
     } catch (e) { alert("Error al actualizar la empresa"); }
+  };
+
+  const abrirBorrar = (org) => { setBorrarOrg(org); setConfirmacion(''); setBorrarError(null); };
+  const handleBorrar = async (e) => {
+    e.preventDefault();
+    setBorrando(true); setBorrarError(null);
+    try {
+      await organizationsAPI.remove(borrarOrg.id, confirmacion);
+      setAviso(`Se eliminó la empresa ${borrarOrg.nombre} con todos sus datos.`);
+      setBorrarOrg(null);
+      await loadOrgs();
+    } catch (err) {
+      setBorrarError(err.message);
+    } finally { setBorrando(false); }
   };
 
   // --- Crear empresa ---
@@ -203,6 +224,11 @@ export default function OrganizationsScreen() {
                                 <button onClick={() => { toggleStatus(org); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'transparent', border: 'none', color: org.activo ? '#d97706' : '#10b981', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}>
                                   {org.activo ? <PauseCircle size={14} /> : <Activity size={14} />} {org.activo ? 'Suspender' : 'Activar'}
                                 </button>
+                                {!org.activo && (
+                                  <button onClick={() => { abrirBorrar(org); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}>
+                                    <Trash2 size={14} /> Eliminar empresa
+                                  </button>
+                                )}
                               </div>
                             </>
                           )}
@@ -216,6 +242,42 @@ export default function OrganizationsScreen() {
           </table>
         </div>
       </section>
+
+      {aviso && (
+        <div role="status" style={{ marginTop: '16px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(5,150,105,0.08)', border: '1px solid rgba(5,150,105,0.3)', color: '#047857', fontSize: '13px', fontWeight: 600, display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+          {aviso}
+          <button onClick={() => setAviso(null)} aria-label="Cerrar aviso" style={{ background: 'none', border: 'none', color: '#047857', cursor: 'pointer' }}><X size={14} /></button>
+        </div>
+      )}
+
+      {/* MODAL ELIMINAR EMPRESA */}
+      {borrarOrg && (
+        <div style={overlay}>
+          <div style={modalCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#dc2626' }}>Eliminar empresa</h2>
+              <button onClick={() => setBorrarOrg(null)} aria-label="Cerrar" style={{ background: t.inputBg, border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: t.textDim, cursor: 'pointer' }}><X size={18} /></button>
+            </div>
+            <form onSubmit={handleBorrar} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ fontSize: '13px', color: t.text, margin: 0, lineHeight: 1.5 }}>
+                Se borrarán para siempre <strong>{borrarOrg.nombre}</strong> y todos sus datos: usuarios, documentos, evidencias y sus archivos, riesgos, incidentes, respuestas del Análisis de Brechas y registro de actividad. <strong>No se puede deshacer.</strong>
+              </p>
+              <div>
+                <label style={labelStyle}>Escribe el nombre de la empresa para confirmar</label>
+                <input autoFocus value={confirmacion} onChange={e => setConfirmacion(e.target.value)} style={inputStyle} placeholder={borrarOrg.nombre} />
+              </div>
+              {borrarError && <div role="alert" style={{ padding: '10px 14px', background: '#fee2e2', color: '#dc2626', borderRadius: '10px', fontSize: '12px', fontWeight: 600 }}>{borrarError}</div>}
+              <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" onClick={() => setBorrarOrg(null)} className="btn-cancel" style={{ padding: '12px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" disabled={borrando || confirmacion.trim() !== borrarOrg.nombre.trim()} className="btn-save"
+                  style={{ padding: '12px 20px', borderRadius: '10px', border: 'none', background: '#dc2626', color: 'white', fontWeight: 700, fontSize: '13px', cursor: borrando ? 'wait' : 'pointer', opacity: borrando || confirmacion.trim() !== borrarOrg.nombre.trim() ? 0.5 : 1 }}>
+                  {borrando ? 'Eliminando…' : 'Eliminar para siempre'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* MODAL CREAR EMPRESA */}
       {createOpen && (

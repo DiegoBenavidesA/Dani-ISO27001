@@ -461,6 +461,14 @@ export const organizationsAPI = {
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body.detail || 'Error al invitar usuario');
     return body;
+  },
+  // Elimina para siempre la empresa y todos sus datos (solo superadmin, empresa suspendida).
+  remove: async (orgId, confirmacion, token = null) => {
+    const activeToken = token || localStorage.getItem('token');
+    const response = await fetch(`${API_URL}/api/organizations/${orgId}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(activeToken && { 'Authorization': `Bearer ${activeToken}` }) }, body: JSON.stringify({ confirmacion }) });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(body.detail || 'No se pudo eliminar la empresa');
+    return body;
   }
 };
 

@@ -33,6 +33,23 @@ def puede_asignar_rol(actor_role: str, target_role: str) -> bool:
     return actor_role in ("owner", "admin")
 
 
+def es_uno_mismo(actor: dict, target_user: User) -> bool:
+    return bool(actor.get("user_id")) and actor.get("user_id") == target_user.id
+
+
+def cambio_propio_prohibido(actor: dict, target_user: User, nuevo_rol, activo) -> str | None:
+    """Nadie, salvo el superadmin, cambia su propio rol ni se desactiva: así un
+    administrador no puede subirse a dueño ni dejar la empresa sin quien la gestione."""
+    if actor.get("role") == "superadmin" or not es_uno_mismo(actor, target_user):
+        return None
+    rol_actual = target_user.role.value if hasattr(target_user.role, "value") else str(target_user.role)
+    if nuevo_rol is not None and nuevo_rol != rol_actual:
+        return "No puedes cambiar tu propio rol: pídeselo al dueño de la empresa."
+    if activo is False:
+        return "No puedes desactivar tu propia cuenta."
+    return None
+
+
 def mismo_ambito(actor: dict, target_user: User) -> bool:
     """superadmin ve todas las empresas; el resto solo la suya."""
     if actor.get("role") == "superadmin":
@@ -352,6 +369,10 @@ async def update_user(
             detail="No tienes permisos para modificar al owner de la empresa."
         )
 
+    motivo = cambio_propio_prohibido(current_user, user, user_data.role, user_data.is_active)
+    if motivo:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=motivo)
+
     if user_data.full_name is not None:
         user.full_name = user_data.full_name
     if user_data.email is not None:
@@ -419,6 +440,9 @@ async def delete_user(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos para eliminar al owner de la empresa."
         )
+
+    if current_user.get("role") != "superadmin" and es_uno_mismo(current_user, user):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No puedes eliminar tu propia cuenta.")
 
     correo, org_usuario = user.email, user.organization_id
     await db.delete(user)

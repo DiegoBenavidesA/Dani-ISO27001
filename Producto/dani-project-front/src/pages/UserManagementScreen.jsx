@@ -17,6 +17,16 @@ const UserManagementScreen = () => {
   // "dentro" de una empresa, invita y lista como el administrador de esa empresa
   // (el backend recibe la empresa por la cabecera X-Org-Id).
   const isSuperadmin = authUser?.role === 'superadmin' && !impersonatedOrg;
+
+  // Reglas de roles (las mismas que aplica el servidor):
+  // - nadie, salvo el superadmin, cambia su propio rol, se suspende o se elimina;
+  // - solo el dueño (o el superadmin) asigna el rol de dueño y modifica a un dueño.
+  const miRol = authUser?.role;
+  const esYo = (u) => miRol !== 'superadmin' && !!authUser?.email && (u.email || '').toLowerCase() === authUser.email.toLowerCase();
+  const puedeTocarDueno = miRol === 'superadmin' || miRol === 'owner';
+  const puedeGestionar = (u) => !esYo(u) && (u.role !== 'owner' || puedeTocarDueno);
+  const ROLES_ASIGNABLES = [['owner', 'Dueño'], ['admin', 'Administrador'], ['manager', 'Manager'], ['auditor', 'Auditor'], ['dpo', 'DPO'], ['employee', 'Empleado']]
+    .filter(([k]) => k !== 'owner' || puedeTocarDueno);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -163,7 +173,7 @@ const UserManagementScreen = () => {
 
   const handleOpenEdit = (user, e) => {
     e.stopPropagation();
-    setEditingUser({ id: user.id, full_name: user.name, email: user.email, role: user.role, is_active: user.status === 'active' });
+    setEditingUser({ id: user.id, full_name: user.name, email: user.email, role: user.role, is_active: user.status === 'active', esYo: esYo(user) });
     setIsEditModalOpen(true);
   };
 
@@ -356,9 +366,10 @@ const UserManagementScreen = () => {
                               <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 10050 }} />
                               <div onClick={(e) => e.stopPropagation()} style={{ position: 'fixed', ...menuPos, minWidth: '170px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', zIndex: 10060, overflow: 'hidden', textAlign: 'left' }}>
                                 {u.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); handleResendInvite(u); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Mail size={14} /> Reenviar invitación</button>}
-                                {u.role !== 'superadmin' && u.status !== 'pending' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{u.status === 'active' ? <Ban size={14} /> : <UserCheck size={14} />} {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
-                                <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Edit3 size={14} /> Editar</button>
-                                <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>
+                                {u.role !== 'superadmin' && u.status !== 'pending' && puedeGestionar(u) && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{u.status === 'active' ? <Ban size={14} /> : <UserCheck size={14} />} {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
+                                {(puedeGestionar(u) || esYo(u)) && <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}><Edit3 size={14} /> {esYo(u) ? 'Editar mis datos' : 'Editar'}</button>}
+                                {puedeGestionar(u) && <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '10px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, cursor: 'pointer', borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>}
+                            {!puedeGestionar(u) && !esYo(u) && <p style={{ margin: 0, padding: '10px', fontSize: '11px', color: t.textDim, maxWidth: '200px' }}>Solo el dueño puede modificar al dueño.</p>}
                               </div>
                             </>,
                             document.body
@@ -400,9 +411,10 @@ const UserManagementScreen = () => {
                           <div onClick={() => setMenuOpenId(null)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
                           <div style={{ position: 'absolute', top: '100%', right: 0, minWidth: '160px', background: t.cardBg, border: `1px solid ${t.border}`, borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 50, overflow: 'hidden' }}>
                             {u.status === 'pending' && <button onClick={(e) => { e.stopPropagation(); setMenuOpenId(null); handleResendInvite(u); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#2563eb', fontSize: '12px', fontWeight: 600 }}><Mail size={14} /> Reenviar invitación</button>}
-                            {u.role !== 'superadmin' && u.status !== 'pending' && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600 }}><Ban size={14} /> {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
-                            <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600 }}><Edit3 size={14} /> Editar</button>
-                            <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>
+                            {u.role !== 'superadmin' && u.status !== 'pending' && puedeGestionar(u) && <button onClick={(e) => { handleToggleActive(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: u.status === 'active' ? '#d97706' : '#2563eb', fontSize: '12px', fontWeight: 600 }}><Ban size={14} /> {u.status === 'active' ? 'Suspender' : 'Reactivar'}</button>}
+                            {(puedeGestionar(u) || esYo(u)) && <button onClick={(e) => { handleOpenEdit(u, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: t.text, fontSize: '12px', fontWeight: 600 }}><Edit3 size={14} /> {esYo(u) ? 'Editar mis datos' : 'Editar'}</button>}
+                            {puedeGestionar(u) && <button onClick={(e) => { handleDeleteUser(u.id, e); setMenuOpenId(null); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px', background: 'transparent', border: 'none', color: '#dc2626', fontSize: '12px', fontWeight: 600, borderTop: `1px solid ${t.border}` }}><Trash2 size={14} /> Eliminar</button>}
+                            {!puedeGestionar(u) && !esYo(u) && <p style={{ margin: 0, padding: '10px', fontSize: '11px', color: t.textDim, maxWidth: '200px' }}>Solo el dueño puede modificar al dueño.</p>}
                           </div>
                         </>
                       )}
@@ -473,12 +485,7 @@ const UserManagementScreen = () => {
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '6px' }}>Rol en el Sistema *</label>
                 <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: '10px', border: `1px solid ${t.border}`, background: t.inputBg, color: t.text, fontSize: '13px', outline: 'none' }}>
-                  <option value="owner">Dueño</option>
-                  <option value="admin">Administrador</option>
-                  <option value="manager">Manager</option>
-                  <option value="auditor">Auditor</option>
-                  <option value="dpo">DPO</option>
-                  <option value="employee">Empleado</option>
+                  {ROLES_ASIGNABLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
                 </select>
               </div>
 
@@ -570,20 +577,17 @@ const UserManagementScreen = () => {
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: t.textMuted, marginBottom: '6px' }}>Rol en el Sistema</label>
-                <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} disabled={editingUser.role === 'superadmin'} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
+                <select value={editingUser.role} onChange={e => setEditingUser({...editingUser, role: e.target.value})} disabled={editingUser.role === 'superadmin' || editingUser.esYo} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px', color: t.text, fontSize: '13px', outline: 'none' }}>
                   {editingUser.role === 'superadmin' && <option value="superadmin">Superadmin (Plataforma)</option>}
-                  <option value="owner">Dueño</option>
-                  <option value="admin">Administrador</option>
-                  <option value="manager">Manager</option>
-                  <option value="auditor">Auditor</option>
-                  <option value="dpo">DPO</option>
-                  <option value="employee">Empleado</option>
+                  {editingUser.role !== 'superadmin' && !ROLES_ASIGNABLES.some(([k]) => k === editingUser.role) && <option value={editingUser.role}>{rolesConfig[editingUser.role]?.label || editingUser.role}</option>}
+                  {ROLES_ASIGNABLES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
                 </select>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px' }}>
+              {editingUser.esYo && <p style={{ margin: '-8px 0 0', fontSize: '11px', color: t.textDim }}>No puedes cambiar tu propio rol ni desactivarte: pídeselo al dueño de la empresa.</p>}
+              {!editingUser.esYo && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: t.inputBg, border: `1px solid ${t.border}`, borderRadius: '10px' }}>
                 <input type="checkbox" id="is_active" checked={editingUser.is_active} onChange={e => setEditingUser({...editingUser, is_active: e.target.checked})} style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }} />
                 <label htmlFor="is_active" style={{ fontSize: '13px', fontWeight: 600, color: t.text, cursor: 'pointer' }}>Usuario activo</label>
-              </div>
+              </div>}
 
               <div className="form-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '8px' }}>
                 <button type="button" onClick={() => setIsEditModalOpen(false)} className="btn-cancel" style={{ padding: '12px 16px', borderRadius: '10px', border: `1px solid ${t.border}`, background: 'transparent', color: t.text, fontWeight: 600, fontSize: '13px', cursor: 'pointer' }}>Cancelar</button>

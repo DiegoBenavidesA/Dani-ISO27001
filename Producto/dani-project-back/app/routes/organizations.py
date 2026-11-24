@@ -244,3 +244,33 @@ async def update_organization(
     await db.commit()
     await db.refresh(org)
     return org
+
+class OrganizationDelete(BaseModel):
+    confirmacion: str  # el nombre exacto de la empresa
+
+
+@router.delete("/{org_id}")
+async def delete_organization(
+    org_id: str,
+    data: OrganizationDelete,
+    current_user: dict = Depends(require_superadmin),
+    db: AsyncSession = Depends(get_db)
+):
+    """Elimina para siempre una empresa y todos sus datos (usuarios, documentos,
+    evidencias y sus archivos, riesgos, incidentes, respuestas y registro).
+    Solo el superadmin, solo si la empresa está suspendida y escribiendo su nombre."""
+    from app.services.borrar_empresa import borrar_empresa, quitar_archivos
+
+    org = (await db.execute(select(Organization).where(Organization.id == org_id))).scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=404, detail="Organización no encontrada")
+    if org.activo:
+        raise HTTPException(status_code=400, detail="Primero suspende la empresa; solo se puede eliminar una empresa suspendida.")
+    if (data.confirmacion or "").strip() != (org.nombre or "").strip():
+        raise HTTPException(status_code=400, detail="El nombre escrito no coincide con el de la empresa.")
+
+    nombre = org.nombre
+    resultado = await borrar_empresa(db, org_id)
+    archivos = await quitar_archivos(resultado["archivos"])
+    logger.warning(f"Empresa eliminada por {current_user.get('sub')}: {nombre} ({org_id}) · filas {resultado['filas']} · archivos {archivos}")
+    return {"message": f"Se eliminó la empresa {nombre}.", "filas": resultado["filas"], "archivos_borrados": archivos}
