@@ -79,3 +79,11 @@ def test_empresa_suspendida_y_confirmada_se_elimina():
          patch("app.services.borrar_empresa.quitar_archivos", AsyncMock(return_value=1)):
         r = asyncio.run(orgs.delete_organization("o", orgs.OrganizationDelete(confirmacion="Clínica"), {"role": "superadmin"}, db))
     assert r["filas"] == {"users": 2} and r["archivos_borrados"] == 1
+
+
+def test_el_usuario_de_la_sesion_trae_su_correo_en_sub():
+    """Sin "sub", "Aprobado por", el correo del registro de actividad y quien
+    aceptó un riesgo quedaban vacíos."""
+    from app.dependencies.auth import get_current_user
+    u = asyncio.run(get_current_user({"sub": "ana@clinica.cl", "role": "admin", "user_id": "u1", "organization_id": "o"}))
+    assert u["sub"] == "ana@clinica.cl" and u["email"] == "ana@clinica.cl"

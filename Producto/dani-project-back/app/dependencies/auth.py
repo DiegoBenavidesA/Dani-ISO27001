@@ -41,6 +41,9 @@ async def usuario_activo(payload: dict = Depends(token_payload), db: AsyncSessio
 async def get_current_user(payload: dict = Depends(usuario_activo)):
     return {
         "email": payload.get("sub"),
+        # Mismo correo con el nombre del token: lo usan el registro de actividad,
+        # "Aprobado por" de los documentos, la aceptación de riesgos y los avisos.
+        "sub": payload.get("sub"),
         "role": payload.get("role", "user"),
         "user_id": payload.get("user_id"),
         # Multi-tenant (N4): empresa del usuario, extraída del token.
